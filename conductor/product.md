@@ -68,3 +68,14 @@ OUT:
 
 - Assumptions: pastel baby scale 0.25-0.35x, blush via colorway, parent volume lock, 5s hint glow, all food works (favorite = extra hearts)
 - Open: exact tablet model for final perf test, parent re-record pack in v2
+
+## Roadmap
+
+- [x] Track 1 — Trike Waddle Walk (offline PWA shell, pastel rigged waddle, stay-in-frame wander, silence)
+- [ ] Track 2 — Stego joins (reuse Trike pipeline: retime Waddle, plates pastel, wander)
+- [ ] Track 3 — Brachio joins (seated shuffle, 1.2 m scale cap, UP/DOWN size-sort surprise)
+- [ ] Track 4 — Feed mini + snack counting 1-5 (drag berry/leaf, Kokoro counts, eat_nom clip)
+- [ ] Track 5 — Wash + cuddle (scrub mud, tap hearts, body-tap vocab surprise)
+- [ ] Track 6 — Surprises + sticker book (TSB bubbles, twinkle invites, auto-save moments)
+- [ ] Track 7 — Ranch dressing (3 POV buttons, nest/garden, sleepy cues + lullaby closer)
+- [ ] Track 8 — Tablet pass + release (real-device 60 fps, airplane-mode, parent-voice review, Add-to-Homescreen)
