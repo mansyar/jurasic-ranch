@@ -27,17 +27,21 @@ const loaderMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("three/addons/loaders/GLTFLoader.js", () => ({
-  GLTFLoader: vi.fn(() => ({
-    loadAsync: loaderMocks.loadAsync,
-    setDRACOLoader: loaderMocks.setDRACOLoader,
-  })),
+  GLTFLoader: vi.fn(function (this: unknown) {
+    return {
+      loadAsync: loaderMocks.loadAsync,
+      setDRACOLoader: loaderMocks.setDRACOLoader,
+    };
+  }),
 }));
 
 vi.mock("three/addons/loaders/DRACOLoader.js", () => ({
-  DRACOLoader: vi.fn(() => ({
-    setDecoderPath: loaderMocks.setDecoderPath,
-    dispose: loaderMocks.dispose,
-  })),
+  DRACOLoader: vi.fn(function (this: unknown) {
+    return {
+      setDecoderPath: loaderMocks.setDecoderPath,
+      dispose: loaderMocks.dispose,
+    };
+  }),
 }));
 
 /** The only placeholder part the fallback bob may move. */
