@@ -194,16 +194,19 @@ describe("rigged baked look", () => {
 
   it("leaves the baked vertex colors untouched (no runtime recolor)", async () => {
     const rig = createBakedRig();
+    // Snapshot the baked mesh before load: the loader resolves with this same
+    // scene, and the load pins blush cheeks (plain Meshes with no COLOR_0)
+    // ahead of it in traversal order.
+    const baked = rig.getObjectByProperty("type", "Mesh") as THREE.Mesh;
+    const beforeColors = (baked.geometry.getAttribute("color") as THREE.BufferAttribute).array.slice();
     const clip = new THREE.AnimationClip("Waddle", 0.8, []);
     loaderMocks.loadAsync.mockResolvedValue({ scene: rig, animations: [clip] });
     const loaded = await loadTrikePlayer();
     expect(placeholderHexes().has(PLACEHOLDER_BODY_HEX)).toBe(true);
-    const before = rig.getObjectByProperty("type", "Mesh") as THREE.Mesh;
-    const loadedMesh = loaded.model.getObjectByProperty("type", "Mesh") as THREE.Mesh;
-    const beforeColors = (before.geometry.getAttribute("color") as THREE.BufferAttribute).array.slice();
-    const afterColors = (loadedMesh.geometry.getAttribute("color") as THREE.BufferAttribute).array;
+    expect(loaded.model).toBe(rig);
+    const afterColors = (baked.geometry.getAttribute("color") as THREE.BufferAttribute).array;
     expect(Array.from(afterColors)).toEqual(Array.from(beforeColors));
-    expect((loadedMesh.material as THREE.MeshStandardMaterial).flatShading).toBe(false);
+    expect((baked.material as THREE.MeshStandardMaterial).flatShading).toBe(false);
   });
 
   it("pins pink blush cheeks under the rigged Head bone", async () => {

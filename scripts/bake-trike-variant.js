@@ -50,6 +50,28 @@ import * as THREE from 'three';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { createAsset } from './vendor/triceratops-base.mjs';
 
+/**
+ * Node has no FileReader, which three's GLTFExporter uses to assemble the
+ * binary GLB (readAsArrayBuffer + onloadend). Minimal polyfill backed by
+ * Blob.arrayBuffer(); guarded so browsers keep the native implementation.
+ */
+if (typeof globalThis.FileReader === 'undefined') {
+  globalThis.FileReader = class {
+    constructor() {
+      this.result = null;
+      this.onloadend = null;
+    }
+    readAsArrayBuffer(blob) {
+      blob.arrayBuffer().then((buffer) => {
+        this.result = buffer;
+        if (typeof this.onloadend === 'function') {
+          this.onloadend();
+        }
+      });
+    }
+  };
+}
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = dirname(HERE);
 const BLENDER_SCRIPT = join(HERE, 'bake-trike-variant.py');
@@ -86,7 +108,7 @@ const CLIP_MAX_SECONDS = 0.81;
 const OLD_ROOT_SCALE = 0.3;
 const ROOT_SCALE_TOLERANCE = 0.01;
 
-const GLB_MAGIC = 0x4654_4c67;
+const GLB_MAGIC = 0x4654_6c67;
 const GLB_VERSION = 2;
 const JSON_CHUNK_TYPE = 0x4e4f_534a;
 const BIN_CHUNK_TYPE = 0x004e_4942;
@@ -284,7 +306,10 @@ export async function bakeTrikeVariant(options = {}) {
   const exporter = new GLTFExporter();
   const exported = await exporter.parseAsync(group, { binary: true, animations: [clip] });
   const tmpIn = join(tmpdir(), `trike-baby-uncompressed-${process.pid}.glb`);
-  const tmpOut = `${outPath}.draco-tmp`;
+  // Blender appends `.glb` when the export path lacks it, so the temp name
+  // keeps the suffix: the next run overwrites any stranded temp, then the
+  // atomic rename moves it into place (never a half-written outPath).
+  const tmpOut = `${outPath}.draco-tmp.glb`;
   await writeFile(tmpIn, new Uint8Array(exported));
   try {
     const result = spawnSync(blenderBin, blenderArgs(tmpIn, tmpOut), { stdio: 'inherit' });
