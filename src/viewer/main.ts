@@ -86,9 +86,11 @@ const WALK_SETTING_KEY = "walking";
 
 /**
  * Build the Phase 1 placeholder Trike: a pastel flat-shaded baby about
- * 1.9 m long facing +Z with its feet on y = 0 — the same footprint as the
- * rigged swap target, so the swap does not pop. It paints instantly while
- * the rigged GLB loads, then leaves the scene on a successful swap.
+ * 3.7 m long facing +Z with its feet on y = 0 — the same footprint as the
+ * rigged swap target (baked size-0.6 GLB, ~3.8 m, 3.3–4.2 m window per
+ * scripts/check-trike.test.ts), so the swap does not pop. It paints
+ * instantly while the rigged GLB loads, then leaves the scene on a
+ * successful swap.
  */
 export function createPlaceholderTrike(): THREE.Group {
   const body = new THREE.MeshStandardMaterial({
@@ -169,11 +171,12 @@ export function createPlaceholderTrike(): THREE.Group {
   tail.position.set(-0.55, 0.4, 0);
   upper.add(tail);
 
-  // Match the rigged TrikePlayer footprint (faces +Z, ~1.9 m baby scale):
-  // the authored parts face +X at ~1.4 m, so rotate onto +Z then scale up.
+  // Match the rigged TrikePlayer footprint (faces +Z, ~3.7 m baked baby
+  // scale): the authored parts face +X at ~1.44 m, so rotate onto +Z then
+  // scale by 2.6 into the 3.3–4.2 m shipped-GLB window.
   // Group origin sits at ground level, so feet stay on y = 0.
   trike.rotation.y = -Math.PI / 2;
-  trike.scale.setScalar(1.3);
+  trike.scale.setScalar(2.6);
 
   return trike;
 }

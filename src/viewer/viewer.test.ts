@@ -78,11 +78,12 @@ describe("placeholder trike", () => {
     expect(trike.children.length).toBeGreaterThan(0);
     const box = new THREE.Box3().setFromObject(trike);
     expect(Math.abs(box.min.y)).toBeLessThan(1e-6);
-    // Same footprint as the rigged swap target (~1.9 m, facing +Z): the swap
-    // must not pop in size or heading.
+    // Same footprint as the rigged swap target (~3.8 m baked baby, facing
+    // +Z): the swap must not pop in size or heading. Bounds mirror the
+    // shipped-GLB window in scripts/check-trike.test.ts (3.3–4.2 m).
     const size = box.getSize(new THREE.Vector3());
-    expect(size.z).toBeGreaterThan(1.5);
-    expect(size.z).toBeLessThan(2.2);
+    expect(size.z).toBeGreaterThanOrEqual(3.3);
+    expect(size.z).toBeLessThanOrEqual(4.2);
     expect(trike.rotation.y).toBeCloseTo(-Math.PI / 2, 5);
   });
 
