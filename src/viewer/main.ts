@@ -1,8 +1,10 @@
 import * as THREE from "three";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { TrikePlayer } from "../ranch/trike-player.js";
-import { WADDLE_LOOP_SECONDS } from "../ranch/waddle.js";
+import { DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from "../ranch/dino-player.js";
+import { avoidanceNudges } from "../ranch/avoidance.js";
+import { DustPool } from "../ranch/dust.js";
+import { WADDLE_LOOP_SECONDS, wrapAngle, type GaitParams } from "../ranch/waddle.js";
 import { unlockAudio } from "./audio.js";
 import { resolvePixelRatio } from "./pixel-ratio.js";
 import { readSetting, writeSetting } from "./storage.js";
@@ -17,6 +19,13 @@ import { readSetting, writeSetting } from "./storage.js";
 const BASE_URL = import.meta.env.BASE_URL;
 
 export const TRIKE_MODEL_URL = `${BASE_URL}models/trike.glb`;
+
+/**
+ * Path of the baked Stego GLB (Phase 2 pastel baby variant, Draco). Loads
+ * through the same Draco path and prefer-Waddle-else-first contract as the
+ * Trike, wrapped in a DinoPlayer with STEGO_GAIT.
+ */
+export const STEGO_MODEL_URL = `${BASE_URL}models/stego.glb`;
 
 /**
  * Same-origin Draco decoder vendored under `public/draco` (offline-first:
@@ -39,6 +48,12 @@ export const PLACEHOLDER_BODY_NAME = "PlaceholderBody";
  */
 /** Baby-green body, verbatim the baked GLB hide zone. */
 export const PLACEHOLDER_BODY_HEX = 0x9ed68a;
+/** Boxy fallback Stego hide: dusty teal, verbatim the baked Stego hide zone. */
+export const STEGO_BODY_HEX = 0x7fb5a3;
+/** Boxy fallback Stego plates: peach, verbatim the baked Stego plate zone. */
+export const STEGO_PLATE_HEX = 0xefa27e;
+/** Lateral spawn offset in metres: Trike starts at -x, Stego at +x (FR-5). */
+export const SPAWN_OFFSET_METRES = 0.4;
 /** Blush pink for the runtime cheek spheres. */
 export const BLUSH_HEX = 0xf2a0ac;
 /** Blush cheek sphere radius in metres. */
@@ -171,7 +186,7 @@ export function createPlaceholderTrike(): THREE.Group {
   tail.position.set(-0.55, 0.4, 0);
   upper.add(tail);
 
-  // Match the rigged TrikePlayer footprint (faces +Z, ~3.7 m baked baby
+  // Match the rigged DinoPlayer footprint (faces +Z, ~3.7 m baked baby
   // scale): the authored parts face +X at ~1.44 m, so rotate onto +Z then
   // scale by 2.6 into the 3.3–4.2 m shipped-GLB window.
   // Group origin sits at ground level, so feet stay on y = 0.
@@ -179,6 +194,96 @@ export function createPlaceholderTrike(): THREE.Group {
   trike.scale.setScalar(2.6);
 
   return trike;
+}
+
+/**
+ * Build the Phase 3 boxy fallback Stego: dusty-teal body with a peach plate
+ * row, about 3.8 m long facing +Z with its feet on y = 0 — the same footprint
+ * window as the rigged swap target (baked size-0.6 GLB, ~3.9 m, 3.3–4.2 m per
+ * scripts/check-stego.test.ts), so the swap does not pop. Deliberately boxy
+ * (boxes only) so it never reads as a second Trike. Shares the placeholder
+ * bob via the common PlaceholderBody part name.
+ */
+export function createPlaceholderStego(): THREE.Group {
+  const hide = new THREE.MeshStandardMaterial({
+    color: STEGO_BODY_HEX,
+    flatShading: true,
+    roughness: 0.9,
+  });
+  const plate = new THREE.MeshStandardMaterial({
+    color: STEGO_PLATE_HEX,
+    flatShading: true,
+    roughness: 0.9,
+  });
+  const dark = new THREE.MeshStandardMaterial({
+    color: 0x3a4a3a,
+    flatShading: true,
+    roughness: 0.9,
+  });
+  const blush = new THREE.MeshStandardMaterial({
+    color: BLUSH_HEX,
+    flatShading: true,
+    roughness: 0.9,
+  });
+
+  const stego = new THREE.Group();
+  stego.name = "PlaceholderStego";
+
+  /** Upper body: the only part the fallback bob may move (feet stay planted). */
+  const upper = new THREE.Group();
+  upper.name = PLACEHOLDER_BODY_NAME;
+  stego.add(upper);
+
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.46, 0.4), hide);
+  torso.position.set(0, 0.5, 0);
+  upper.add(torso);
+
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.28, 0.28), hide);
+  head.position.set(0.55, 0.6, 0);
+  upper.add(head);
+
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.2, 0.2), hide);
+  tail.position.set(-0.58, 0.52, 0);
+  upper.add(tail);
+
+  const plateGeo = new THREE.BoxGeometry(0.07, 0.3, 0.24);
+  for (let index = 0; index < 5; index += 1) {
+    const fin = new THREE.Mesh(plateGeo, plate);
+    fin.position.set(-0.28 + index * 0.17, 0.85, 0);
+    upper.add(fin);
+  }
+
+  const eyeGeo = new THREE.SphereGeometry(0.03, 8, 8);
+  for (const z of [-0.12, 0.12]) {
+    const eye = new THREE.Mesh(eyeGeo, dark);
+    eye.position.set(0.66, 0.64, z);
+    upper.add(eye);
+  }
+
+  const cheekGeo = new THREE.SphereGeometry(0.04, 8, 8);
+  for (const z of [-0.15, 0.15]) {
+    const cheek = new THREE.Mesh(cheekGeo, blush);
+    cheek.scale.set(0.5, 1, 0.4);
+    cheek.position.set(0.62, 0.54, z);
+    upper.add(cheek);
+  }
+
+  const legGeo = new THREE.BoxGeometry(0.16, 0.4, 0.16);
+  for (const x of [-0.25, 0.25]) {
+    for (const z of [-0.13, 0.13]) {
+      const leg = new THREE.Mesh(legGeo, hide);
+      leg.position.set(x, 0.2, z);
+      stego.add(leg);
+    }
+  }
+
+  // Same swap contract as the Trike placeholder: authored parts face +X at
+  // ~1.46 m, so rotate onto +Z then scale by 2.6 into the 3.3–4.2 m
+  // shipped-GLB window. Group origin sits at ground level, feet on y = 0.
+  stego.rotation.y = -Math.PI / 2;
+  stego.scale.setScalar(2.6);
+
+  return stego;
 }
 
 /**
@@ -195,36 +300,95 @@ export function updatePlaceholderWalk(trike: THREE.Group, elapsedSeconds: number
 }
 
 /** Rigged model plus its player, ready to swap into the scene. */
-export interface LoadedTrike {
+export interface LoadedDino {
   model: THREE.Object3D;
-  player: TrikePlayer;
+  player: DinoPlayer;
 }
 
+/** Legacy Trike loader name: identical shape to LoadedDino. */
+export type LoadedTrike = LoadedDino;
+
 /**
- * Load the baked Draco GLB and wrap its `Waddle` clip in a TrikePlayer.
- * DOM- and renderer-free (loader boundary only), so tests can drive it with
- * a stubbed GLTFLoader while the real viewer owns the WebGL chrome.
+ * Load a baked Draco GLB and wrap its `Waddle` clip in a DinoPlayer with the
+ * given gait. DOM- and renderer-free (loader boundary only), so tests can
+ * drive it with a stubbed GLTFLoader while the real viewer owns the WebGL
+ * chrome. An injected DustPool is shared (FR-9); omitted, the player keeps a
+ * private pool exactly as before.
  */
-export async function loadTrikePlayer(): Promise<LoadedTrike> {
+async function loadDinoPlayer(
+  modelUrl: string,
+  species: string,
+  gait: GaitParams,
+  sharedDust?: DustPool,
+): Promise<LoadedDino> {
   const draco = new DRACOLoader();
   draco.setDecoderPath(DRACO_DECODER_PATH);
   try {
     const loader = new GLTFLoader();
     loader.setDRACOLoader(draco);
-    const gltf = await loader.loadAsync(TRIKE_MODEL_URL);
+    const gltf = await loader.loadAsync(modelUrl);
     const clip: THREE.AnimationClip | undefined =
       THREE.AnimationClip.findByName(gltf.animations, WADDLE_CLIP_NAME) ?? gltf.animations[0];
     if (clip === undefined) {
-      throw new Error(`Trike GLB has no animations (expected "${WADDLE_CLIP_NAME}")`);
+      throw new Error(`${species} GLB has no animations (expected "${WADDLE_CLIP_NAME}")`);
     }
     // Baked pastel baby look: the GLB already carries the pastel palette in
     // its vertex colors, so no runtime recolor runs here. Only pin blush
     // cheeks to the blink Head bone. No-op on models without a Head node.
-    const player = new TrikePlayer(gltf.scene, { clip });
+    const player = new DinoPlayer(gltf.scene, { clip, gait, dust: sharedDust });
     attachBlushCheeks(player.head);
     return { model: gltf.scene, player };
   } finally {
     draco.dispose();
+  }
+}
+
+/** Load the baked Trike GLB with the Trike gait (FR-2 behaviour unchanged). */
+export function loadTrikePlayer(sharedDust?: DustPool): Promise<LoadedTrike> {
+  return loadDinoPlayer(TRIKE_MODEL_URL, "Trike", TRIKE_GAIT, sharedDust);
+}
+
+/** Load the baked Stego GLB with the Stego gait (FR-4). */
+export function loadStegoPlayer(sharedDust?: DustPool): Promise<LoadedDino> {
+  return loadDinoPlayer(STEGO_MODEL_URL, "Stego", STEGO_GAIT, sharedDust);
+}
+
+/** One Walk button drives every loaded player together (FR-7, AC-4). */
+export function setAllWalking(players: DinoPlayer[], walking: boolean): void {
+  for (const player of players) {
+    player.setWalking(walking);
+  }
+}
+
+/** Status pill copy: names both species while walking (NFR-4 icon + word). */
+export function walkStatusText(walking: boolean): string {
+  return walking ? "🦕 Trike + 🦖 Stego walking" : "Tap Walk to waddle";
+}
+
+/**
+ * Soft-steer both players apart (FR-6): bias each heading away when the pair
+ * is closer than 0.4 m. Never touches `moving`, so neither dino stops,
+ * bounces, or teleports.
+ */
+export function steerPairApart(
+  trike: DinoPlayer,
+  trikeModel: THREE.Object3D,
+  stego: DinoPlayer,
+  stegoModel: THREE.Object3D,
+): void {
+  const { aNudge, bNudge } = avoidanceNudges(
+    trikeModel.position.x,
+    trikeModel.position.z,
+    trike.heading,
+    stegoModel.position.x,
+    stegoModel.position.z,
+    stego.heading,
+  );
+  if (aNudge !== 0) {
+    trike.turnTo(wrapAngle(trike.heading + aNudge));
+  }
+  if (bNudge !== 0) {
+    stego.turnTo(wrapAngle(stego.heading + bNudge));
   }
 }
 
@@ -286,48 +450,92 @@ export async function bootViewer(): Promise<void> {
   camera.position.set(2.4, 1.5, 3.0);
   camera.lookAt(0, 0.45, 0);
 
+  const enableShadows = (root: THREE.Object3D): void => {
+    root.traverse((child: THREE.Object3D) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+      }
+    });
+  };
+
+  // Instant boxy pair at the ±0.4 m spawn (FR-5): each rigged GLB swaps its
+  // own placeholder on load, so a slow Stego fetch never blocks the Trike.
   const trike = createPlaceholderTrike();
-  trike.traverse((child: THREE.Object3D) => {
-    if (child instanceof THREE.Mesh) {
-      child.castShadow = true;
-    }
-  });
+  trike.position.set(-SPAWN_OFFSET_METRES, 0, 0);
+  enableShadows(trike);
   scene.add(trike);
+  const stego = createPlaceholderStego();
+  stego.position.set(SPAWN_OFFSET_METRES, 0, 0);
+  enableShadows(stego);
+  scene.add(stego);
+
+  // FR-9: one shared DustPool feeds both players (single points draw call).
+  const sharedDust = new DustPool();
+  scene.add(sharedDust.points);
 
   let walking = (await readSetting(WALK_SETTING_KEY)) === true;
-  let player: TrikePlayer | null = null;
+  const players: DinoPlayer[] = [];
+  let trikePlayer: DinoPlayer | null = null;
+  let stegoPlayer: DinoPlayer | null = null;
+  let trikeModel: THREE.Object3D = trike;
+  let stegoModel: THREE.Object3D = stego;
   const syncChrome = (): void => {
     button.textContent = walking ? "Stop" : "Walk";
     button.setAttribute("aria-pressed", walking ? "true" : "false");
-    setStatus(status, walking ? "Walking" : "Tap Walk to waddle");
+    setStatus(status, walkStatusText(walking));
   };
   button.addEventListener("click", () => {
     walking = !walking;
-    player?.setWalking(walking);
+    setAllWalking(players, walking);
     void unlockAudio();
     void writeSetting(WALK_SETTING_KEY, walking);
     syncChrome();
   });
   syncChrome();
 
-  // Swap the instant placeholder for the rigged GLB once Draco decoding
-  // finishes. A failed load keeps the placeholder walking (offline first-visit
-  // safety) and surfaces the reason in the console.
-  void loadTrikePlayer()
-    .then(({ model, player: rigged }) => {
-      model.traverse((child: THREE.Object3D) => {
-        if (child instanceof THREE.Mesh) {
-          child.castShadow = true;
-        }
+  // Swap one instant placeholder for its rigged GLB. Crossing initial
+  // headings (+X for Trike, -X for Stego) send the pair past each other
+  // early so avoidance visibly steers from the first seconds.
+  const swapToRigged = (
+    placeholder: THREE.Group,
+    loaded: LoadedDino,
+    initialHeading: number,
+    assign: (player: DinoPlayer, model: THREE.Object3D) => void,
+  ): void => {
+    enableShadows(loaded.model);
+    loaded.model.position.copy(placeholder.position);
+    scene.remove(placeholder);
+    scene.add(loaded.model);
+    loaded.player.turnTo(initialHeading);
+    loaded.player.setWalking(walking);
+    players.push(loaded.player);
+    assign(loaded.player, loaded.model);
+  };
+
+  // Swap the instant placeholders for the rigged GLBs once Draco decoding
+  // finishes. A failed load keeps its placeholder walking (offline
+  // first-visit safety) and surfaces the reason in the console; the other
+  // dino is unaffected.
+  void loadTrikePlayer(sharedDust)
+    .then((loaded) => {
+      swapToRigged(trike, loaded, Math.PI / 2, (player, model) => {
+        trikePlayer = player;
+        trikeModel = model;
       });
-      scene.remove(trike);
-      scene.add(model);
-      scene.add(rigged.dust.points);
-      rigged.setWalking(walking);
-      player = rigged;
     })
     .catch((error: unknown) => {
       console.warn("Rigged trike unavailable; keeping the placeholder.", error);
+    });
+
+  void loadStegoPlayer(sharedDust)
+    .then((loaded) => {
+      swapToRigged(stego, loaded, -Math.PI / 2, (player, model) => {
+        stegoPlayer = player;
+        stegoModel = model;
+      });
+    })
+    .catch((error: unknown) => {
+      console.warn("Rigged stego unavailable; keeping the placeholder.", error);
     });
 
   window.addEventListener("resize", () => {
@@ -341,10 +549,18 @@ export async function bootViewer(): Promise<void> {
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.25);
     const now = clock.elapsedTime;
-    if (player !== null) {
-      player.update(dt, now);
+    if (trikePlayer !== null && stegoPlayer !== null) {
+      steerPairApart(trikePlayer, trikeModel, stegoPlayer, stegoModel);
+    }
+    if (trikePlayer !== null) {
+      trikePlayer.update(dt, now);
     } else if (walking) {
       updatePlaceholderWalk(trike, now);
+    }
+    if (stegoPlayer !== null) {
+      stegoPlayer.update(dt, now);
+    } else if (walking) {
+      updatePlaceholderWalk(stego, now);
     }
     renderer.render(scene, camera);
   });

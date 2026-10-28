@@ -89,6 +89,30 @@ export interface WaddlePose {
   moving: boolean;
 }
 
+/**
+ * Gait tuning for one dino species (FR-1). Stride + loop set the walk speed,
+ * turn rate + curvature set the stroller-arc feel, and the wander radius sets
+ * the stay-in-frame circle. Trike values match the WADDLE_* constants below
+ * so the generic player reproduces Trike behaviour exactly.
+ */
+export interface GaitParams {
+  /** Horizontal foot travel per Waddle cycle in metres. */
+  strideMetres: number;
+  /** Length of one Waddle loop in seconds. */
+  loopSeconds: number;
+  /** Stroller-arc yaw cap in radians per second. */
+  turnRateRadiansPerSecond: number;
+  /** Radians of heading per metre walked while steering. */
+  curvatureRadiansPerMetre: number;
+  /** Stay-in-frame wander radius around the spawn point in metres. */
+  wanderRadiusMetres: number;
+}
+
+/** Forward speed for a gait: one stride per loop. */
+export function gaitSpeedMetresPerSecond(gait: GaitParams): number {
+  return gait.strideMetres / gait.loopSeconds;
+}
+
 /** Wrap an angle into [-PI, PI]. */
 export function wrapAngle(radians: number): number {
   const twoPi = Math.PI * 2;
@@ -140,6 +164,37 @@ export function createWaddlePose(targetHeadingRadians = 0): WaddlePose {
  * speed 0.29 / 0.8), the blend ramp and graceful decel turn gentler.
  */
 export function updateWaddlePose(pose: WaddlePose, dtSeconds: number): void {
+  advanceWaddlePose(
+    pose,
+    dtSeconds,
+    WALK_SPEED_METRES_PER_SECOND,
+    TURN_RATE_RADIANS_PER_SECOND,
+    TURN_ARC_CURVATURE_RADIANS_PER_METRE,
+  );
+}
+
+/** Gait-parameterized pose advance; identical to updateWaddlePose for Trike. */
+export function updateWaddlePoseWithGait(
+  pose: WaddlePose,
+  dtSeconds: number,
+  gait: GaitParams,
+): void {
+  advanceWaddlePose(
+    pose,
+    dtSeconds,
+    gaitSpeedMetresPerSecond(gait),
+    gait.turnRateRadiansPerSecond,
+    gait.curvatureRadiansPerMetre,
+  );
+}
+
+function advanceWaddlePose(
+  pose: WaddlePose,
+  dtSeconds: number,
+  speedMetresPerSecond: number,
+  turnRateRadiansPerSecond: number,
+  curvatureRadiansPerMetre: number,
+): void {
   if (!(dtSeconds > 0)) {
     return;
   }
@@ -152,10 +207,10 @@ export function updateWaddlePose(pose: WaddlePose, dtSeconds: number): void {
   if (pose.blend <= STOP_BLEND_DEADBAND) {
     return;
   }
-  const speedMetresPerSecond = pose.blend * WALK_SPEED_METRES_PER_SECOND;
+  const speed = pose.blend * speedMetresPerSecond;
   const yawRate = Math.min(
-    TURN_RATE_RADIANS_PER_SECOND,
-    TURN_ARC_CURVATURE_RADIANS_PER_METRE * speedMetresPerSecond,
+    turnRateRadiansPerSecond,
+    curvatureRadiansPerMetre * speed,
   );
   const remaining = wrapAngle(pose.targetHeading - pose.heading);
   if (Math.abs(remaining) > 0.0001) {
@@ -169,11 +224,29 @@ export function displacementMetres(pose: WaddlePose, dtSeconds: number): number 
   return pose.blend * WALK_SPEED_METRES_PER_SECOND * Math.max(dtSeconds, 0);
 }
 
+/** Gait-parameterized displacement; identical to displacementMetres for Trike. */
+export function displacementMetresWithGait(
+  pose: WaddlePose,
+  dtSeconds: number,
+  gait: GaitParams,
+): number {
+  return pose.blend * gaitSpeedMetresPerSecond(gait) * Math.max(dtSeconds, 0);
+}
+
 /** Loop phase 0..1 for an elapsed gait time. */
 export function loopPhase(elapsedSeconds: number): number {
+  return loopPhaseWithLoop(elapsedSeconds, WADDLE_LOOP_SECONDS);
+}
+
+/** Gait-parameterized loop phase; identical to loopPhase for Trike. */
+export function loopPhaseWithGait(elapsedSeconds: number, gait: GaitParams): number {
+  return loopPhaseWithLoop(elapsedSeconds, gait.loopSeconds);
+}
+
+function loopPhaseWithLoop(elapsedSeconds: number, loopSeconds: number): number {
   const wrapped =
-    ((elapsedSeconds % WADDLE_LOOP_SECONDS) + WADDLE_LOOP_SECONDS) % WADDLE_LOOP_SECONDS;
-  return wrapped / WADDLE_LOOP_SECONDS;
+    ((elapsedSeconds % loopSeconds) + loopSeconds) % loopSeconds;
+  return wrapped / loopSeconds;
 }
 
 /** How many foot plants are crossed going from one loop phase to the next. */
