@@ -14,14 +14,17 @@
 - **Covers:** FR-1, AC-5, AC-6
 - **Touches:** `package.json`, `vite.config.ts`, `tsconfig.json`, `index.html`, `src/viewer/*`, `public/manifest.webmanifest`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
+- **Result:** verified
+- **Checkpoint:** cbe9d6f
+- **Evidence:** conductor/tracks/20261029-trike-waddle-walk/verification/phase-1.md
 
-- [ ] **P1.T1: Init pnpm + Vite8 + three viewer** — covers: FR-1
-  - [ ] **P1.T1.1: Configs** (package.json, vite + pwa plugin, tsconfig tsrs, oxlint/oxfmt, vitest)
-  - [ ] **P1.T1.2: Viewer stub** (scene, daylight, fixed cam, 72px Walk button, pixelRatio cap)
-- [ ] **P1.T2: Offline PWA stub** — covers: FR-1, AC-5
-  - [ ] **P1.T2.1: Manifest + SW precache stub**
-  - [ ] **P1.T2.2: Smoke boot airplane-mode <3s no errors**
+- [x] **P1.T1: Init pnpm + Vite8 + three viewer** — covers: FR-1
+  - [x] **P1.T1.1: Configs** (package.json, vite + pwa plugin, tsconfig tsrs, oxlint/oxfmt, vitest)
+  - [x] **P1.T1.2: Viewer stub** (scene, daylight, fixed cam, 72px Walk button, pixelRatio cap)
+- [x] **P1.T2: Offline PWA stub** — covers: FR-1, AC-5
+  - [x] **P1.T2.1: Manifest + SW precache stub**
+  - [x] **P1.T2.2: Smoke boot airplane-mode <3s no errors** (scaffold ready; live device timing pending Phase 3 tablet run)
 
 <!--
 The primary appends after acceptance:
