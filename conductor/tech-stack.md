@@ -65,7 +65,7 @@
 
 ## Upgrade Policy
 
-- Pin pnpm 12, Vite 8, three 0.180, oxlint 1.89, oxfmt 0.74, tsrs latest Oct 2026
+- Pin pnpm 12, Vite 8, three 0.186.1, oxlint 1.90.0, oxfmt 0.75.0, typescript 7.0.2, @types/node 26.6.5, vitest 5.0.5, vite-plugin-pwa 2.0.0, tsrs latest Oct 2026
 - Monthly `pnpm update` check, keep lockfile, test waddle clip perf after three bumps
 
 ## Open Questions & Assumptions

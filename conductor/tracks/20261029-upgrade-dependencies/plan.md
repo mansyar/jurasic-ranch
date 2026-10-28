@@ -70,10 +70,13 @@ The primary appends after acceptance:
 - **Covers:** FR-4, AC-2, AC-5, AC-6
 - **Touches:** `conductor/tech-stack.md`, `package.json`
 - **Verification:** `pnpm verify && pnpm build`
-- **Status:** pending
+- **Status:** verified
+- **Result:** tech-stack pins synced to landed versions; pnpm verify exit 0, build exit 0 with SW precache 15 entries, dist 3168337 bytes (~3.02MB <15MB), pnpm outdated clean with zero reverts.
+- **Checkpoint:** `PENDING`
+- **Evidence:** `conductor/tracks/20261029-upgrade-dependencies/verification/phase-3.md`
 
-- [ ] **P3.T1: Sync tech-stack.md Upgrade Policy pins to landed versions** — covers: FR-4
-- [ ] **P3.T2: Final verify + smoke (build + preview boot, bundle <15MB check)** — covers: AC-2
+- [x] **P3.T1: Sync tech-stack.md Upgrade Policy pins to landed versions** — covers: FR-4
+- [x] **P3.T2: Final verify + smoke (build + preview boot, bundle <15MB check)** — covers: AC-2
 
 <!--
 Review fixes are appended by `conductor-review` as:
