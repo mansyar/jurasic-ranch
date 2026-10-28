@@ -47,7 +47,7 @@ The primary appends after acceptance:
 <!--
 The primary appends after acceptance:
 **Result:** verified
-**Checkpoint:** `PENDING`
+**Checkpoint:** `fa24093`
 **Evidence:** conductor/tracks/20261029-add-ci-for-pr/verification/phase-2.md
 -->
 
