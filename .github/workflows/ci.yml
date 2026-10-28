@@ -19,8 +19,3 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify
-      - name: Show format diff (debug, temporary)
-        if: failure()
-        run: |
-          pnpm exec oxfmt src/ranch/waddle.ts || true
-          git diff -- src/ranch/waddle.ts || true

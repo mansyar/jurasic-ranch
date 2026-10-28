@@ -56,8 +56,7 @@ export const WALK_BLEND_SECONDS = 0.2;
  * Distance covered per full-speed waddle cycle: speed x loop, which equals
  * WADDLE_STRIDE_METRES by construction so root motion and feet agree.
  */
-export const WADDLE_CYCLE_METRES =
-  WALK_SPEED_METRES_PER_SECOND * WADDLE_LOOP_SECONDS;
+export const WADDLE_CYCLE_METRES = WALK_SPEED_METRES_PER_SECOND * WADDLE_LOOP_SECONDS;
 
 /** Blink scheduling window (FR-6). */
 export const BLINK_MIN_SECONDS = 3;
@@ -208,10 +207,7 @@ function advanceWaddlePose(
     return;
   }
   const speed = pose.blend * speedMetresPerSecond;
-  const yawRate = Math.min(
-    turnRateRadiansPerSecond,
-    curvatureRadiansPerMetre * speed,
-  );
+  const yawRate = Math.min(turnRateRadiansPerSecond, curvatureRadiansPerMetre * speed);
   const remaining = wrapAngle(pose.targetHeading - pose.heading);
   if (Math.abs(remaining) > 0.0001) {
     const step = Math.sign(remaining) * Math.min(Math.abs(remaining), yawRate * dtSeconds);
@@ -244,8 +240,7 @@ export function loopPhaseWithGait(elapsedSeconds: number, gait: GaitParams): num
 }
 
 function loopPhaseWithLoop(elapsedSeconds: number, loopSeconds: number): number {
-  const wrapped =
-    ((elapsedSeconds % loopSeconds) + loopSeconds) % loopSeconds;
+  const wrapped = ((elapsedSeconds % loopSeconds) + loopSeconds) % loopSeconds;
   return wrapped / loopSeconds;
 }
 

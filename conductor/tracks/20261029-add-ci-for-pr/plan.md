@@ -54,3 +54,4 @@ The primary appends after acceptance:
 - [x] **P2.T1: Record validation evidence and note CI in workflow.md** — covers: FR-5
 - [x] **P2.T2: Run full `pnpm verify` green on the branch** — covers: AC-5
 - [x] **P2.T3: Fix oxfmt drift flagged by CI run 40784795415 and re-verify** — covers: AC-5
+- [x] **P2.T4: Rebase onto origin/main@12f8cd4 (PR #4 Stego merge), apply Linux-oxfmt joins to refactored waddle.ts, fix vitest-5 arrow mocks in new dual-viewer.test.ts, drop CI debug step** — covers: AC-5 (CI must validate the post-merge tree; formatting-only + test-setup-only changes)
