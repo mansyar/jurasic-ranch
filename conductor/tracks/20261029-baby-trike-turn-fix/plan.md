@@ -56,7 +56,7 @@ The primary appends after acceptance:
 - **Covers:** FR-4, FR-5, NFR-3, AC-4, AC-5
 - **Touches:** `src/ranch/trike-player.ts`, `tests/waddle/trike-player.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P3.T1: Arc-limited steering (max turn rate, no in-place spin)** — covers: FR-4, AC-4
 - [ ] **P3.T2: Stop deadband + settle-then-halt regression test** — covers: FR-5, AC-5
