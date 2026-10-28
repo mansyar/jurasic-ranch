@@ -56,7 +56,13 @@ The primary appends after acceptance:
 - **Covers:** FR-4, FR-5, NFR-3, AC-4, AC-5
 - **Touches:** `src/ranch/trike-player.ts`, `tests/waddle/trike-player.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
+- **Result:** Arc-limited stroller turns (90° ≈ 1.04 s, 180° ≈ 1.93 s,
+  radius ≈ 0.22 m, translation never pauses); stop deadband 0.03 freezes
+  heading with bit-identical halt; `pnpm verify` exit 0 on primary re-run
+  (62/62 tests).
+- **Checkpoint:** `1778813`
+- **Evidence:** `conductor/tracks/20261029-baby-trike-turn-fix/verification/phase-3.md`
 
-- [ ] **P3.T1: Arc-limited steering (max turn rate, no in-place spin)** — covers: FR-4, AC-4
-- [ ] **P3.T2: Stop deadband + settle-then-halt regression test** — covers: FR-5, AC-5
+- [x] **P3.T1: Arc-limited steering (max turn rate, no in-place spin)** — covers: FR-4, AC-4
+- [x] **P3.T2: Stop deadband + settle-then-halt regression test** — covers: FR-5, AC-5
