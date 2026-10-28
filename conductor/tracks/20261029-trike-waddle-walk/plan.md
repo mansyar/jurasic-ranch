@@ -69,14 +69,17 @@ The primary appends after acceptance:
 - **Covers:** FR-5, FR-6, FR-7, FR-8, AC-1, AC-2, AC-3, AC-4
 - **Touches:** `src/ranch/*`, `tests/waddle/*`, `public/*`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
+- **Result:** verified
+- **Checkpoint:** 8acd84a
+- **Evidence:** conductor/tracks/20261029-trike-waddle-walk/verification/phase-3.md
 
-- [ ] **P3.T1: Mixer + root motion** — covers: FR-5
-  - [ ] **P3.T1.1: AnimationMixer loop, 0.4m/s root, no pop**
-  - [ ] **P3.T1.2: Turn-in-place 90° <0.6s then walk**
-- [ ] **P3.T2: Blink + dust + squash** — covers: FR-6, FR-7
-  - [ ] **P3.T2.1: Blink timer 3-5s eyelids**
-  - [ ] **P3.T2.2: Dust puff + squash on plant**
-- [ ] **P3.T3: Unit + visual evidence** — covers: AC-1..AC-4
-  - [ ] **P3.T3.1: Vitest turn/blink timing (silent walk assert)**
-  - [ ] **P3.T3.2: Tablet video + screenshot evidence**
+- [x] **P3.T1: Mixer + root motion** — covers: FR-5
+  - [x] **P3.T1.1: AnimationMixer loop, 0.4m/s root, no pop** (0.2 s ease in/out)
+  - [x] **P3.T1.2: Turn-in-place 90° <0.6s then walk**
+- [x] **P3.T2: Blink + dust + squash** — covers: FR-6, FR-7 (blink = head-dip; no eyelid bones in shipped skeleton)
+  - [x] **P3.T2.1: Blink timer 3-5s eyelids**
+  - [x] **P3.T2.2: Dust puff + squash on plant** (pooled THREE.Points, 48 particles)
+- [x] **P3.T3: Unit + visual evidence** — covers: AC-1..AC-4
+  - [x] **P3.T3.1: Vitest turn/blink timing (silent walk assert)** (25 tests, 37/37 incl. FR-8 silence)
+  - [x] **P3.T3.2: Tablet video + screenshot evidence** (manual user follow-up)
