@@ -1,6 +1,3 @@
 # Tracks Registry — Jurasic Ranch
 
-No tracks yet. New tracks via `conductor-new-track`.
-
-| ID | Title | Status | Branch | Created |
-|----|-------|--------|--------|---------|
+- [x] **20261029-trike-waddle-walk** — Trike Waddle Walk (complete: 55/55 tests, PASS, fix round 2 verified live with zero console errors, pr.md ready; `feat/20261029-trike-waddle-walk`)
