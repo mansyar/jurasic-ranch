@@ -14,7 +14,7 @@
 - **Covers:** FR-1, FR-2, FR-10, AC-1, AC-7
 - **Touches:** `src/ranch/dino-player.ts`, `src/ranch/trike-player.ts`, `src/ranch/waddle.ts`, `tests/**/dino-*.ts`, `tests/**/trike-*.ts`, `tests/**/waddle-*.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P1.T1: Extract GaitParams + DinoPlayer** — covers: FR-1
   - [ ] **P1.T1.1: Define GaitParams + Trike config** — stride 0.29, loop 0.8, turnRate PI, curvature 4.5, wander 0.8
