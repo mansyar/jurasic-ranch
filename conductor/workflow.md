@@ -48,7 +48,7 @@ review:
     group_low: true
     labels: ["tech-debt", "conductor"]
 pr:
-  enabled: false
+  enabled: true
   tool: "gh"
   base: "main"
   media: "always"
