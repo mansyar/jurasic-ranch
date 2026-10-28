@@ -19,7 +19,7 @@
 <!--
 The primary appends after acceptance:
 **Result:** verified
-**Checkpoint:** `PENDING`
+**Checkpoint:** `954e097`
 **Evidence:** conductor/tracks/20261029-add-ci-for-pr/verification/phase-1.md
 -->
 
