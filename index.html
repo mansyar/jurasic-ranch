@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#7ec850" />
     <meta
       name="description"
-      content="Jurasic Ranch — watch a baby Triceratops waddle. Offline-first PWA."
+      content="Jurasic Ranch — watch baby Trike and Stego waddle. Offline-first PWA."
     />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
@@ -65,12 +65,35 @@
         color: #2f4a2f;
         font-size: 14px;
       }
+      #species {
+        position: fixed;
+        top: max(12px, env(safe-area-inset-top));
+        right: 12px;
+        display: flex;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        pointer-events: none;
+      }
+      #species li {
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.85);
+        color: #2f4a2f;
+        font-size: 14px;
+        font-weight: 700;
+      }
     </style>
   </head>
   <body>
     <main id="app">
       <canvas id="scene"></canvas>
       <p id="status" role="status">Loading…</p>
+      <ul id="species" aria-label="Dino babies">
+        <li>🦕 Trike</li>
+        <li>🦖 Stego</li>
+      </ul>
       <button id="walk-button" type="button" aria-pressed="false">Walk</button>
     </main>
     <script type="module" src="/src/viewer/main.ts"></script>

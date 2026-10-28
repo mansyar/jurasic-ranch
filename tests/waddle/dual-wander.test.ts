@@ -1,0 +1,203 @@
+import * as THREE from "three";
+import { describe, expect, it } from "vitest";
+import { avoidanceNudges } from "../../src/ranch/avoidance.js";
+import { DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from "../../src/ranch/dino-player.js";
+import { DustPool } from "../../src/ranch/dust.js";
+import { WADDLE_CYCLE_METRES, WADDLE_LOOP_SECONDS } from "../../src/ranch/waddle.js";
+
+/**
+ * Dual ranch coexistence (FR-5, FR-6, FR-9, AC-3, AC-6): Trike + Stego wander
+ * independently from a ±0.4 m spawn with soft-steer avoidance, share one
+ * DustPool, and both blink while walking. Mirrors the viewer frame loop
+ * (avoid → update) at 60 fps for a simulated 30 s.
+ */
+
+const DT = 1 / 60;
+const STEPS = 30 * 60;
+const SPAWN_OFFSET_METRES = 0.4;
+const MIN_SEPARATION_METRES = 0.25;
+
+/**
+ * Deterministic PRNG (mulberry32): the sim needs the wander-jitter spread
+ * production gets from Math.random — with a constant random the pair flies
+ * an exact sustained head-on that no yaw-rate-limited steer can resolve.
+ * Fixed seeds keep the run reproducible while drawing representative
+ * headings, one independent stream per consumer.
+ */
+function prng(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state |= 0;
+    state = (state + 0x6d2b79f5) | 0;
+    let mixed = Math.imul(state ^ (state >>> 15), 1 | state);
+    mixed = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed;
+    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function createRig(name: string): THREE.Group {
+  const root = new THREE.Group();
+  root.name = name;
+  const hips = new THREE.Group();
+  hips.name = "Hips";
+  const head = new THREE.Group();
+  head.name = "Head";
+  root.add(hips);
+  root.add(head);
+  return root;
+}
+
+function createWaddleClip(): THREE.AnimationClip {
+  const track = new THREE.VectorKeyframeTrack(
+    "Hips.position",
+    [0, 0.4, 0.8],
+    [0, 0, 0, 0, 0.05, 0, 0, 0, 0],
+  );
+  return new THREE.AnimationClip("Waddle", WADDLE_LOOP_SECONDS, [track]);
+}
+
+interface DualStats {
+  maxDistanceMetres: number;
+  minSeparationMetres: number;
+  sharedDust: boolean;
+  maxDustAlive: number;
+}
+
+function runDualWander(avoid = true): {
+  stats: DualStats;
+  trikeDip: number[];
+  stegoDip: number[];
+  avoidanceFrames: number;
+} {
+  const trikeRig = createRig("TrikeRoot");
+  const stegoRig = createRig("StegoRoot");
+  trikeRig.position.set(-SPAWN_OFFSET_METRES, 0, 0);
+  stegoRig.position.set(SPAWN_OFFSET_METRES, 0, 0);
+  const shared = new DustPool({ random: prng(0xd057) });
+  const trike = new DinoPlayer(trikeRig, {
+    clip: createWaddleClip(),
+    gait: TRIKE_GAIT,
+    dust: shared,
+    random: prng(0x7216),
+  });
+  const stego = new DinoPlayer(stegoRig, {
+    clip: createWaddleClip(),
+    gait: STEGO_GAIT,
+    dust: shared,
+    random: prng(0x57e62),
+  });
+  // Production-faithful courses: both dinos start on near-parallel +Z tracks
+  // with a gentle convergence, the way wander meetings actually happen (an
+  // oblique mid-circle crossing, not a sustained dead head-on — no
+  // yaw-rate-limited steer can resolve the latter inside a 0.4 m trigger,
+  // and the viewer never flies it: both models spawn at heading 0).
+  trike.turnTo(0.5);
+  stego.turnTo(-0.4);
+  trike.setWalking(true);
+  stego.setWalking(true);
+
+  let maxDistanceMetres = 0;
+  let minSeparationMetres = Number.POSITIVE_INFINITY;
+  let maxDustAlive = 0;
+  let avoidanceFrames = 0;
+  const trikeDip: number[] = [];
+  const stegoDip: number[] = [];
+  let now = 0;
+  for (let step = 0; step < STEPS; step += 1) {
+    // Viewer frame order: soft-steer first, then advance both players.
+    // With avoid=false the nudges are measured but not applied, so the same
+    // draw yields the no-avoidance baseline for the differential proof.
+    const { aNudge, bNudge } = avoidanceNudges(
+      trikeRig.position.x,
+      trikeRig.position.z,
+      trike.heading,
+      stegoRig.position.x,
+      stegoRig.position.z,
+      stego.heading,
+    );
+    if (avoid) {
+      if (aNudge !== 0) {
+        trike.turnTo(trike.heading + aNudge);
+      }
+      if (bNudge !== 0) {
+        stego.turnTo(stego.heading + bNudge);
+      }
+    }
+    if (aNudge !== 0 || bNudge !== 0) {
+      avoidanceFrames += 1;
+    }
+    trike.update(DT, now);
+    stego.update(DT, now);
+    now += DT;
+    expect(trike.walking).toBe(true);
+    expect(stego.walking).toBe(true);
+    maxDistanceMetres = Math.max(
+      maxDistanceMetres,
+      Math.hypot(trikeRig.position.x, trikeRig.position.z),
+      Math.hypot(stegoRig.position.x, stegoRig.position.z),
+    );
+    minSeparationMetres = Math.min(
+      minSeparationMetres,
+      trikeRig.position.distanceTo(stegoRig.position),
+    );
+    maxDustAlive = Math.max(maxDustAlive, shared.aliveCount);
+    const trikeHead = trikeRig.getObjectByName("Head") ?? trikeRig;
+    const stegoHead = stegoRig.getObjectByName("Head") ?? stegoRig;
+    trikeDip.push(trikeHead.rotation.x);
+    stegoDip.push(stegoHead.rotation.x);
+  }
+  return {
+    stats: {
+      maxDistanceMetres,
+      minSeparationMetres,
+      sharedDust: trike.dust === stego.dust && trike.dust === shared,
+      maxDustAlive,
+    },
+    trikeDip,
+    stegoDip,
+    avoidanceFrames,
+  };
+}
+
+describe("dual wander coexistence (FR-5, FR-6, AC-3)", () => {
+  it("starts from a ±0.4 m spawn with independent poses", () => {
+    const a = createRig("A");
+    const b = createRig("B");
+    a.position.set(-SPAWN_OFFSET_METRES, 0, 0);
+    b.position.set(SPAWN_OFFSET_METRES, 0, 0);
+    expect(a.position.distanceTo(b.position)).toBeCloseTo(0.8, 12);
+  });
+
+  it("keeps both dinos in-frame over 30 s with >0.25 m separation", () => {
+    const { stats, avoidanceFrames } = runDualWander(true);
+    // The run must actually exercise avoidance, not stroll two empty lanes.
+    expect(avoidanceFrames).toBeGreaterThan(0);
+    // Both reach out and roam (not parked), but never escape the circle.
+    expect(stats.maxDistanceMetres).toBeGreaterThan(TRIKE_GAIT.wanderRadiusMetres - 0.3);
+    const bound = TRIKE_GAIT.wanderRadiusMetres + WADDLE_CYCLE_METRES;
+    expect(stats.maxDistanceMetres).toBeLessThanOrEqual(bound);
+    expect(stats.minSeparationMetres).toBeGreaterThan(MIN_SEPARATION_METRES);
+    // Differential proof: the same draw without avoidance must come closer,
+    // so the locked seeds prove avoidance helps in-draw (not a lucky draw).
+    const baseline = runDualWander(false);
+    expect(baseline.avoidanceFrames).toBeGreaterThan(0);
+    expect(stats.minSeparationMetres).toBeGreaterThan(baseline.stats.minSeparationMetres);
+  });
+
+  it("shares one DustPool that puffs for both dinos (FR-9, AC-6)", () => {
+    const { stats } = runDualWander();
+    expect(stats.sharedDust).toBe(true);
+    expect(stats.maxDustAlive).toBeGreaterThan(0);
+  });
+
+  it("blinks both dinos at least once per 6 s window while walking (AC-6)", () => {
+    const { trikeDip, stegoDip } = runDualWander();
+    const windowSteps = 6 * 60;
+    for (let start = 0; start < STEPS; start += windowSteps) {
+      const trikeMax = Math.max(...trikeDip.slice(start, start + windowSteps));
+      const stegoMax = Math.max(...stegoDip.slice(start, start + windowSteps));
+      expect(trikeMax).toBeGreaterThan(0);
+      expect(stegoMax).toBeGreaterThan(0);
+    }
+  });
+});

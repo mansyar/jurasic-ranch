@@ -145,6 +145,13 @@ export interface DinoPlayerOptions {
   random?: () => number;
   /** Gait tuning; defaults to the Trike gait. */
   gait?: GaitParams;
+  /**
+   * Shared particle pool (FR-9): when provided, this player puffs into the
+   * given pool instead of allocating a private one, so two players share a
+   * single draw call. Defaults to a private pool; existing call sites that
+   * omit it behave exactly as before.
+   */
+  dust?: DustPool;
 }
 
 /** Random steering spread (radians) when turning back toward the center. */
@@ -188,7 +195,7 @@ export class DinoPlayer {
     this.blink = new BlinkController(this.random);
     this.targets = findBlinkTargets(model);
     this.baseScale = model.scale.clone();
-    this.dust = new DustPool({ texture: options.texture, random: this.random });
+    this.dust = options.dust ?? new DustPool({ texture: options.texture, random: this.random });
   }
 
   get walking(): boolean {
