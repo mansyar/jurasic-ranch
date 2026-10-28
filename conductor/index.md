@@ -16,7 +16,8 @@ Cozy tablet PWA dino ranch for 4yo. Source of truth for product vision, stack, a
 
 ## Tracks
 
-Registry: `./tracks.md` — directory `./tracks/`
+- [Tracks Registry](./tracks.md)
+- [Tracks Directory](./tracks/)
 
 ## Capabilities
 
