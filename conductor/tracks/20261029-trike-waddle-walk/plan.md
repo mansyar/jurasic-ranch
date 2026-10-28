@@ -1,0 +1,76 @@
+# Trike Waddle Walk — Implementation Plan
+
+> **Branch:** `feat/20261029-trike-waddle-walk`
+> **Base:** `main` @ `8c371c3f8525996dec10351910807c6df5fc2a09`
+>
+> Phase states are `pending`, `in_progress`, `verified`, `failed`, or `blocked`.
+> Only the primary agent writes this file. Phase subagents report results and the
+> primary records them.
+
+## Phase 1: PWA Scaffold
+
+- **Goal:** Minimal viewer boots offline and `pnpm verify` is green
+- **Depends on:** none
+- **Covers:** FR-1, AC-5, AC-6
+- **Touches:** `package.json`, `vite.config.ts`, `tsconfig.json`, `index.html`, `src/viewer/*`, `public/manifest.webmanifest`
+- **Verification:** `pnpm verify`
+- **Status:** pending
+
+- [ ] **P1.T1: Init pnpm + Vite8 + three viewer** — covers: FR-1
+  - [ ] **P1.T1.1: Configs** (package.json, vite + pwa plugin, tsconfig tsrs, oxlint/oxfmt, vitest)
+  - [ ] **P1.T1.2: Viewer stub** (scene, daylight, fixed cam, 72px Walk button, pixelRatio cap)
+- [ ] **P1.T2: Offline PWA stub** — covers: FR-1, AC-5
+  - [ ] **P1.T2.1: Manifest + SW precache stub**
+  - [ ] **P1.T2.2: Smoke boot airplane-mode <3s no errors**
+
+<!--
+The primary appends after acceptance:
+**Result:** verified
+**Checkpoint:** <short-sha>
+**Evidence:** conductor/tracks/20261029-trike-waddle-walk/verification/phase-1.md
+-->
+
+## Phase 2: Trike Rig + Waddle Clip
+
+- **Goal:** 0.8s seamless waddle GLB <150KB exported
+- **Depends on:** Phase 1
+- **Covers:** FR-2, FR-3, FR-4, AC-1
+- **Touches:** `assets/trike/*`, `public/models/trike.glb`, `scripts/check-trike.*`
+- **Verification:** `pnpm verify`
+- **Status:** pending
+
+- [ ] **P2.T1: Vendor + baby scale** — covers: FR-2
+  - [ ] **P2.T1.1: Vendor Triceratops GLB + CREDITS**
+  - [ ] **P2.T1.2: Scale 0.25-0.35x, feet y=0, Y-up check**
+- [ ] **P2.T2: 12-bone armature + weights** — covers: FR-3
+  - [ ] **P2.T2.1: Build hips/spine/chest/head+jaw/tail2/legs-IK/eyelids**
+  - [ ] **P2.T2.2: Mirror weights, fix jaw/eyelids**
+- [ ] **P2.T3: Bake Waddle + export** — covers: FR-4
+  - [ ] **P2.T3.1: Pose 0.8s 24f bob+sway+squash, foot plant 0.2s**
+  - [ ] **P2.T3.2: Export Draco GLB <150KB, preview_scene link**
+
+<!--
+The primary appends after acceptance:
+**Result:** verified
+**Checkpoint:** <short-sha>
+**Evidence:** conductor/tracks/20261029-trike-waddle-walk/verification/phase-2.md
+-->
+
+## Phase 3: Playback Turn Blink Dust
+
+- **Goal:** Turn-then-walk 0.4m/s 60fps with blink and dust
+- **Depends on:** Phase 2
+- **Covers:** FR-5, FR-6, FR-7, FR-8, AC-1, AC-2, AC-3, AC-4
+- **Touches:** `src/ranch/*`, `tests/waddle/*`, `public/*`
+- **Verification:** `pnpm verify`
+- **Status:** pending
+
+- [ ] **P3.T1: Mixer + root motion** — covers: FR-5
+  - [ ] **P3.T1.1: AnimationMixer loop, 0.4m/s root, no pop**
+  - [ ] **P3.T1.2: Turn-in-place 90° <0.6s then walk**
+- [ ] **P3.T2: Blink + dust + squash** — covers: FR-6, FR-7
+  - [ ] **P3.T2.1: Blink timer 3-5s eyelids**
+  - [ ] **P3.T2.2: Dust puff + squash on plant**
+- [ ] **P3.T3: Unit + visual evidence** — covers: AC-1..AC-4
+  - [ ] **P3.T3.1: Vitest turn/blink timing (silent walk assert)**
+  - [ ] **P3.T3.2: Tablet video + screenshot evidence**
