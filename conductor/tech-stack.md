@@ -2,7 +2,7 @@
 
 ## Languages & Runtimes
 
-- TypeScript 5.9 (ES2022 browser target) + TS 7.0 tsgo Go-native stable fallback
+- TypeScript 7.0 (ES2022 browser target, landed 7.0.2) + tsgo Go-native stable fallback
 - Node 22.12+ (for Vite 8), pnpm 12.15.0 Rust-native package manager
 - Python 3.10+ (Kokoro-ONNX voice gen only, not runtime)
 
@@ -39,8 +39,8 @@
 ## Test / Typecheck / Lint / Format
 
 - Typecheck: tsrs (Oct 2026 Rust port, primary) with tsgo TS7 fallback `tsgo --noEmit`
-- Lint: oxlint v1.89.0 (`pnpm lint`)
-- Format: oxfmt v0.74.0 Prettier-compatible (`pnpm format --check`)
+- Lint: oxlint v1.90.0 (`pnpm lint`, ignores `public/draco/**` + `scripts/vendor/**`)
+- Format: oxfmt v0.75.0 Prettier-compatible (`pnpm format --check`)
 - Unit: Vitest for counting/sort/sticker logic (`pnpm test`)
 - Visual: manual tablet play + Polyfork preview_scene, pixelRatio cap 2
 
