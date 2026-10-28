@@ -14,12 +14,19 @@
 - **Covers:** FR-1, FR-2, FR-3, FR-4, AC-1, AC-2, AC-3, AC-4
 - **Touches:** `.github/workflows/ci.yml`
 - **Verification:** actionlint (when available), else YAML parse + trigger grep
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P1.T1: Author the workflow file** — covers: FR-1
-  - [ ] **P1.T1.1: Triggers `pull_request`→`main` + `push`→`main` with `paths-ignore: conductor/**`**
-  - [ ] **P1.T1.2: `verify` job — ubuntu-latest, Node 24, pnpm via packageManager frozen, `pnpm verify`, `timeout-minutes: 15`**
-- [ ] **P1.T2: Validate the YAML locally** — covers: FR-5
+<!--
+The primary appends after acceptance:
+**Result:** verified
+**Checkpoint:** `PENDING`
+**Evidence:** conductor/tracks/20261029-add-ci-for-pr/verification/phase-1.md
+-->
+
+- [x] **P1.T1: Author the workflow file** — covers: FR-1
+  - [x] **P1.T1.1: Triggers `pull_request`→`main` + `push`→`main` with `paths-ignore: conductor/**`**
+  - [x] **P1.T1.2: `verify` job — ubuntu-latest, Node 24, pnpm via packageManager frozen, `pnpm verify`, `timeout-minutes: 15`**
+- [x] **P1.T2: Validate the YAML locally** — covers: FR-5
 
 <!--
 The primary appends after acceptance:
