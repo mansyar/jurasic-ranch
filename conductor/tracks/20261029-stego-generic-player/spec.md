@@ -6,7 +6,7 @@
 
 ## Overview
 
-Second forever-baby Stego joins Trike via a new Polyfork Stego base GLB (minimal pipeline, distinct pastel colour pending asset lookup), plus extraction of Trike-specific `TrikePlayer` into a generic `DinoPlayer` with gait configs. Trike + Stego wander independently in the same 0.8 m radius with soft-steer avoidance, share one DustPool + BlinkController, and toggle together from a single 72 px Walk button. Proves the copy-template and unblocks Brachio.
+Second forever-baby Stego joins Trike via a new Polyfork Stego base GLB (minimal pipeline, distinct pastel colour pending asset lookup), plus extraction of Trike-specific `TrikePlayer` into a generic `DinoPlayer` with gait configs. Trike + Stego wander independently in the same 0.8 m radius with soft-steer avoidance, share one DustPool and one BlinkController class (per-player instances; targets and schedules differ per model), and toggle together from a single 72 px Walk button. Proves the copy-template and unblocks Brachio.
 
 ## Problem / Motivation
 
@@ -28,10 +28,10 @@ Ranch has only Trike; `TrikePlayer` hard-codes Trike gait, blush, and wander. Du
 ### In Scope
 
 - Generic `DinoPlayer` with `GaitParams` (stride / loop / turnRate / curvature / wanderRadius) + Trike and Stego configs; Trike behaviour identical
-- Vendor new Polyfork Stego base GLB → `public/models/stego.glb`, baby scale 0.25–0.35x, pastel distinct from Trike #9ed68a, blush, feet y=0, one-material flat-shaded Draco
+- Vendor new Polyfork Stego base GLB → `public/models/stego.glb`, baby scale 0.6 (pen-mate parity with shipped Trike; createAsset knob floor — review F2 accepted, stride parity preserved), pastel distinct from Trike #9ed68a, blush, feet y=0, one-material flat-shaded Draco
 - Reuse `scripts/vendor/bake-trike-variant` pipeline pattern for Stego (copy + retime); prefer `Waddle` clip else first animation; same `/draco/` decoder
 - Dual independent wander (0.8 m radius, spawn offset ±0.4 m) + soft-steer avoidance (bias away when <0.4 m apart, never stop, no bounce)
-- Shared `DustPool` (48) + shared `BlinkController` via `DinoPlayer`; single 72 px Walk toggles both, status + persisted flag
+- Shared `DustPool` (48) + shared `BlinkController` class (per-player instances; targets/schedules differ) via `DinoPlayer`; single 72 px Walk toggles both, status + persisted flag
 - Boxy placeholder Stego fallback on missing GLB (warn, Trike keeps waddling)
 - CREDITS update for Stego source
 
@@ -47,13 +47,13 @@ Ranch has only Trike; `TrikePlayer` hard-codes Trike gait, blush, and wander. Du
 | --- | --- | --- |
 | FR-1 | Generic `DinoPlayer` with `GaitParams` and Trike + Stego configs | must |
 | FR-2 | Trike behaviour preserved identical (0.8 s, 0.29 m stride, ~0.4 m/s, turn <0.6 s, blink 3–5 s, dust 2–4, squash) | must |
-| FR-3 | Stego GLB vendored at `public/models/stego.glb`, baby scale, pastel distinct from Trike, blush, feet y=0 | must |
+| FR-3 | Stego GLB vendored at `public/models/stego.glb`, baby scale 0.6 (pen-mate parity, review F2), pastel distinct from Trike, blush, feet y=0 | must |
 | FR-4 | Stego Waddle loops seamlessly; loader prefers `Waddle` else first clip via same Draco path | must |
 | FR-5 | Dual independent wander in 0.8 m radius, stay-in-frame over 30 s | must |
 | FR-6 | Soft-steer avoidance biases heading away when <0.4 m apart, never stops, no bounce | must |
 | FR-7 | Single Walk button toggles both dinos, aria-pressed + status + persisted walking flag | must |
 | FR-8 | Missing Stego GLB shows placeholder Stego + warn; Trike keeps waddling | must |
-| FR-9 | Single shared DustPool + BlinkController via generic player (no per-dino duplication) | must |
+| FR-9 | Single shared DustPool + shared BlinkController class via generic player (no per-dino duplication) | must |
 | FR-10 | No `TrikePlayer` duplication: deleted or thin alias over `DinoPlayer`, imports updated | must |
 
 ## Non-Functional Requirements

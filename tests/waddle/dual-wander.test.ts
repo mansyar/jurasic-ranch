@@ -63,7 +63,14 @@ interface DualStats {
   maxDustAlive: number;
 }
 
-function runDualWander(avoid = true): {
+function runDualWander(
+  avoid = true,
+  seeds: { dust: number; trike: number; stego: number } = {
+    dust: 0xd057,
+    trike: 0x7216,
+    stego: 0x57e62,
+  },
+): {
   stats: DualStats;
   trikeDip: number[];
   stegoDip: number[];
@@ -73,18 +80,18 @@ function runDualWander(avoid = true): {
   const stegoRig = createRig("StegoRoot");
   trikeRig.position.set(-SPAWN_OFFSET_METRES, 0, 0);
   stegoRig.position.set(SPAWN_OFFSET_METRES, 0, 0);
-  const shared = new DustPool({ random: prng(0xd057) });
+  const shared = new DustPool({ random: prng(seeds.dust) });
   const trike = new DinoPlayer(trikeRig, {
     clip: createWaddleClip(),
     gait: TRIKE_GAIT,
     dust: shared,
-    random: prng(0x7216),
+    random: prng(seeds.trike),
   });
   const stego = new DinoPlayer(stegoRig, {
     clip: createWaddleClip(),
     gait: STEGO_GAIT,
     dust: shared,
-    random: prng(0x57e62),
+    random: prng(seeds.stego),
   });
   // Production-faithful courses: both dinos start on near-parallel +Z tracks
   // with a gentle convergence, the way wander meetings actually happen (an
@@ -182,6 +189,27 @@ describe("dual wander coexistence (FR-5, FR-6, AC-3)", () => {
     const baseline = runDualWander(false);
     expect(baseline.avoidanceFrames).toBeGreaterThan(0);
     expect(stats.minSeparationMetres).toBeGreaterThan(baseline.stats.minSeparationMetres);
+  });
+
+  it("avoidance improves separation across fixed draws (review F1)", () => {
+    // The absolute >0.25 m bar above applies to the locked draw; this
+    // property holds avoidance to a relative bar on every documented draw,
+    // so AC-3 rests on more than one geometry. Extra draws carry no absolute
+    // bar — they only prove avoidance helps wherever meetings happen.
+    const draws = [
+      { dust: 0xd057, trike: 0x7216, stego: 0x57e62 },
+      { dust: 0xd057, trike: 0x7214, stego: 0x57e60 },
+      { dust: 0xd057, trike: 0x7215, stego: 0x57e61 },
+    ];
+    for (const seeds of draws) {
+      const avoided = runDualWander(true, seeds);
+      const baseline = runDualWander(false, seeds);
+      expect(avoided.avoidanceFrames).toBeGreaterThan(0);
+      expect(baseline.avoidanceFrames).toBeGreaterThan(0);
+      expect(avoided.stats.minSeparationMetres).toBeGreaterThan(
+        baseline.stats.minSeparationMetres,
+      );
+    }
   });
 
   it("shares one DustPool that puffs for both dinos (FR-9, AC-6)", () => {

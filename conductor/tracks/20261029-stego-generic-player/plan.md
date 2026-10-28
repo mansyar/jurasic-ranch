@@ -48,7 +48,7 @@ The primary appends after acceptance:
 
 - [x] **P2.T1: Vendor + bake Stego** — covers: FR-3
   - [x] **P2.T1.1: Lookup Polyfork Stego base, record final pastel distinct from Trike** — resolve TBD palette, colorblind-safe
-  - [x] **P2.T1.2: Copy bake-trike pipeline to bake-stego** — baby 0.25–0.35x, one-material flat-shaded Draco, feet y=0, blush
+  - [x] **P2.T1.2: Copy bake-trike pipeline to bake-stego** — baby 0.6 (pen-mate parity; knob floor, review F2 accepted), one-material flat-shaded Draco, feet y=0, blush
 - [x] **P2.T2: Clip + pastel gates** — covers: FR-4
   - [x] **P2.T2.1: Prefer Waddle else first anim, 0.8 s seamless 24f linear check** — same /draco/ decoder
   - [x] **P2.T2.2: Pastel + plates + size + CREDITS** — distinct zones, >50 verts, each GLB small, total tracked toward <18 MB
