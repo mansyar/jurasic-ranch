@@ -36,11 +36,11 @@ The primary appends after acceptance:
 ## Phase 2: Trike Rig + Waddle Clip
 
 - **Goal:** 0.8s seamless waddle GLB <150KB exported
-- **Depends on:** Phase 1
+- **Depends on:** Phase 1 (verified cbe9d6f)
 - **Covers:** FR-2, FR-3, FR-4, AC-1
 - **Touches:** `assets/trike/*`, `public/models/trike.glb`, `scripts/check-trike.*`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P2.T1: Vendor + baby scale** — covers: FR-2
   - [ ] **P2.T1.1: Vendor Triceratops GLB + CREDITS**
