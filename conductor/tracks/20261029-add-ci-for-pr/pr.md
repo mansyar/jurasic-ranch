@@ -25,9 +25,10 @@ Changes touching only `conductor/**` are excluded from CI via
 
 ### Verification
 
-- `pnpm verify`: green (oxlint clean, oxfmt 4 files clean, tsrs exit 0, vitest 62/62 on v5.0.5, vite build + PWA v2.0.0 generateSW 15 entries, Node v24.16.0)
+- `pnpm verify`: green locally AND on the CI runner (oxlint clean, oxfmt clean, tsrs exit 0, vitest 116/116 on v5.0.5 across 13 files, vite build + PWA v2.0.0 generateSW 16 entries, Node v24.16.0)
 - Review: PASS, no findings (`review.md`)
-- Note: this PR is the first run to exercise the new workflow on the remote runner.
+- Note: this PR is the first run to exercise the new workflow on the remote runner. The first CI runs caught real drift the workflow was built to catch: oxfmt formatting (Windows oxfmt 0.75.0 and Linux oxfmt 0.75.0 disagree on one line — CI/Linux is authoritative) and vitest-5 arrow-mock constructability in `viewer.test.ts` / `dual-viewer.test.ts`. Both fixed (P2.T3/P2.T4); a temporary CI debug step that printed the Linux-expected format diff was removed before merge.
+- Rebased onto `origin/main@12f8cd4` (PR #4 Stego merge) so CI validates the post-merge tree.
 
 ### Revert plan
 
