@@ -16,7 +16,7 @@
 - **Verification:** `pnpm install && pnpm lint && pnpm format --check`
 - **Status:** verified
 - **Result:** Low-risk bumps landed (three 0.186.1, oxfmt 0.75.0, oxlint 1.90.0); pnpm install exit 0 (+395), lint exit 0 (warnings only pre-existing vendor), format check exit 0.
-- **Checkpoint:** `PENDING`
+- **Checkpoint:** `255c882`
 - **Evidence:** `conductor/tracks/20261029-upgrade-dependencies/verification/phase-1.md`
 
 - [x] **P1.T1: Update low-risk versions in package.json** — covers: FR-1
