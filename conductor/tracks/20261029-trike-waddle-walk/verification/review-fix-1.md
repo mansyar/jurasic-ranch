@@ -5,7 +5,11 @@
 - Branch: feat/20261029-trike-waddle-walk
 - Base: d59eba3
 - Head (code): b500a15 (`test(trike): assert NFR-2 draco and single-material contract`)
-- Result: fixes applied, untested here — sandbox denies pnpm/node; primary re-runs `pnpm verify`
+- Result: VERIFIED by primary — `pnpm verify` green end-to-end (oxlint with
+  public/draco ignore; oxfmt check; tsrs --noEmit over src+tests+scripts;
+  vitest 42/42 across 4 files incl. 4 new viewer loader tests + 1 new NFR-2
+  GLB test; vite build, PWA precache 10 entries = 7 + 3 vendored Draco files).
+  Fix-range commit after squash: 6374f1f.
 
 ## Commits
 
