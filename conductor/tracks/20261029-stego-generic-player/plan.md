@@ -44,14 +44,21 @@ The primary appends after acceptance:
 - **Covers:** FR-3, FR-4, AC-2
 - **Touches:** `assets/stego/**`, `public/models/stego.glb`, `scripts/vendor/bake-stego-*`, `scripts/**/check-stego*`, `tests/**/stego-*.ts`, `tests/**/pastel-*.ts`, `CREDITS.md`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P2.T1: Vendor + bake Stego** — covers: FR-3
-  - [ ] **P2.T1.1: Lookup Polyfork Stego base, record final pastel distinct from Trike** — resolve TBD palette, colorblind-safe
-  - [ ] **P2.T1.2: Copy bake-trike pipeline to bake-stego** — baby 0.25–0.35x, one-material flat-shaded Draco, feet y=0, blush
-- [ ] **P2.T2: Clip + pastel gates** — covers: FR-4
-  - [ ] **P2.T2.1: Prefer Waddle else first anim, 0.8 s seamless 24f linear check** — same /draco/ decoder
-  - [ ] **P2.T2.2: Pastel + plates + size + CREDITS** — distinct zones, >50 verts, each GLB small, total tracked toward <18 MB
+- [x] **P2.T1: Vendor + bake Stego** — covers: FR-3
+  - [x] **P2.T1.1: Lookup Polyfork Stego base, record final pastel distinct from Trike** — resolve TBD palette, colorblind-safe
+  - [x] **P2.T1.2: Copy bake-trike pipeline to bake-stego** — baby 0.25–0.35x, one-material flat-shaded Draco, feet y=0, blush
+- [x] **P2.T2: Clip + pastel gates** — covers: FR-4
+  - [x] **P2.T2.1: Prefer Waddle else first anim, 0.8 s seamless 24f linear check** — same /draco/ decoder
+  - [x] **P2.T2.2: Pastel + plates + size + CREDITS** — distinct zones, >50 verts, each GLB small, total tracked toward <18 MB
+
+<!--
+The primary appends after acceptance:
+**Result:** verified
+**Checkpoint:** a06cdef
+**Evidence:** conductor/tracks/20261029-stego-generic-player/verification/phase-2.md
+-->
 
 <!--
 The primary appends after acceptance:
