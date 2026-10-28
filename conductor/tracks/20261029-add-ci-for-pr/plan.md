@@ -53,3 +53,4 @@ The primary appends after acceptance:
 
 - [x] **P2.T1: Record validation evidence and note CI in workflow.md** — covers: FR-5
 - [x] **P2.T2: Run full `pnpm verify` green on the branch** — covers: AC-5
+- [x] **P2.T3: Fix oxfmt drift flagged by CI run 40784795415 and re-verify** — covers: AC-5

@@ -203,7 +203,9 @@ describe("rigged baked look", () => {
     // scene, and the load pins blush cheeks (plain Meshes with no COLOR_0)
     // ahead of it in traversal order.
     const baked = rig.getObjectByProperty("type", "Mesh") as THREE.Mesh;
-    const beforeColors = (baked.geometry.getAttribute("color") as THREE.BufferAttribute).array.slice();
+    const beforeColors = (
+      baked.geometry.getAttribute("color") as THREE.BufferAttribute
+    ).array.slice();
     const clip = new THREE.AnimationClip("Waddle", 0.8, []);
     loaderMocks.loadAsync.mockResolvedValue({ scene: rig, animations: [clip] });
     const loaded = await loadTrikePlayer();

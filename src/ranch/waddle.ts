@@ -56,8 +56,7 @@ export const WALK_BLEND_SECONDS = 0.2;
  * Distance covered per full-speed waddle cycle: speed x loop, which equals
  * WADDLE_STRIDE_METRES by construction so root motion and feet agree.
  */
-export const WADDLE_CYCLE_METRES =
-  WALK_SPEED_METRES_PER_SECOND * WADDLE_LOOP_SECONDS;
+export const WADDLE_CYCLE_METRES = WALK_SPEED_METRES_PER_SECOND * WADDLE_LOOP_SECONDS;
 
 /** Blink scheduling window (FR-6). */
 export const BLINK_MIN_SECONDS = 3;
