@@ -14,7 +14,7 @@
 - **Covers:** FR-1, FR-2, FR-3, FR-7, NFR-4, AC-1, AC-2, AC-3, AC-7
 - **Touches:** `scripts/bake-trike-variant.*`, `public/models/trike.glb`, `src/viewer/main.ts`, `src/ranch/pastel.ts` (delete), `tests/waddle/pastel.test.ts` (replace), `src/viewer/viewer.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P1.T1: Bake script via Polyfork module** — covers: FR-1
   - [ ] **P1.T1.1: createAsset params pinned (rayed, horns 0.7, noseHorn 0.6, size 0.6, pastel hexes)**
