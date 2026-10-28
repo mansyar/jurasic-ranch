@@ -14,7 +14,7 @@
 - **Covers:** FR-1, AC-5, AC-6
 - **Touches:** `package.json`, `vite.config.ts`, `tsconfig.json`, `index.html`, `src/viewer/*`, `public/manifest.webmanifest`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P1.T1: Init pnpm + Vite8 + three viewer** — covers: FR-1
   - [ ] **P1.T1.1: Configs** (package.json, vite + pwa plugin, tsconfig tsrs, oxlint/oxfmt, vitest)
