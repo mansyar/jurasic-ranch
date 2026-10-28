@@ -36,3 +36,21 @@
 - Manual tablet video: tap Walk, confirm 60 fps waddle + audible silence
 - Airplane-mode second visit: Trike still walks (precached GLB + Draco)
 - Parent-voice review of status-pill wording ("Walking" / "Tap Walk to waddle")
+
+## Round 3 — live-viewing fixes (same track, user-approved)
+
+Live session on the completed track showed the rigged Trike walking but
+(1) BROWN instead of pastel, (2) exiting the fixed frame. Fixed in
+0c7c4a3 `fix(ranch): pastel rigged look and stay-in-frame wander`:
+
+- Pastel: new `src/ranch/pastel.ts` — preserve-luminance COLOR_0 remap
+  (dark eyes/horns + cream claws kept, body → placeholder pastel green),
+  runtime flatShading, pink blush cheeks pinned under Head. GLB file
+  untouched (NFR-2 intact).
+- Wander: `steerInsideWanderRadius()` (0.8 m) reusing turn-then-walk;
+  Stop settles then halts dead (settle-then-snapshot park test).
+- Verdict: PASS — `pnpm verify` green (55/55 tests, 5 files; build +
+  precache 10). Live tab: walk mode on, zero console errors over 6 s,
+  GLB 304-served. Pixel-level color proof not possible headless
+  (screenshot needs a visible window); remap path is unit-tested on a
+  stub brown rig, visual confirmation stays a tablet follow-up.

@@ -15,7 +15,7 @@ a silent walk. Placeholder paints instantly; rigged GLB swaps in on load.
 ## Test report
 
 - `pnpm verify` green: oxlint + oxfmt --check + tsrs --noEmit
-  (src+tests+scripts) + vitest 42/42 (4 files) + vite build
+  (src+tests+scripts) + vitest 55/55 (5 files) + vite build
 - PWA precache 10 entries (app shell + trike.glb + 3 Draco decoder files)
 - Coverage gate: 60% new-code (track is 100% new code, no legacy baseline)
 - Review: PASS WITH FINDINGS, no open High/Critical (see review.md)
