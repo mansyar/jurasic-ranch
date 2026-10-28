@@ -6,7 +6,7 @@
 
 ## Overview
 
-First real skeletal animation for Jurasic Ranch plus minimal PWA scaffold. Vendors Polyfork Triceratops as a 0.9m forever-baby, rigs a 12-bone armature in Blender, bakes a 0.8s seamless waddle loop with foot-plant + dust, and plays it back at 60fps via three AnimationMixer with turn-then-walk and blink. Establishes the copy-template for Stego and Brachio.
+First real skeletal animation for Jurasic Ranch plus minimal PWA scaffold. Vendors Polyfork Triceratops as a forever-baby (0.3x of the 6.26m authored asset = ~1.9m on screen), rigs in Blender, bakes a 0.8s seamless waddle loop with foot-plant + dust, and plays it back at 60fps via three AnimationMixer with turn-then-walk and blink. Establishes the copy-template for Stego and Brachio.
 
 ## Problem / Motivation
 
@@ -26,7 +26,7 @@ No PWA exists yet (repo is docs-only) and no rigged dino exists. Without this tr
 ### In Scope
 
 - Minimal PWA scaffold: pnpm 12, Vite 8, three 0.180, TS, Howler stub, vite-plugin-pwa, idb-keyval stub, 72px viewer button
-- Vendor Polyfork Triceratops GLB, baby scale 0.25-0.35x (~0.9m long), pastel + blush
+- Vendor Polyfork Triceratops GLB, baby scale 0.3x of authored 6.26m asset (~1.9m on screen — reads as baby vs a 6-9m adult, fills the fixed-cam frame; review F3), pastel + blush
 - Blender 12-bone armature: hips/spine/chest/head+jaw/tail1-tail2/4 legs IK/eyelids
 - Bake Waddle clip 0.8s 24f: wide shuffly steps, bob+sway+squash, foot plant 0.2s + dust puff
 - Playback: AnimationMixer loop, root motion 0.4m/s, turn-in-place then walk, blink timer 3-5s, silent walk
@@ -44,7 +44,7 @@ No PWA exists yet (repo is docs-only) and no rigged dino exists. Without this tr
 | ID | Requirement | Priority |
 | --- | --- | --- |
 | FR-1 | PWA scaffold boots offline via `pnpm dev --host` and `pnpm preview --host` | must |
-| FR-2 | Trike GLB vendored under `public/models/trike.glb`, baby scale ~0.9m | must |
+| FR-2 | Trike GLB vendored under `public/models/trike.glb`, baby scale 0.3x of authored asset (~1.9m) | must |
 | FR-3 | 12-bone armature with IK legs, jaw, eyelids, mirrored weights | must |
 | FR-4 | Waddle clip 0.8s 24f loops seamlessly with no pop | must |
 | FR-5 | Turn-in-place 90° <0.6s then walk forward 0.4m/s | must |

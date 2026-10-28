@@ -10,8 +10,8 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
-    "lint": "oxlint",
-    "format": "oxfmt index.html package.json vite.config.ts tsconfig.json src public",
+    "lint": "oxlint --ignore-pattern 'public/draco/**'",
+    "format": "oxfmt index.html package.json vite.config.ts tsconfig.json src public '!public/draco/**'",
     "typecheck": "tsrs --noEmit",
     "verify": "pnpm lint && pnpm format --check && pnpm typecheck && pnpm test && pnpm build"
   },

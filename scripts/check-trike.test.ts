@@ -32,6 +32,10 @@ interface GlbMesh {
   primitives: GlbPrimitive[];
 }
 
+interface GlbMaterial {
+  name?: string;
+}
+
 interface GlbSampler {
   input: number;
 }
@@ -48,6 +52,9 @@ interface GlbJson {
   bufferViews: GlbBufferView[];
   meshes: GlbMesh[];
   animations?: GlbAnimation[];
+  extensionsUsed?: string[];
+  extensionsRequired?: string[];
+  materials?: GlbMaterial[];
 }
 
 interface ParsedGlb {
@@ -119,6 +126,22 @@ describe('trike glb', () => {
     const duration = animationDuration(parsed, waddle);
     expect(duration).toBeGreaterThanOrEqual(WADDLE_MIN_SECONDS);
     expect(duration).toBeLessThanOrEqual(WADDLE_MAX_SECONDS);
+  });
+
+  it('meets the NFR-2 offline contract: draco, one flat-shaded material', async () => {
+    const parsed = await parseGlb();
+    // Draco keeps the 85,780-byte GLB far under the 150 KB cache budget.
+    const declared = [
+      ...(parsed.json.extensionsUsed ?? []),
+      ...(parsed.json.extensionsRequired ?? []),
+    ];
+    expect(declared).toContain('KHR_draco_mesh_compression');
+    // One material: the shipped mesh shares a single pastel PBR material.
+    expect(parsed.json.materials?.length).toBe(1);
+    // glTF carries no flat-shading flag, so this half is cited, not parsed:
+    // the Polyfork triceratops-base source is a flat-shaded low-poly mesh
+    // (https://polyfork.dev/asset/triceratops-base; Phase 2 evidence: 1 mesh /
+    // 1 material) and the viewer keeps it faceted under NoToneMapping daylight.
   });
 
   it('stands on the ground plane at baby scale, y-up', async () => {

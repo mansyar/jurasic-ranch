@@ -1,17 +1,47 @@
 import { readFile } from "node:fs/promises";
 import * as THREE from "three";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TrikePlayer } from "../ranch/trike-player.js";
+import { WADDLE_LOOP_SECONDS } from "../ranch/waddle.js";
 import { isAudioUnlocked } from "./audio.js";
 import {
   createPlaceholderTrike,
+  loadTrikePlayer,
+  PLACEHOLDER_BODY_NAME,
   TRIKE_MODEL_URL,
   updatePlaceholderWalk,
-  WADDLE_LOOP_SECONDS,
 } from "./main.js";
 import { FALLBACK_PIXEL_RATIO, MAX_PIXEL_RATIO, resolvePixelRatio } from "./pixel-ratio.js";
 import { readSetting } from "./storage.js";
 
 const ROOT_URL = new URL("../../", import.meta.url);
+
+/** Loader-boundary stubs: the tests below never touch WebGL or the network. */
+const loaderMocks = vi.hoisted(() => ({
+  loadAsync: vi.fn(),
+  setDRACOLoader: vi.fn(),
+  setDecoderPath: vi.fn(),
+  dispose: vi.fn(),
+}));
+
+vi.mock("three/addons/loaders/GLTFLoader.js", () => ({
+  GLTFLoader: vi.fn(() => ({
+    loadAsync: loaderMocks.loadAsync,
+    setDRACOLoader: loaderMocks.setDRACOLoader,
+  })),
+}));
+
+vi.mock("three/addons/loaders/DRACOLoader.js", () => ({
+  DRACOLoader: vi.fn(() => ({
+    setDecoderPath: loaderMocks.setDecoderPath,
+    dispose: loaderMocks.dispose,
+  })),
+}));
+
+/** The only placeholder part the fallback bob may move. */
+function bodyOf(trike: THREE.Group): THREE.Object3D {
+  return trike.getObjectByName(PLACEHOLDER_BODY_NAME) ?? trike;
+}
 
 async function readText(relativePath: string): Promise<string> {
   return readFile(new URL(relativePath, ROOT_URL), "utf8");
@@ -55,19 +85,62 @@ describe("placeholder trike", () => {
     const b = createPlaceholderTrike();
     updatePlaceholderWalk(a, 0);
     updatePlaceholderWalk(b, WADDLE_LOOP_SECONDS);
-    expect(a.position.y).toBe(0);
-    expect(a.position.y).toBe(b.position.y);
-    expect(a.rotation.z).toBe(b.rotation.z);
+    expect(bodyOf(a).position.y).toBe(0);
+    expect(bodyOf(a).position.y).toBe(bodyOf(b).position.y);
+    expect(bodyOf(a).rotation.z).toBe(bodyOf(b).rotation.z);
   });
 
-  it("lifts mid-stride", () => {
+  it("bobs the body mid-stride while the feet stay planted", () => {
     const trike = createPlaceholderTrike();
     updatePlaceholderWalk(trike, WADDLE_LOOP_SECONDS / 4);
-    expect(trike.position.y).toBeGreaterThan(0);
+    expect(bodyOf(trike).position.y).toBeGreaterThan(0);
+    expect(trike.position.y).toBe(0);
+    expect(trike.rotation.z).toBe(0);
   });
 
   it("reserves the Phase 2 model URL", () => {
     expect(TRIKE_MODEL_URL).toBe("/models/trike.glb");
+  });
+});
+
+describe("rigged trike loader", () => {
+  beforeEach(() => {
+    loaderMocks.loadAsync.mockReset();
+  });
+
+  it("requests /models/trike.glb and wraps the Waddle clip in a TrikePlayer", async () => {
+    const scene = new THREE.Group();
+    const clip = new THREE.AnimationClip("Waddle", 0.8, []);
+    loaderMocks.loadAsync.mockResolvedValue({ scene, animations: [clip] });
+    const loaded = await loadTrikePlayer();
+    expect(TRIKE_MODEL_URL).toBe("/models/trike.glb");
+    expect(loaderMocks.loadAsync).toHaveBeenCalledWith("/models/trike.glb");
+    expect(loaded.model).toBe(scene);
+    expect(loaded.player).toBeInstanceOf(TrikePlayer);
+    expect(loaded.player.clipDurationSeconds).toBeCloseTo(0.8, 5);
+  });
+
+  it("prefers the Waddle clip over other animations", async () => {
+    const scene = new THREE.Group();
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene,
+      animations: [
+        new THREE.AnimationClip("Idle", 1.4, []),
+        new THREE.AnimationClip("Waddle", 0.8, []),
+      ],
+    });
+    const loaded = await loadTrikePlayer();
+    expect(loaded.player.clipDurationSeconds).toBeCloseTo(0.8, 5);
+  });
+
+  it("rejects when the GLB cannot load so the viewer keeps the placeholder", async () => {
+    loaderMocks.loadAsync.mockRejectedValue(new Error("offline"));
+    await expect(loadTrikePlayer()).rejects.toThrow("offline");
+  });
+
+  it("rejects when the GLB carries no animations", async () => {
+    loaderMocks.loadAsync.mockResolvedValue({ scene: new THREE.Group(), animations: [] });
+    await expect(loadTrikePlayer()).rejects.toThrow("Waddle");
   });
 });
 
