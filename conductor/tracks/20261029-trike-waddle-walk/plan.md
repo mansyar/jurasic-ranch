@@ -65,11 +65,11 @@ The primary appends after acceptance:
 ## Phase 3: Playback Turn Blink Dust
 
 - **Goal:** Turn-then-walk 0.4m/s 60fps with blink and dust
-- **Depends on:** Phase 2
+- **Depends on:** Phase 2 (verified f9c6fc3)
 - **Covers:** FR-5, FR-6, FR-7, FR-8, AC-1, AC-2, AC-3, AC-4
 - **Touches:** `src/ranch/*`, `tests/waddle/*`, `public/*`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P3.T1: Mixer + root motion** — covers: FR-5
   - [ ] **P3.T1.1: AnimationMixer loop, 0.4m/s root, no pop**
