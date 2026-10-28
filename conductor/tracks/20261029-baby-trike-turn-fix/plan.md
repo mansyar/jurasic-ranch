@@ -11,7 +11,7 @@
 
 - **Goal:** Committed pastel baby GLB (rayed shield, short horns, size 0.6) loads with zero runtime recolor.
 - **Depends on:** none
-- **Covers:** FR-1, FR-2, FR-3, FR-7, AC-1, AC-2, AC-3, AC-7
+- **Covers:** FR-1, FR-2, FR-3, FR-7, NFR-4, AC-1, AC-2, AC-3, AC-7
 - **Touches:** `scripts/bake-trike-variant.*`, `public/models/trike.glb`, `src/viewer/main.ts`, `src/ranch/pastel.ts` (delete), `tests/waddle/pastel.test.ts` (replace), `src/viewer/viewer.test.ts`
 - **Verification:** `pnpm verify`
 - **Status:** pending
@@ -45,7 +45,7 @@ The primary appends after acceptance:
 
 - **Goal:** Slow stroller arcs in motion, heading frozen below stop threshold — no jitter, stays in frame.
 - **Depends on:** Phase 2
-- **Covers:** FR-4, FR-5, AC-4, AC-5
+- **Covers:** FR-4, FR-5, NFR-3, AC-4, AC-5
 - **Touches:** `src/ranch/trike-player.ts`, `tests/waddle/trike-player.test.ts`
 - **Verification:** `pnpm verify`
 - **Status:** pending
