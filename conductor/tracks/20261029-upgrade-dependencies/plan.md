@@ -87,7 +87,7 @@ The primary appends after acceptance:
 - **Verification:** `pnpm verify`
 - **Status:** verified
 - **Result:** R1.T1 vendor ignore landed (pnpm lint clean, zero warnings); R1.T2 F1 synced (TS 7.0.2, oxlint 1.90.0, oxfmt 0.75.0); R1.T3 F2 recorded (tsrs 0.20.0-ts7.1.0-beta); full pnpm verify exit 0 (62/62 tests, build + PWA 2.0.0 15 entries).
-- **Checkpoint:** `PENDING`
+- **Checkpoint:** `ea45cd2`
 - **Evidence:** `conductor/tracks/20261029-upgrade-dependencies/verification/phase-3.md`
 
 - [x] **R1.T1: Ignore scripts/vendor in pnpm lint** — covers: NFR-1
