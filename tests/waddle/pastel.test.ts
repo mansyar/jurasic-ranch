@@ -1,121 +1,179 @@
+import { readFile } from "node:fs/promises";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import {
-  applyPastelRemap,
-  attachBlushCheeks,
-  BLUSH_CHEEK_RADIUS_METRES,
-  luminance01,
-  PASTEL_BLUSH_HEX,
-  PASTEL_BODY_HEX,
-  pastelRemap,
-} from "../../src/ranch/pastel.js";
+  buildRetargetedClip,
+  createDefaultGroup,
+  createVariantGroup,
+  extractAnimationTracks,
+  POSITION_TRACK_SCALE,
+  TRIKE_VARIANT_PARAMS,
+} from "../../scripts/bake-trike-variant.js";
 
-describe("pastelRemap", () => {
-  it("shares the exact placeholder hexes", () => {
-    expect(PASTEL_BODY_HEX).toBe(0x9e_d6_8a);
-    expect(PASTEL_BLUSH_HEX).toBe(0xf2_a0_ac);
-  });
+/**
+ * Baked pastel baby variant (replaces the runtime-remap pastel suite):
+ * asserts the pinned bake params, the procedural variant geometry they
+ * produce (pastel COLOR_0, single material, baby proportions), and the
+ * Waddle retarget the bake applies to the previous GLB. The GLB-level
+ * checks (Draco, single material, Waddle 0.8 s, bounds) live in
+ * scripts/check-trike.test.ts, which cannot read colors out of Draco bytes.
+ */
 
-  it("remaps authored brown to the pastel green hue, keeping luminance", () => {
-    const brown: readonly [number, number, number] = [0.45, 0.29, 0.16];
-    const [r, g, b] = pastelRemap(brown[0], brown[1], brown[2]);
-    expect(g).toBeGreaterThan(r);
-    expect(g).toBeGreaterThan(b);
-    expect(luminance01(r, g, b)).toBeCloseTo(luminance01(brown[0], brown[1], brown[2]), 2);
-  });
+const PASTEL_HEXES = ["#9ed68a", "#c4e8b0", "#f2e8c9", "#7fb069"] as const;
+const RETIRED_HEXES = [
+  "#a97a50",
+  "#c9a579",
+  "#5a3a22",
+  "#7c5434",
+  "#e4d5b6",
+  "#e2d2ae",
+  "#dcc9a2",
+  "#a8442a",
+] as const;
 
-  it("keeps dark verts (eyes, horns) untouched", () => {
-    expect(pastelRemap(0.02, 0.02, 0.02)).toEqual([0.02, 0.02, 0.02]);
-  });
+const COLOR_TOLERANCE = 1e-4;
+const MIN_VERTS_PER_ZONE = 50;
 
-  it("keeps cream verts (claws) untouched", () => {
-    expect(pastelRemap(0.93, 0.87, 0.72)).toEqual([0.93, 0.87, 0.72]);
-  });
-
-  it("keeps pure white untouched", () => {
-    expect(pastelRemap(1, 1, 1)).toEqual([1, 1, 1]);
-  });
-});
-
-describe("applyPastelRemap", () => {
-  function createBrownMesh(): THREE.Mesh {
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute(
-      "position",
-      new THREE.BufferAttribute(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]), 3),
-    );
-    geometry.setAttribute(
-      "color",
-      new THREE.BufferAttribute(
-        new Float32Array([0.45, 0.29, 0.16, 0.45, 0.29, 0.16, 0.45, 0.29, 0.16]),
-        3,
-      ),
-    );
-    return new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
+/** Count verts whose linear-space color matches the hex within tolerance. */
+function countMatchingVerts(geometry: THREE.BufferGeometry, hex: string): number {
+  const expected = new THREE.Color(hex);
+  const colors = geometry.getAttribute("color") as THREE.BufferAttribute;
+  let count = 0;
+  for (let i = 0; i < colors.count; i += 1) {
+    const close =
+      Math.abs(colors.getX(i) - expected.r) < COLOR_TOLERANCE &&
+      Math.abs(colors.getY(i) - expected.g) < COLOR_TOLERANCE &&
+      Math.abs(colors.getZ(i) - expected.b) < COLOR_TOLERANCE;
+    if (close) {
+      count += 1;
+    }
   }
+  return count;
+}
 
-  it("remaps COLOR_0 to green in place and enables flat shading", () => {
-    const mesh = createBrownMesh();
-    const model = new THREE.Group();
-    model.add(mesh);
-    applyPastelRemap(model);
-    const colors = mesh.geometry.getAttribute("color");
-    expect(colors instanceof THREE.BufferAttribute).toBe(true);
-    if (colors instanceof THREE.BufferAttribute) {
-      expect(colors.getY(0)).toBeGreaterThan(colors.getX(0));
-      expect(colors.getY(0)).toBeGreaterThan(colors.getZ(0));
-      expect(colors.version).toBeGreaterThan(0);
-    }
-    expect(mesh.material instanceof THREE.MeshStandardMaterial).toBe(true);
-    if (mesh.material instanceof THREE.MeshStandardMaterial) {
-      expect(mesh.material.flatShading).toBe(true);
+function singleMesh(group: THREE.Group): THREE.SkinnedMesh {
+  const meshes: THREE.SkinnedMesh[] = [];
+  group.traverse((child) => {
+    if ((child as THREE.SkinnedMesh).isSkinnedMesh === true) {
+      meshes.push(child as THREE.SkinnedMesh);
     }
   });
+  expect(meshes.length).toBe(1);
+  return meshes[0] as THREE.SkinnedMesh;
+}
 
-  it("ignores meshes without vertex colors", () => {
-    const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial(),
-    );
-    expect(() => applyPastelRemap(mesh)).not.toThrow();
-    if (mesh.material instanceof THREE.MeshStandardMaterial) {
-      expect(mesh.material.flatShading).toBe(true);
-    }
+function zLengthMetres(group: THREE.Group): number {
+  const box = new THREE.Box3().setFromObject(group);
+  return box.max.z - box.min.z;
+}
+
+describe("baked pastel baby variant params", () => {
+  it("pins the exact Polyfork call from the spec", () => {
+    expect(TRIKE_VARIANT_PARAMS).toEqual({
+      size: 0.6,
+      horns: 0.7,
+      noseHorn: 0.6,
+      frill: "rayed",
+      hide: "#9ed68a",
+      belly: "#c4e8b0",
+      horn: "#f2e8c9",
+      mark: "#7fb069",
+      shieldTrim: "#f2e8c9",
+      shieldMark: "#7fb069",
+    });
+    expect(POSITION_TRACK_SCALE).toBe(0.6);
   });
 });
 
-describe("attachBlushCheeks", () => {
-  it("pins two pink cheeks under the Head bone", () => {
-    const head = new THREE.Group();
-    head.name = "Head";
-    const cheeks = attachBlushCheeks(head);
-    expect(cheeks.length).toBe(2);
-    expect(head.children).toHaveLength(2);
-    for (const cheek of cheeks) {
-      expect(cheek.parent).toBe(head);
-    }
-    const material = cheeks[0].material;
-    expect(material instanceof THREE.MeshStandardMaterial).toBe(true);
-    if (material instanceof THREE.MeshStandardMaterial) {
-      expect(material.color.getHex()).toBe(PASTEL_BLUSH_HEX);
-    }
-    expect(cheeks[0].position.x).toBeGreaterThan(0);
-    expect(cheeks[1].position.x).toBeCloseTo(-cheeks[0].position.x, 9);
-    expect(cheeks[1].position.y).toBe(cheeks[0].position.y);
-    expect(cheeks[1].position.z).toBe(cheeks[0].position.z);
-    cheeks[0].geometry.computeBoundingSphere();
-    expect(cheeks[0].geometry.boundingSphere?.radius).toBeCloseTo(
-      BLUSH_CHEEK_RADIUS_METRES,
-      5,
-    );
+describe("baked pastel baby variant geometry", () => {
+  it("ships one flat-shaded vertex-colored mesh on a single material", () => {
+    const mesh = singleMesh(createVariantGroup());
+    const material = mesh.material as THREE.MeshStandardMaterial;
+    expect(mesh.geometry.hasAttribute("color")).toBe(true);
+    expect(material.vertexColors).toBe(true);
+    expect(material.flatShading).toBe(true);
   });
 
-  it("is a no-op without a Head and idempotent on repeat swaps", () => {
-    expect(attachBlushCheeks(null)).toEqual([]);
-    const head = new THREE.Group();
-    head.name = "Head";
-    attachBlushCheeks(head);
-    attachBlushCheeks(head);
-    expect(head.children).toHaveLength(2);
+  it("bakes every pastel zone into COLOR_0 and drops every retired brown", () => {
+    const mesh = singleMesh(createVariantGroup());
+    for (const hex of PASTEL_HEXES) {
+      expect(countMatchingVerts(mesh.geometry, hex)).toBeGreaterThan(MIN_VERTS_PER_ZONE);
+    }
+    for (const hex of RETIRED_HEXES) {
+      expect(countMatchingVerts(mesh.geometry, hex)).toBe(0);
+    }
+  });
+
+  it("reads as a size-0.6 baby next to the adult default", () => {
+    const variantLength = zLengthMetres(createVariantGroup());
+    const adultLength = zLengthMetres(createDefaultGroup());
+    expect(adultLength).toBeGreaterThan(6.0);
+    expect(adultLength).toBeLessThan(6.5);
+    expect(variantLength).toBeGreaterThan(3.3);
+    expect(variantLength).toBeLessThan(4.2);
+    const ratio = variantLength / adultLength;
+    expect(ratio).toBeGreaterThan(0.55);
+    expect(ratio).toBeLessThan(0.65);
+  });
+
+  it("keeps the Head bone the runtime blush pin targets, feet on y = 0", () => {
+    const group = createVariantGroup();
+    expect(group.getObjectByName("Head")).not.toBeNull();
+    const box = new THREE.Box3().setFromObject(group);
+    expect(Math.abs(box.min.y)).toBeLessThan(0.01);
+  });
+});
+
+describe("Waddle retarget onto the baby skeleton", () => {
+  const PREV_GLB = new URL("../../public/models/trike.glb", import.meta.url);
+
+  it("finds a seamless 0.8 s Waddle on the previous GLB with a 0.3x root", async () => {
+    const bytes = await readFile(PREV_GLB);
+    const animation = extractAnimationTracks(bytes);
+    expect(animation.name).toBe("Waddle");
+    expect(animation.durationSeconds).toBeGreaterThan(0.79);
+    expect(animation.durationSeconds).toBeLessThan(0.81);
+    expect(animation.rootScale).not.toBeNull();
+    expect(Math.abs((animation.rootScale as number) - 0.3)).toBeLessThan(0.01);
+    const translations = animation.channels.filter((channel) => channel.path === "translation");
+    const rotations = animation.channels.filter((channel) => channel.path === "rotation");
+    expect(translations.length).toBe(24);
+    expect(rotations.length).toBe(24);
+    for (const channel of animation.channels) {
+      expect(channel.interpolation).toBe("LINEAR");
+    }
+  });
+
+  it("rebuilds the clip on the variant skeleton with positions scaled and quats intact", async () => {
+    const bytes = await readFile(PREV_GLB);
+    const animation = extractAnimationTracks(bytes);
+    const group = createVariantGroup();
+    const clip = buildRetargetedClip(group, animation);
+    expect(clip.name).toBe("Waddle");
+    expect(clip.tracks.length).toBe(48);
+    expect(Math.abs(clip.duration - animation.durationSeconds)).toBeLessThan(1e-6);
+    const sourceTranslation = animation.channels.find((channel) => channel.path === "translation");
+    const rebuiltTranslation = clip.tracks.find((track) => track.name.endsWith(".position"));
+    expect(sourceTranslation).toBeDefined();
+    expect(rebuiltTranslation).toBeDefined();
+    const sourceValues = (sourceTranslation as { values: Float32Array }).values;
+    const rebuiltValues = (rebuiltTranslation as THREE.KeyframeTrack).values;
+    expect(rebuiltValues.length).toBe(sourceValues.length);
+    for (let i = 0; i < rebuiltValues.length; i += 1) {
+      expect(rebuiltValues[i]).toBeCloseTo(sourceValues[i] * POSITION_TRACK_SCALE, 5);
+    }
+    const sourceRotation = animation.channels.find((channel) => channel.path === "rotation");
+    const rebuiltRotation = clip.tracks.find((track) => track.name.endsWith(".quaternion"));
+    expect(Array.from((rebuiltRotation as THREE.KeyframeTrack).values)).toEqual(
+      Array.from((sourceRotation as { values: Float32Array }).values),
+    );
+    for (const track of clip.tracks) {
+      const keyTrack = track as THREE.KeyframeTrack;
+      const itemSize = keyTrack.getValueSize();
+      const keyCount = keyTrack.values.length / itemSize;
+      for (let k = 0; k < itemSize; k += 1) {
+        expect(keyTrack.values[k]).toBeCloseTo(keyTrack.values[(keyCount - 1) * itemSize + k], 6);
+      }
+    }
   });
 });

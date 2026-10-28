@@ -2,21 +2,16 @@ import * as THREE from "three";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { TrikePlayer } from "../ranch/trike-player.js";
-import {
-  applyPastelRemap,
-  attachBlushCheeks,
-  PASTEL_BLUSH_HEX,
-  PASTEL_BODY_HEX,
-} from "../ranch/pastel.js";
 import { WADDLE_LOOP_SECONDS } from "../ranch/waddle.js";
 import { unlockAudio } from "./audio.js";
 import { resolvePixelRatio } from "./pixel-ratio.js";
 import { readSetting, writeSetting } from "./storage.js";
 
 /**
- * Path of the baked Trike GLB (Phase 2 Draco export, <150 KB). The viewer
- * paints the procedural placeholder instantly and swaps to this rigged model
- * as soon as it loads, so boot stays green even when the fetch fails.
+ * Path of the baked Trike GLB (Phase 1 pastel baby variant, Draco, <150 KB).
+ * The viewer paints the procedural placeholder instantly and swaps to this
+ * rigged model as soon as it loads, so boot stays green even when the
+ * fetch fails.
  */
 /** Deploy base: "/" locally and in tests, subpath-safe under a future base. */
 const BASE_URL = import.meta.env.BASE_URL;
@@ -35,6 +30,54 @@ const WADDLE_CLIP_NAME = "Waddle";
 /** Placeholder part that may bob; the legs stay planted (body-only bob). */
 export const PLACEHOLDER_BODY_NAME = "PlaceholderBody";
 
+/**
+ * Baked pastel baby look (Phase 1): the shipped GLB already carries the
+ * pastel palette in its vertex colors, so the viewer applies no runtime
+ * recolor. These constants stay in sync with the bake by construction:
+ * the placeholder body matches the baked hide zone, and only the pink
+ * blush cheeks stay runtime — they pin under the Head bone after load.
+ */
+/** Baby-green body, verbatim the baked GLB hide zone. */
+export const PLACEHOLDER_BODY_HEX = 0x9ed68a;
+/** Blush pink for the runtime cheek spheres. */
+export const BLUSH_HEX = 0xf2a0ac;
+/** Blush cheek sphere radius in metres. */
+export const BLUSH_CHEEK_RADIUS_METRES = 0.03;
+/**
+ * Cheek offsets in Head-bone local space, in metres: symmetric, low, forward.
+ */
+export const BLUSH_CHEEK_OFFSETS: ReadonlyArray<readonly [number, number, number]> = [
+  [-0.09, -0.02, 0.1],
+  [0.09, -0.02, 0.1],
+];
+
+/**
+ * Pin two pink cheek spheres under the Head bone. No-op when the head bone
+ * is missing (stub scene); idempotent — re-pinning removes old cheeks first.
+ */
+export function attachBlushCheeks(head: THREE.Object3D | null): THREE.Mesh[] {
+  if (head === null) {
+    return [];
+  }
+  for (const old of [...head.children]) {
+    if (old.name === "Blush_L" || old.name === "Blush_R") {
+      head.remove(old);
+    }
+  }
+  const material = new THREE.MeshStandardMaterial({
+    color: BLUSH_HEX,
+    roughness: 0.8,
+  });
+  const geometry = new THREE.SphereGeometry(BLUSH_CHEEK_RADIUS_METRES, 12, 8);
+  return BLUSH_CHEEK_OFFSETS.map(([x, y, z], index) => {
+    const cheek = new THREE.Mesh(geometry, material);
+    cheek.name = index === 0 ? "Blush_L" : "Blush_R";
+    cheek.position.set(x, y, z);
+    head.add(cheek);
+    return cheek;
+  });
+}
+
 const CANVAS_ID = "scene";
 const WALK_BUTTON_ID = "walk-button";
 const STATUS_ID = "status";
@@ -48,7 +91,7 @@ const WALK_SETTING_KEY = "walking";
  */
 export function createPlaceholderTrike(): THREE.Group {
   const body = new THREE.MeshStandardMaterial({
-    color: PASTEL_BODY_HEX,
+    color: PLACEHOLDER_BODY_HEX,
     flatShading: true,
     roughness: 0.9,
   });
@@ -58,7 +101,7 @@ export function createPlaceholderTrike(): THREE.Group {
     roughness: 0.9,
   });
   const blush = new THREE.MeshStandardMaterial({
-    color: PASTEL_BLUSH_HEX,
+    color: BLUSH_HEX,
     flatShading: true,
     roughness: 0.9,
   });
@@ -170,11 +213,10 @@ export async function loadTrikePlayer(): Promise<LoadedTrike> {
     if (clip === undefined) {
       throw new Error(`Trike GLB has no animations (expected "${WADDLE_CLIP_NAME}")`);
     }
-    // Pastel baby look: remap the authored browns to the placeholder green
-    // and pin blush cheeks to the blink Head bone. No-ops on models without
-    // vertex colors or a Head node, so the GLB file itself stays untouched.
+    // Baked pastel baby look: the GLB already carries the pastel palette in
+    // its vertex colors, so no runtime recolor runs here. Only pin blush
+    // cheeks to the blink Head bone. No-op on models without a Head node.
     const player = new TrikePlayer(gltf.scene, { clip });
-    applyPastelRemap(gltf.scene);
     attachBlushCheeks(player.head);
     return { model: gltf.scene, player };
   } finally {
