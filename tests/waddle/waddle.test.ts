@@ -12,6 +12,7 @@ import {
   turnDurationSeconds,
   updateWaddlePose,
   WADDLE_LOOP_SECONDS,
+  WADDLE_STRIDE_METRES,
   WALK_SPEED_METRES_PER_SECOND,
 } from "../../src/ranch/waddle.js";
 
@@ -74,20 +75,25 @@ describe("turn-then-walk", () => {
     expect(displacementMetres(pose, DT)).toBe(0);
   });
 
-  it("holds a constant 0.4 m/s once blended", () => {
-    expect(WALK_SPEED_METRES_PER_SECOND).toBe(0.4);
+  it("holds one stride per loop once blended", () => {
+    expect(WALK_SPEED_METRES_PER_SECOND).toBeCloseTo(
+      WADDLE_STRIDE_METRES / WADDLE_LOOP_SECONDS,
+      12,
+    );
     const pose = createWaddlePose(0);
     pose.moving = true;
     for (let i = 0; i < 60; i += 1) {
       updateWaddlePose(pose, DT);
     }
     expect(pose.blend).toBe(1);
+    // 48 frames at 60 fps is exactly one 0.8 s loop, so a full-speed walk
+    // covers exactly one stride.
     let distance = 0;
-    for (let i = 0; i < 60; i += 1) {
+    for (let i = 0; i < 48; i += 1) {
       updateWaddlePose(pose, DT);
       distance += displacementMetres(pose, DT);
     }
-    expect(distance).toBeCloseTo(0.4, 6);
+    expect(distance).toBeCloseTo(WADDLE_STRIDE_METRES, 6);
   });
 
   it("ignores non-positive time steps", () => {

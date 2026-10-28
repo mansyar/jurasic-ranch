@@ -6,8 +6,17 @@
 /** Length of one Waddle loop in seconds; must match the baked GLB clip. */
 export const WADDLE_LOOP_SECONDS = 0.8;
 
-/** Forward speed while walking at full blend. */
-export const WALK_SPEED_METRES_PER_SECOND = 0.4;
+/**
+ * Measured horizontal foot travel per Waddle cycle on the size-0.6 skeleton.
+ * Sampled from the shipped clip with the body fixed (foot-bone world Z
+ * range across one loop): 0.29 m on all four feet, duty ~2/3, clearance
+ * ~0.07 m. The vendored gait block holds no stride data, so the clip is the
+ * source of truth (see tests/waddle/stride.test.ts).
+ */
+export const WADDLE_STRIDE_METRES = 0.29;
+
+/** Forward speed while walking at full blend: one stride per loop. */
+export const WALK_SPEED_METRES_PER_SECOND = WADDLE_STRIDE_METRES / WADDLE_LOOP_SECONDS;
 
 /** Yaw rate for turn-in-place; a 90 deg turn completes in 0.5 s (< 0.6 s). */
 export const TURN_RATE_RADIANS_PER_SECOND = Math.PI;
@@ -21,8 +30,12 @@ export const TURN_ALIGN_RADIANS = 0.02;
 /** Blend ramp for walk start/stop so there is no pop. */
 export const WALK_BLEND_SECONDS = 0.2;
 
-/** Distance covered per full-speed waddle cycle (speed x loop). */
-export const WADDLE_CYCLE_METRES = WALK_SPEED_METRES_PER_SECOND * WADDLE_LOOP_SECONDS;
+/**
+ * Distance covered per full-speed waddle cycle: speed x loop, which equals
+ * WADDLE_STRIDE_METRES by construction so root motion and feet agree.
+ */
+export const WADDLE_CYCLE_METRES =
+  WALK_SPEED_METRES_PER_SECOND * WADDLE_LOOP_SECONDS;
 
 /** Blink scheduling window (FR-6). */
 export const BLINK_MIN_SECONDS = 3;
@@ -118,7 +131,7 @@ export function updateWaddlePose(pose: WaddlePose, dtSeconds: number): void {
   pose.blend += Math.sign(delta) * Math.min(Math.abs(delta), blendStep);
 }
 
-/** Metres covered this frame: constant 0.4 m/s scaled by the eased blend. */
+/** Metres covered this frame: one stride per loop, scaled by the eased blend. */
 export function displacementMetres(pose: WaddlePose, dtSeconds: number): number {
   return pose.blend * WALK_SPEED_METRES_PER_SECOND * Math.max(dtSeconds, 0);
 }

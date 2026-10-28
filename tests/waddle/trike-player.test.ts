@@ -8,7 +8,7 @@ import {
   TrikePlayer,
   WANDER_RADIUS_METRES,
 } from "../../src/ranch/trike-player.js";
-import { WADDLE_CYCLE_METRES, WADDLE_LOOP_SECONDS, wrapAngle } from "../../src/ranch/waddle.js";
+import { WADDLE_CYCLE_METRES, WADDLE_LOOP_SECONDS, WALK_SPEED_METRES_PER_SECOND, wrapAngle } from "../../src/ranch/waddle.js";
 
 const DT = 1 / 60;
 const ROOT_URL = new URL("../../", import.meta.url);
@@ -72,7 +72,7 @@ describe("trike mixer", () => {
     expect(rig.position.length()).toBe(0);
   });
 
-  it("turns 90 deg in place before translating, then walks 0.4 m/s", () => {
+  it("turns 90 deg in place before translating, then walks one stride per loop", () => {
     const rig = createTestRig();
     const player = new TrikePlayer(rig, { clip: createWaddleClip(), random: () => 0.5 });
     player.turnTo(Math.PI / 2);
@@ -103,7 +103,7 @@ describe("trike mixer", () => {
       player.update(DT, now);
       now += DT;
     }
-    expect(rig.position.distanceTo(start)).toBeCloseTo(0.4, 6);
+    expect(rig.position.distanceTo(start)).toBeCloseTo(WALK_SPEED_METRES_PER_SECOND, 6);
   });
 
   it("toggles walk/stop and freezes on stop", () => {
@@ -128,9 +128,9 @@ describe("trike mixer", () => {
     expect(rig.position.distanceTo(parked)).toBe(0);
   });
 
-  it("preserves the 0.3x baby root scale while squashing on plants", () => {
+  it("preserves the 1.0x baby root scale while squashing on plants", () => {
     const rig = createTestRig();
-    rig.scale.set(0.3, 0.3, 0.3);
+    rig.scale.set(1, 1, 1);
     const player = new TrikePlayer(rig, { clip: createWaddleClip(), random: () => 0.5 });
     player.setWalking(true);
     let now = 0;
@@ -140,10 +140,10 @@ describe("trike mixer", () => {
       now += DT;
       minY = Math.min(minY, rig.scale.y);
     }
-    expect(rig.scale.x).toBe(0.3);
-    expect(rig.scale.z).toBe(0.3);
-    expect(minY).toBeLessThan(0.3);
-    expect(minY).toBeGreaterThan(0.28);
+    expect(rig.scale.x).toBe(1);
+    expect(rig.scale.z).toBe(1);
+    expect(minY).toBeLessThan(1);
+    expect(minY).toBeGreaterThan(0.93);
   });
 });
 
