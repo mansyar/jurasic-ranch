@@ -6,9 +6,11 @@ const MAX_BYTES = 150 * 1024;
 /** Baked waddle cycle length in seconds; matches the viewer loop constant. */
 const WADDLE_MIN_SECONDS = 0.79;
 const WADDLE_MAX_SECONDS = 0.81;
-/** Baby scale is 0.3x of the 6.26 m authored length. */
-const MIN_LENGTH_METRES = 1.7;
-const MAX_LENGTH_METRES = 2.1;
+/** Baked pastel baby variant: the Polyfork size-0.6 rebuild (~3.8 m subadult). */
+const MIN_LENGTH_METRES = 3.3;
+const MAX_LENGTH_METRES = 4.2;
+/** Shield top sits at ~0.6x of the 3.65 m adult reference. */
+const MAX_HEIGHT_METRES = 2.6;
 
 const TRIKE_URL = new URL('../public/models/trike.glb', import.meta.url);
 
@@ -46,11 +48,17 @@ interface GlbAnimation {
   samplers: GlbSampler[];
 }
 
+interface GlbNode {
+  name?: string;
+  scale?: number[];
+}
+
 interface GlbJson {
   asset: { version: string };
   accessors: GlbAccessor[];
   bufferViews: GlbBufferView[];
   meshes: GlbMesh[];
+  nodes?: GlbNode[];
   animations?: GlbAnimation[];
   extensionsUsed?: string[];
   extensionsRequired?: string[];
@@ -130,7 +138,7 @@ describe('trike glb', () => {
 
   it('meets the NFR-2 offline contract: draco, one flat-shaded material', async () => {
     const parsed = await parseGlb();
-    // Draco keeps the 85,780-byte GLB far under the 150 KB cache budget.
+    // Draco keeps the baked GLB far under the 150 KB cache budget.
     const declared = [
       ...(parsed.json.extensionsUsed ?? []),
       ...(parsed.json.extensionsRequired ?? []),
@@ -152,10 +160,17 @@ describe('trike glb', () => {
     const max = accessor.max ?? [];
     // gltf is y-up: height lives on y and the lowest vertex sits on y = 0.
     expect(Math.abs(min[1] ?? 1)).toBeLessThan(0.01);
-    expect((max[1] ?? 0) - (min[1] ?? 0)).toBeLessThan(1.3);
-    // Authored length 6.26 m along z, baby-scaled 0.3x to about 1.9 m.
+    expect((max[1] ?? 0) - (min[1] ?? 0)).toBeLessThan(MAX_HEIGHT_METRES);
+    // Size-0.6 rebuild of the 6.26 m reference: about 3.8 m tip-to-tail
+    // (horns 0.7 shorten the tip end slightly, so the lower bound has room).
     const length = (max[2] ?? 0) - (min[2] ?? 0);
     expect(length).toBeGreaterThanOrEqual(MIN_LENGTH_METRES);
     expect(length).toBeLessThanOrEqual(MAX_LENGTH_METRES);
+  });
+
+  it('keeps the Head bone the runtime blush pin targets', async () => {
+    const parsed = await parseGlb();
+    const names = (parsed.json.nodes ?? []).map((node) => node.name ?? '');
+    expect(names.some((name) => name.toLowerCase().includes('head'))).toBe(true);
   });
 });

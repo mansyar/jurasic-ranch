@@ -2,12 +2,13 @@ import { readFile } from "node:fs/promises";
 import * as THREE from "three";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TrikePlayer } from "../ranch/trike-player.js";
-import { PASTEL_BLUSH_HEX, PASTEL_BODY_HEX } from "../ranch/pastel.js";
 import { WADDLE_LOOP_SECONDS } from "../ranch/waddle.js";
 import { isAudioUnlocked } from "./audio.js";
 import {
+  BLUSH_HEX,
   createPlaceholderTrike,
   loadTrikePlayer,
+  PLACEHOLDER_BODY_HEX,
   PLACEHOLDER_BODY_NAME,
   TRIKE_MODEL_URL,
   updatePlaceholderWalk,
@@ -77,11 +78,12 @@ describe("placeholder trike", () => {
     expect(trike.children.length).toBeGreaterThan(0);
     const box = new THREE.Box3().setFromObject(trike);
     expect(Math.abs(box.min.y)).toBeLessThan(1e-6);
-    // Same footprint as the rigged swap target (~1.9 m, facing +Z): the swap
-    // must not pop in size or heading.
+    // Same footprint as the rigged swap target (~3.8 m baked baby, facing
+    // +Z): the swap must not pop in size or heading. Bounds mirror the
+    // shipped-GLB window in scripts/check-trike.test.ts (3.3–4.2 m).
     const size = box.getSize(new THREE.Vector3());
-    expect(size.z).toBeGreaterThan(1.5);
-    expect(size.z).toBeLessThan(2.2);
+    expect(size.z).toBeGreaterThanOrEqual(3.3);
+    expect(size.z).toBeLessThanOrEqual(4.2);
     expect(trike.rotation.y).toBeCloseTo(-Math.PI / 2, 5);
   });
 
@@ -157,29 +159,26 @@ describe("rigged trike loader", () => {
   });
 });
 
-describe("rigged pastel look", () => {
+describe("rigged baked look", () => {
   beforeEach(() => {
     loaderMocks.loadAsync.mockReset();
   });
 
-  /** Brown vertex-color rig with a Head bone, mirroring the shipped GLB. */
-  function createBrownRig(): THREE.Group {
+  /** Baked-pastel rig with a Head bone, mirroring the shipped GLB. */
+  function createBakedRig(): THREE.Group {
     const root = new THREE.Group();
     const head = new THREE.Group();
     head.name = "Head";
     root.add(head);
+    const baked = new THREE.Color(PLACEHOLDER_BODY_HEX);
+    const triple = [baked.r, baked.g, baked.b];
+    const colorArray = new Float32Array([...triple, ...triple, ...triple]);
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(
       "position",
       new THREE.BufferAttribute(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]), 3),
     );
-    geometry.setAttribute(
-      "color",
-      new THREE.BufferAttribute(
-        new Float32Array([0.45, 0.29, 0.16, 0.45, 0.29, 0.16, 0.45, 0.29, 0.16]),
-        3,
-      ),
-    );
+    geometry.setAttribute("color", new THREE.BufferAttribute(colorArray, 3));
     root.add(new THREE.Mesh(geometry, new THREE.MeshStandardMaterial()));
     return root;
   }
@@ -194,36 +193,29 @@ describe("rigged pastel look", () => {
     return hexes;
   }
 
-  it("swaps the rigged model to the same pastel green as the placeholder", async () => {
-    const rig = createBrownRig();
+  it("leaves the baked vertex colors untouched (no runtime recolor)", async () => {
+    const rig = createBakedRig();
+    // Snapshot the baked mesh before load: the loader resolves with this same
+    // scene, and the load pins blush cheeks (plain Meshes with no COLOR_0)
+    // ahead of it in traversal order.
+    const baked = rig.getObjectByProperty("type", "Mesh") as THREE.Mesh;
+    const beforeColors = (baked.geometry.getAttribute("color") as THREE.BufferAttribute).array.slice();
     const clip = new THREE.AnimationClip("Waddle", 0.8, []);
     loaderMocks.loadAsync.mockResolvedValue({ scene: rig, animations: [clip] });
     const loaded = await loadTrikePlayer();
-    expect(placeholderHexes().has(PASTEL_BODY_HEX)).toBe(true);
-    let greenFound = false;
-    let flatShaded = false;
-    loaded.model.traverse((child: THREE.Object3D) => {
-      if (child instanceof THREE.Mesh) {
-        const colors = child.geometry.getAttribute("color");
-        if (colors instanceof THREE.BufferAttribute) {
-          greenFound =
-            greenFound || (colors.getY(0) > colors.getX(0) && colors.getY(0) > colors.getZ(0));
-        }
-        if (child.material instanceof THREE.MeshStandardMaterial) {
-          flatShaded = flatShaded || child.material.flatShading;
-        }
-      }
-    });
-    expect(greenFound).toBe(true);
-    expect(flatShaded).toBe(true);
+    expect(placeholderHexes().has(PLACEHOLDER_BODY_HEX)).toBe(true);
+    expect(loaded.model).toBe(rig);
+    const afterColors = (baked.geometry.getAttribute("color") as THREE.BufferAttribute).array;
+    expect(Array.from(afterColors)).toEqual(Array.from(beforeColors));
+    expect((baked.material as THREE.MeshStandardMaterial).flatShading).toBe(false);
   });
 
   it("pins pink blush cheeks under the rigged Head bone", async () => {
-    const rig = createBrownRig();
+    const rig = createBakedRig();
     const clip = new THREE.AnimationClip("Waddle", 0.8, []);
     loaderMocks.loadAsync.mockResolvedValue({ scene: rig, animations: [clip] });
     const loaded = await loadTrikePlayer();
-    expect(placeholderHexes().has(PASTEL_BLUSH_HEX)).toBe(true);
+    expect(placeholderHexes().has(BLUSH_HEX)).toBe(true);
     const head = loaded.model.getObjectByName("Head");
     expect(head).toBeDefined();
     const cheeks =
@@ -232,9 +224,23 @@ describe("rigged pastel look", () => {
     for (const cheek of cheeks) {
       expect(cheek.material instanceof THREE.MeshStandardMaterial).toBe(true);
       if (cheek.material instanceof THREE.MeshStandardMaterial) {
-        expect(cheek.material.color.getHex()).toBe(PASTEL_BLUSH_HEX);
+        expect(cheek.material.color.getHex()).toBe(BLUSH_HEX);
       }
     }
+  });
+});
+
+describe("no runtime pastel remap", () => {
+  it("wires no recolor helper into the viewer", async () => {
+    const source = await readText("src/viewer/main.ts");
+    expect(source).not.toContain("applyPastelRemap");
+    expect(source).not.toContain("remapColorAttribute");
+    expect(source).not.toContain("pastelRemap");
+    expect(source).not.toContain("../ranch/pastel");
+  });
+
+  it("deletes the runtime remap module", async () => {
+    await expect(readFile(new URL("src/ranch/pastel.ts", ROOT_URL))).rejects.toThrow();
   });
 });
 

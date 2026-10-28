@@ -1,3 +1,4 @@
-# Tracks Registry — Jurasic Ranch
+# Tracks
 
-- [x] **20261029-trike-waddle-walk** — Trike Waddle Walk (complete: 55/55 tests, PASS, fix round 2 verified live with zero console errors, pr.md ready; `feat/20261029-trike-waddle-walk`)
+- [x] **Track: Trike Waddle Walk** — [20261029-trike-waddle-walk](./archive/20261029-trike-waddle-walk/index.md) — feature — high
+- [x] **Track: Baby Trike Turn Fix** — [20261029-baby-trike-turn-fix](./archive/20261029-baby-trike-turn-fix/index.md) — feature — high

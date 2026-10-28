@@ -8,7 +8,7 @@ import {
   TrikePlayer,
   WANDER_RADIUS_METRES,
 } from "../../src/ranch/trike-player.js";
-import { WADDLE_CYCLE_METRES, WADDLE_LOOP_SECONDS, wrapAngle } from "../../src/ranch/waddle.js";
+import { WADDLE_CYCLE_METRES, WADDLE_LOOP_SECONDS, WALK_SPEED_METRES_PER_SECOND, wrapAngle } from "../../src/ranch/waddle.js";
 
 const DT = 1 / 60;
 const ROOT_URL = new URL("../../", import.meta.url);
@@ -72,38 +72,76 @@ describe("trike mixer", () => {
     expect(rig.position.length()).toBe(0);
   });
 
-  it("turns 90 deg in place before translating, then walks 0.4 m/s", () => {
+  it("bends a 90 deg turn into a walk arc, then walks one stride per loop", () => {
     const rig = createTestRig();
     const player = new TrikePlayer(rig, { clip: createWaddleClip(), random: () => 0.5 });
     player.turnTo(Math.PI / 2);
     player.setWalking(true);
     let now = 10;
-    let time = 0;
-    let firstMoveAt = -1;
-    // Short window on purpose: the stay-in-frame wander steers back past
-    // WANDER_RADIUS_METRES, so a multi-second straight walk no longer exists.
-    while (time < 0.8) {
+    // Arc, not spin: the Trike translates from the very first frame instead
+    // of pausing to turn in place.
+    player.update(DT, now);
+    now += DT;
+    expect(rig.position.lengthSq()).toBeGreaterThan(0);
+    // Heading converges gradually at the arc-limited rate: slower than the
+    // old 0.5 s snap spin, bounded so wander still steers back in frame.
+    let elapsed = DT;
+    while (elapsed < 4 && Math.abs(wrapAngle(player.heading - Math.PI / 2)) >= 0.02) {
       player.update(DT, now);
       now += DT;
-      time += DT;
-      if (firstMoveAt < 0 && rig.position.lengthSq() > 0) {
-        firstMoveAt = time;
-      }
+      elapsed += DT;
     }
-    expect(firstMoveAt).toBeGreaterThan(0);
-    expect(firstMoveAt).toBeLessThan(0.6);
-    expect(player.heading).toBeCloseTo(Math.PI / 2, 5);
-    expect(rig.rotation.y).toBeCloseTo(Math.PI / 2, 5);
-    for (let i = 0; i < 30; i += 1) {
-      player.update(DT, now);
-      now += DT;
-    }
+    expect(Math.abs(wrapAngle(player.heading - Math.PI / 2))).toBeLessThan(0.02);
+    expect(elapsed).toBeGreaterThan(0.6);
+    expect(rig.rotation.y).toBe(player.heading);
+    // A real arc covers ground while turning; an in-place spin would not.
+    expect(rig.position.length()).toBeGreaterThan(0.2);
+    // Straight-segment stride check from a fresh origin, keeping the wander
+    // steering out of the measurement window.
+    rig.position.set(0, 0, 0);
     const start = rig.position.clone();
     for (let i = 0; i < 60; i += 1) {
       player.update(DT, now);
       now += DT;
     }
-    expect(rig.position.distanceTo(start)).toBeCloseTo(0.4, 6);
+    expect(rig.position.distanceTo(start)).toBeCloseTo(WALK_SPEED_METRES_PER_SECOND, 6);
+  });
+
+  it("resolves a 180 deg reversal while walking as a wide in-frame arc", () => {
+    const rig = createTestRig();
+    const player = new TrikePlayer(rig, { clip: createWaddleClip(), random: () => 0.5 });
+    player.setWalking(true);
+    let now = 20;
+    for (let i = 0; i < 90; i += 1) {
+      player.update(DT, now);
+      now += DT;
+    }
+    // Full blend, mid-stride: reverse course and keep walking through it.
+    rig.position.set(0, 0, 0);
+    player.turnTo(Math.PI);
+    let elapsed = 0;
+    let pausedFrames = 0;
+    let maxAbsX = 0;
+    let maxDistance = 0;
+    let prevX = 0;
+    let prevZ = 0;
+    while (elapsed < 6 && Math.abs(wrapAngle(player.heading - Math.PI)) >= 0.02) {
+      player.update(DT, now);
+      now += DT;
+      elapsed += DT;
+      if (rig.position.x === prevX && rig.position.z === prevZ) {
+        pausedFrames += 1;
+      }
+      prevX = rig.position.x;
+      prevZ = rig.position.z;
+      maxAbsX = Math.max(maxAbsX, Math.abs(rig.position.x));
+      maxDistance = Math.max(maxDistance, Math.hypot(rig.position.x, rig.position.z));
+    }
+    expect(Math.abs(wrapAngle(player.heading - Math.PI))).toBeLessThan(0.02);
+    expect(pausedFrames).toBe(0);
+    expect(elapsed).toBeGreaterThan(1);
+    expect(maxAbsX).toBeGreaterThan(0.15);
+    expect(maxDistance).toBeLessThanOrEqual(WANDER_RADIUS_METRES + WADDLE_CYCLE_METRES);
   });
 
   it("toggles walk/stop and freezes on stop", () => {
@@ -128,9 +166,9 @@ describe("trike mixer", () => {
     expect(rig.position.distanceTo(parked)).toBe(0);
   });
 
-  it("preserves the 0.3x baby root scale while squashing on plants", () => {
+  it("preserves the 1.0x baby root scale while squashing on plants", () => {
     const rig = createTestRig();
-    rig.scale.set(0.3, 0.3, 0.3);
+    rig.scale.set(1, 1, 1);
     const player = new TrikePlayer(rig, { clip: createWaddleClip(), random: () => 0.5 });
     player.setWalking(true);
     let now = 0;
@@ -140,10 +178,62 @@ describe("trike mixer", () => {
       now += DT;
       minY = Math.min(minY, rig.scale.y);
     }
-    expect(rig.scale.x).toBe(0.3);
-    expect(rig.scale.z).toBe(0.3);
-    expect(minY).toBeLessThan(0.3);
-    expect(minY).toBeGreaterThan(0.28);
+    expect(rig.scale.x).toBe(1);
+    expect(rig.scale.z).toBe(1);
+    expect(minY).toBeLessThan(1);
+    expect(minY).toBeGreaterThan(0.93);
+  });
+});
+
+describe("stop deadband (FR-5, AC-5)", () => {
+  it("freezes heading with a pending turn and halts dead after settling", () => {
+    const rig = createTestRig();
+    const player = new TrikePlayer(rig, { clip: createWaddleClip(), random: () => 0.5 });
+    player.setWalking(true);
+    let now = 30;
+    for (let i = 0; i < 90; i += 1) {
+      player.update(DT, now);
+      now += DT;
+    }
+    // Mid-walk command, then Stop before the arc completes: the old bug kept
+    // integrating heading in place after the halt.
+    player.turnTo(player.heading + 1);
+    for (let i = 0; i < 3; i += 1) {
+      player.update(DT, now);
+      now += DT;
+    }
+    player.setWalking(false);
+    // Graceful decel preserved: the model eases forward briefly, then parks.
+    for (let i = 0; i < 60; i += 1) {
+      player.update(DT, now);
+      now += DT;
+    }
+    const parked = rig.position.clone();
+    const parkedHeading = player.heading;
+    // The pending turn never completes after Stop: the frozen heading stays
+    // a full radian short of the commanded target.
+    expect(Math.abs(wrapAngle(player.heading - (parkedHeading + 1)))).toBeGreaterThan(0.5);
+    // 2 s recording: heading variance ~zero, displacement exactly zero.
+    let maxHeadingDeviation = 0;
+    for (let i = 0; i < 120; i += 1) {
+      player.update(DT, now);
+      now += DT;
+      maxHeadingDeviation = Math.max(
+        maxHeadingDeviation,
+        Math.abs(wrapAngle(player.heading - parkedHeading)),
+      );
+    }
+    expect(maxHeadingDeviation).toBe(0);
+    expect(rig.position.distanceTo(parked)).toBe(0);
+    expect(rig.rotation.y).toBe(parkedHeading);
+  });
+
+  it("keeps turn and deadband math allocation-free (NFR-3)", async () => {
+    const source = await readRanchSource("trike-player.ts");
+    // Only the two constructor scratch temps; the per-frame update path
+    // reuses them and allocates nothing.
+    const vectors = source.match(/new THREE\.Vector3/g) ?? [];
+    expect(vectors.length).toBeLessThanOrEqual(2);
   });
 });
 

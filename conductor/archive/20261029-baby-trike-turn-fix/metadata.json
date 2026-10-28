@@ -1,0 +1,32 @@
+{
+  "id": "20261029-baby-trike-turn-fix",
+  "title": "Baby Trike Turn Fix",
+  "type": "feature",
+  "status": "complete",
+  "priority": "high",
+  "depends_on": ["20261029-trike-waddle-walk"],
+  "created_at": "2026-10-29T00:00:00Z",
+  "updated_at": "2026-10-29T00:00:00Z",
+  "spec": "spec.md",
+  "plan": "plan.md",
+  "branch": "feat/20261029-baby-trike-turn-fix",
+  "base_branch": "main",
+  "base_sha": "d6718219b40e704c941b9497b358f8613a84094b",
+  "progress": {
+    "phases_total": 3,
+    "phases_verified": 3,
+    "tasks_total": 7,
+    "tasks_done": 7
+  },
+  "last_checkpoint": "1778813",
+  "review_verdict": "PASS",
+  "review_rounds": 1,
+  "doc_sync": "pending",
+  "pr_url": "https://github.com/mansyar/jurasic-ranch/pull/2",
+  "pr_state": "open",
+  "reverted_at": null,
+  "revert_commit": null,
+  "revert_pr_url": null,
+  "archived_at": "2026-10-29T00:00:00Z",
+  "archive_path": "conductor/archive/20261029-baby-trike-turn-fix"
+}

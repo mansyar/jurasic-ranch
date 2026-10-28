@@ -103,6 +103,30 @@ permissions:
   # - action: shell
   #   resource: "npm test *"
   #   effect: allow
+  - action: shell
+    resource: "git rm *"
+    effect: allow
+  - action: shell
+    resource: "node scripts/bake-trike-variant.js *"
+    effect: allow
+  - action: shell
+    resource: "blender *"
+    effect: allow
+  - action: shell
+    resource: "pnpm verify *"
+    effect: allow
+  - action: shell
+    resource: "pnpm test *"
+    effect: allow
+  - action: shell
+    resource: "pnpm build *"
+    effect: allow
+  - action: shell
+    resource: "pnpm lint *"
+    effect: allow
+  - action: shell
+    resource: "pnpm typecheck *"
+    effect: allow
   # --- PROJECT COMMANDS END ---
 ---
 
