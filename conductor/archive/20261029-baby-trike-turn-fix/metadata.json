@@ -23,7 +23,7 @@
   "review_rounds": 1,
   "doc_sync": "pending",
   "pr_url": "https://github.com/mansyar/jurasic-ranch/pull/2",
-  "pr_state": "open",
+  "pr_state": "merged",
   "reverted_at": null,
   "revert_commit": null,
   "revert_pr_url": null,
