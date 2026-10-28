@@ -72,7 +72,7 @@ OUT:
 ## Roadmap
 
 - [x] Track 1 — Trike Waddle Walk (offline PWA shell, pastel rigged waddle, stay-in-frame wander, silence)
-- [ ] Track 2 — Stego joins (reuse Trike pipeline: retime Waddle, plates pastel, wander)
+- [x] Track 2 - Stego joins (reuse Trike pipeline: retime Waddle, plates pastel, wander)
 - [ ] Track 3 — Brachio joins (seated shuffle, 1.2 m scale cap, UP/DOWN size-sort surprise)
 - [ ] Track 4 — Feed mini + snack counting 1-5 (drag berry/leaf, Kokoro counts, eat_nom clip)
 - [ ] Track 5 — Wash + cuddle (scrub mud, tap hearts, body-tap vocab surprise)
