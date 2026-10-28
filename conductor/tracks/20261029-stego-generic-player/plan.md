@@ -74,15 +74,22 @@ The primary appends after acceptance:
 - **Covers:** FR-5, FR-6, FR-7, FR-8, FR-9, AC-3, AC-4, AC-5, AC-6, AC-8
 - **Touches:** `src/viewer/main.ts`, `src/viewer/*.ts`, `src/ranch/avoidance.ts`, `index.html`, `vite.config.ts`, `tests/**/dual-*.ts`, `tests/**/avoidance-*.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P3.T1: Dual wander + soft-steer avoidance** — covers: FR-5, FR-6
-  - [ ] **P3.T1.1: Spawn offset ±0.4 m, independent poses, soft steer <0.4 m bias away** — never stop, no bounce
-  - [ ] **P3.T1.2: 30 s wander test** — inside RADIUS + CYCLE, min separation >0.25 m
-- [ ] **P3.T2: Viewer integration + shared FX + fallback** — covers: FR-7, FR-8, FR-9
-  - [ ] **P3.T2.1: Load two DinoPlayers, shared DustPool, single Walk toggles both** — status + persist + aria-pressed
-  - [ ] **P3.T2.2: Placeholder Stego fallback on missing GLB** — warn, Trike continues
-  - [ ] **P3.T2.3: Precache stego.glb, report total <18 MB + tablet screenshot + preview_scene** — visual + smoke evidence
+- [x] **P3.T1: Dual wander + soft-steer avoidance** — covers: FR-5, FR-6
+  - [x] **P3.T1.1: Spawn offset ±0.4 m, independent poses, soft steer <0.4 m bias away** — never stop, no bounce
+  - [x] **P3.T1.2: 30 s wander test** — inside RADIUS + CYCLE, min separation >0.25 m
+- [x] **P3.T2: Viewer integration + shared FX + fallback** — covers: FR-7, FR-8, FR-9
+  - [x] **P3.T2.1: Load two DinoPlayers, shared DustPool, single Walk toggles both** — status + persist + aria-pressed
+  - [x] **P3.T2.2: Placeholder Stego fallback on missing GLB** — warn, Trike continues
+  - [x] **P3.T2.3: Precache stego.glb, report total <18 MB + tablet screenshot + preview_scene** — visual + smoke evidence
+
+<!--
+The primary appends after acceptance:
+**Result:** verified
+**Checkpoint:** 47d3216
+**Evidence:** conductor/tracks/20261029-stego-generic-player/verification/phase-3.md
+-->
 
 <!--
 Review fixes are appended by `conductor-review` as:
