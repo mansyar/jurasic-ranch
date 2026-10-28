@@ -1,6 +1,6 @@
 {
-  "archived_at": null,
-  "archive_path": null,
+  "archived_at": "2026-10-28T22:26:09.181Z",
+  "archive_path": "conductor/archive/20261029-upgrade-dependencies",
   "base_branch": "main",
   "base_sha": "784d133a2144b62a159dc908e28cff77cb52efe3",
   "branch": "chore/20261029-upgrade-dependencies",
@@ -17,7 +17,7 @@
     "tasks_done": 11,
     "tasks_total": 11
   },
-  "pr_state": "OPEN",
+  "pr_state": "MERGED",
   "pr_url": "https://github.com/mansyar/jurasic-ranch/pull/3",
   "review_rounds": 1,
   "review_verdict": "pass_with_findings_resolved",
@@ -25,8 +25,8 @@
   "revert_commit": null,
   "revert_pr_url": null,
   "spec": "spec.md",
-  "status": "in_progress",
+  "status": "merged",
   "title": "Upgrade Dependencies",
   "type": "chore",
-  "updated_at": "2026-10-28T22:24:39.169Z"
+  "updated_at": "2026-10-28T22:26:09.181Z"
 }
