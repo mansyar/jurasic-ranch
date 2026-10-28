@@ -121,6 +121,23 @@ export const TRIKE_GAIT: GaitParams = {
   wanderRadiusMetres: 0.8,
 };
 
+/**
+ * Shipped Stego gait (FR-4 / AC-2): same 0.29 m stride per 0.8 s loop as the
+ * Trike (the bake measured 0.291 m, no retime), PI yaw cap, 0.8 m wander
+ * circle — but a hotter 20 rad/m curvature. The Stego's 90-degree turn must
+ * finish under 0.6 s (TURN_90_MAX_SECONDS): at full blend the yaw rate caps at
+ * PI (20 x 0.3625 m/s = 7.25 > PI), so the quarter turn takes 0.5 s, then the
+ * player walks straight. Heading steps clamp to the remaining angle, so the
+ * hot curvature settles exactly instead of orbiting the target.
+ */
+export const STEGO_GAIT: GaitParams = {
+  strideMetres: 0.29,
+  loopSeconds: 0.8,
+  turnRateRadiansPerSecond: Math.PI,
+  curvatureRadiansPerMetre: 20,
+  wanderRadiusMetres: 0.8,
+};
+
 export interface DinoPlayerOptions {
   /** Baked `Waddle` clip (0.8 s loop for Trike). */
   clip: THREE.AnimationClip;
