@@ -14,13 +14,16 @@
 - **Covers:** FR-1, FR-2, FR-3, FR-7, NFR-4, AC-1, AC-2, AC-3, AC-7
 - **Touches:** `scripts/bake-trike-variant.*`, `public/models/trike.glb`, `src/viewer/main.ts`, `src/ranch/pastel.ts` (delete), `tests/waddle/pastel.test.ts` (replace), `src/viewer/viewer.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
+- **Result:** Baked pastel baby GLB committed (85252 bytes, Draco, 1 material, Waddle 0.800 s / 72 tracks); runtime remap deleted; variant asserts green; primary `pnpm verify` exit 0 (56/56 tests).
+- **Checkpoint:** `99762ce`
+- **Evidence:** `conductor/tracks/20261029-baby-trike-turn-fix/verification/phase-1.md`
 
-- [ ] **P1.T1: Bake script via Polyfork module** — covers: FR-1
-  - [ ] **P1.T1.1: createAsset params pinned (rayed, horns 0.7, noseHorn 0.6, size 0.6, pastel hexes)**
-  - [ ] **P1.T1.2: Draco-compress output to public/models/trike.glb**
-- [ ] **P1.T2: Remove runtime remap, keep blush pin** — covers: FR-2, FR-7
-- [ ] **P1.T3: Variant asserts (colors, single material, baby proportions)** — covers: AC-1, AC-2, AC-3, AC-7
+- [x] **P1.T1: Bake script via Polyfork module** — covers: FR-1
+  - [x] **P1.T1.1: createAsset params pinned (rayed, horns 0.7, noseHorn 0.6, size 0.6, pastel hexes)**
+  - [x] **P1.T1.2: Draco-compress output to public/models/trike.glb**
+- [x] **P1.T2: Remove runtime remap, keep blush pin** — covers: FR-2, FR-7
+- [x] **P1.T3: Variant asserts (colors, single material, baby proportions)** — covers: AC-1, AC-2, AC-3, AC-7
 
 <!--
 The primary appends after acceptance:

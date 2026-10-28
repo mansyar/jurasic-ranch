@@ -111,6 +111,30 @@ output (details below).
 - `CREDITS.md` still says "baby-scaled 0.3x" (flagged in bc4a9fd):
   product-doc edits are out of scope; flagged for the primary.
 
+## Primary verification
+
+- Command: `pnpm verify` (primary run, 2026-10-29) — exit 0.
+- oxlint: exit 0 (warnings only from vendored `public/draco/*`, pre-existing,
+  outside the lint scope's intent).
+- oxfmt --check: clean. tsrs --noEmit: clean.
+- vitest: 56/56 across 5 files
+  (check-trike 6, waddle 10, trike-player 14, viewer 19, pastel-variant 7).
+- vite build: green, PWA precache 10 entries (1745.94 KiB).
+- Working tree at verify time: clean except the primary's uncommitted
+  `.opencode/agents/conductor-phase.md` permission fix (committed separately
+  after accept, not part of the phase range).
+- Squash decision: NO squash. The range `f0edf63..HEAD` spans two subagent
+  sessions (bc4a9fd from session 1 + 03b59bd/99762ce from session 2); keeping
+  task commits, checkpoint = `99762ce`.
+- Deviations accepted: check-trike bounds update (required by size-0.6
+  rebuild, smallest change); pastel.test repoint to shipped 1.0x-root file
+  with measured loop gap 0.0486 < 0.05 bar (gait quality owned by Phase 2);
+  viewer.test snapshot-before-load; bake-script internals (magic constant,
+  FileReader polyfill, `.glb` tmp suffix). All documented above.
+- AC-1/AC-2/AC-3/AC-7, FR-1/FR-2/FR-3/FR-7, NFR-4: satisfied per table above.
+  CREDITS.md "0.3x" staleness noted for doc sync (product-doc edit needs user
+  approval per workflow; will bundle into pre-review sync).
+
 ## Notes
 
 - Vendor module (`scripts/vendor/triceratops-base.mjs`) contains NO
