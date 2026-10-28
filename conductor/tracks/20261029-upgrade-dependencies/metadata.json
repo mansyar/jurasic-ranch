@@ -17,8 +17,8 @@
     "tasks_done": 11,
     "tasks_total": 11
   },
-  "pr_state": null,
-  "pr_url": null,
+  "pr_state": "OPEN",
+  "pr_url": "https://github.com/mansyar/jurasic-ranch/pull/3",
   "review_rounds": 1,
   "review_verdict": "pass_with_findings_resolved",
   "reverted_at": null,
@@ -28,5 +28,5 @@
   "status": "in_progress",
   "title": "Upgrade Dependencies",
   "type": "chore",
-  "updated_at": "2026-10-28T22:23:25.713Z"
+  "updated_at": "2026-10-28T22:24:39.169Z"
 }
