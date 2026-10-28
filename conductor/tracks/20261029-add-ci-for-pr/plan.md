@@ -42,7 +42,14 @@ The primary appends after acceptance:
 - **Covers:** FR-5, AC-5
 - **Touches:** `conductor/workflow.md`, `conductor/tracks/20261029-add-ci-for-pr/verification/phase-2.md`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P2.T1: Record validation evidence and note CI in workflow.md** — covers: FR-5
-- [ ] **P2.T2: Run full `pnpm verify` green on the branch** — covers: AC-5
+<!--
+The primary appends after acceptance:
+**Result:** verified
+**Checkpoint:** `PENDING`
+**Evidence:** conductor/tracks/20261029-add-ci-for-pr/verification/phase-2.md
+-->
+
+- [x] **P2.T1: Record validation evidence and note CI in workflow.md** — covers: FR-5
+- [x] **P2.T2: Run full `pnpm verify` green on the branch** — covers: AC-5

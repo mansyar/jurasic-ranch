@@ -57,6 +57,9 @@ pr:
   merge_method: "squash"
 ```
 
+CI runs `pnpm verify` on pull requests to `main` and on pushes to `main` (see `.github/workflows/ci.yml`).
+Changes touching only `conductor/**` are excluded from CI via `paths-ignore`; mixed code+docs PRs still run.
+
 ## Development Commands
 
 ### Setup

@@ -5,8 +5,8 @@
 - Date: 2026-10-29
 - Branch: chore/20261029-add-ci-for-pr
 - Base: 65a2b36cf7f0f58c2de2882d4e3ab3d97d32c7cc
-- Head: 8ad6835
-- Result: blocked
+- Head: 8ad6835 (+ primary follow-up, see Notes)
+- Result: verified
 
 ## Summary
 
@@ -30,14 +30,15 @@ YAML parse (read) + trigger grep.
 | --- | --- | --- | --- |
 | static | read `.github/workflows/ci.yml` (native tool; YAML parse) | 0 | 21 lines, structure valid, matches Phase 1 content |
 | static | grep triggers/keys in `.github/workflows/ci.yml` (native tool) | 0 | 10 matches: pull_request, 2x paths-ignore, push, runs-on, timeout-minutes, node-version, cache, frozen-lockfile, pnpm verify; plus 2x branches: [main] |
-| verify | `pnpm verify` | 1 | Failed: `node` not recognized on PATH; oxlint never executed |
+| verify | `pnpm verify` (subagent env) | 1 | Failed: `node` not on PATH in subagent shell; oxlint never executed |
+| verify | `pnpm verify` (primary, Node v24.16.0 on PATH) | 0 | Green: oxlint clean, oxfmt 4 files clean, tsrs exit 0, vitest 62/62 on v5.0.5, vite build + PWA v2.0.0 generateSW 15 entries |
 
 ## Acceptance criteria
 
 | ID | Criterion | Evidence | Status |
 | --- | --- | --- | --- |
-| AC-5 | The evidence file shows the validation output | This file; grep results above; `pnpm verify` output recorded | partial |
-| FR-5 | Validation evidence proves the YAML is valid and the triggers resolve as specified | ci.yml lines 2–8 triggers (`pull_request`→`main`, `push`→`main`, `paths-ignore: conductor/**` on both), lines 10–21 job keys (`runs-on: ubuntu-latest`, `timeout-minutes: 15`, `node-version: 24`, `cache: pnpm`, `--frozen-lockfile`, `pnpm verify` step) | partial |
+| AC-5 | The evidence file shows the validation output | This file; grep results above; green `pnpm verify` output (primary run) recorded | pass |
+| FR-5 | Validation evidence proves the YAML is valid and the triggers resolve as specified | ci.yml lines 2–8 triggers (`pull_request`→`main`, `push`→`main`, `paths-ignore: conductor/**` on both), lines 10–21 job keys (`runs-on: ubuntu-latest`, `timeout-minutes: 15`, `node-version: 24`, `cache: pnpm`, `--frozen-lockfile`, `pnpm verify` step) | pass |
 
 Covers FR-5, AC-5 per the phase contract. FR-1–FR-4 evidence remains in
 phase-1.md; this phase adds the doc note (blocked) and full-verify run (failed-env).
@@ -73,7 +74,5 @@ None. No file outside Touches was touched.
 
 - `pnpm/action-setup@v4` with no version arg resolves pnpm from
   `packageManager: pnpm@12.15.0` in `package.json` (verified present in Phase 1).
-- P2.T1 status: blocked (edit permission denied). P2.T2 status: failed
-  (environment: `node` missing from PATH; exit 1).
-- Primary follow-up: apply the 2-line note above to `conductor/workflow.md`
-  and re-run `pnpm verify` in an environment with Node on PATH.
+- P2.T1 status: resolved by primary (2-line note applied to `conductor/workflow.md`). P2.T2 status: resolved by primary (green `pnpm verify` with Node v24.16.0 on PATH).
+- Primary follow-up: DONE — note applied, `pnpm verify` exit 0.
