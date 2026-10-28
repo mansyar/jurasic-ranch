@@ -14,14 +14,21 @@
 - **Covers:** FR-1, FR-2, FR-10, AC-1, AC-7
 - **Touches:** `src/ranch/dino-player.ts`, `src/ranch/trike-player.ts`, `src/ranch/waddle.ts`, `tests/**/dino-*.ts`, `tests/**/trike-*.ts`, `tests/**/waddle-*.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P1.T1: Extract GaitParams + DinoPlayer** — covers: FR-1
-  - [ ] **P1.T1.1: Define GaitParams + Trike config** — stride 0.29, loop 0.8, turnRate PI, curvature 4.5, wander 0.8
-  - [ ] **P1.T1.2: Move mixer/blink/dust wiring into DinoPlayer** — identical behaviour, weight/blend/squash preserved
-- [ ] **P1.T2: Preserve Trike + remove duplication** — covers: FR-2, FR-10
-  - [ ] **P1.T2.1: Delete TrikePlayer or thin alias, update imports in viewer** — only DinoPlayer imported
-  - [ ] **P1.T2.2: Migrate trike-player tests to dino-player tests** — turn-then-walk, deadband freeze, stride, alloc ≤2 Vector3, blink
+- [x] **P1.T1: Extract GaitParams + DinoPlayer** — covers: FR-1
+  - [x] **P1.T1.1: Define GaitParams + Trike config** — stride 0.29, loop 0.8, turnRate PI, curvature 4.5, wander 0.8
+  - [x] **P1.T1.2: Move mixer/blink/dust wiring into DinoPlayer** — identical behaviour, weight/blend/squash preserved
+- [x] **P1.T2: Preserve Trike + remove duplication** — covers: FR-2, FR-10
+  - [x] **P1.T2.1: Delete TrikePlayer or thin alias, update imports in viewer** — only DinoPlayer imported
+  - [x] **P1.T2.2: Migrate trike-player tests to dino-player tests** — turn-then-walk, deadband freeze, stride, alloc ≤2 Vector3, blink
+
+<!--
+The primary appends after acceptance:
+**Result:** verified
+**Checkpoint:** 920784d
+**Evidence:** conductor/tracks/20261029-stego-generic-player/verification/phase-1.md
+-->
 
 <!--
 The primary appends after acceptance:
