@@ -72,7 +72,7 @@ The primary appends after acceptance:
 - **Verification:** `pnpm verify && pnpm build`
 - **Status:** verified
 - **Result:** tech-stack pins synced to landed versions; pnpm verify exit 0, build exit 0 with SW precache 15 entries, dist 3168337 bytes (~3.02MB <15MB), pnpm outdated clean with zero reverts.
-- **Checkpoint:** `PENDING`
+- **Checkpoint:** `5579327`
 - **Evidence:** `conductor/tracks/20261029-upgrade-dependencies/verification/phase-3.md`
 
 - [x] **P3.T1: Sync tech-stack.md Upgrade Policy pins to landed versions** — covers: FR-4
