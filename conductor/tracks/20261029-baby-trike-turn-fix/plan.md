@@ -39,7 +39,7 @@ The primary appends after acceptance:
 - **Covers:** FR-6, AC-6
 - **Touches:** `src/ranch/waddle.ts`, `src/ranch/trike-player.ts`, `tests/waddle/*`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P2.T1: Derive stride from new gait block (step/duty/clearance)** — covers: FR-6
 - [ ] **P2.T2: Foot-slide tolerance test across the cycle** — covers: AC-6
