@@ -14,15 +14,18 @@
 - **Covers:** FR-1, FR-2, AC-1, AC-3
 - **Touches:** `package.json`, `pnpm-lock.yaml`
 - **Verification:** `pnpm install && pnpm lint && pnpm format --check`
-- **Status:** pending
+- **Status:** verified
+- **Result:** Low-risk bumps landed (three 0.186.1, oxfmt 0.75.0, oxlint 1.90.0); pnpm install exit 0 (+395), lint exit 0 (warnings only pre-existing vendor), format check exit 0.
+- **Checkpoint:** `PENDING`
+- **Evidence:** `conductor/tracks/20261029-upgrade-dependencies/verification/phase-1.md`
 
-- [ ] **P1.T1: Update low-risk versions in package.json** — covers: FR-1
-  - [ ] **P1.T1.1: Bump oxlint 1.89.0→1.90.0 and oxfmt 0.74.0→0.75.0**
-  - [ ] **P1.T1.2: Bump three ^0.180.0→^0.186.1, verify @types/three ^0.186.0 still satisfies**
-- [ ] **P1.T2: Regenerate lockfile** — covers: FR-2
-  - [ ] **P1.T2.1: Run pnpm install, confirm no peer/engines errors**
-- [ ] **P1.T3: Run static checks** — covers: AC-1
-  - [ ] **P1.T3.1: Run lint + format check, fix only upgrade-caused findings**
+- [x] **P1.T1: Update low-risk versions in package.json** — covers: FR-1
+  - [x] **P1.T1.1: Bump oxlint 1.89.0→1.90.0 and oxfmt 0.74.0→0.75.0**
+  - [x] **P1.T1.2: Bump three ^0.180.0→^0.186.1, verify @types/three ^0.186.0 still satisfies**
+- [x] **P1.T2: Regenerate lockfile** — covers: FR-2
+  - [x] **P1.T2.1: Run pnpm install, confirm no peer/engines errors**
+- [x] **P1.T3: Run static checks** — covers: AC-1
+  - [x] **P1.T3.1: Run lint + format check, fix only upgrade-caused findings**
 
 <!--
 The primary appends after acceptance:
