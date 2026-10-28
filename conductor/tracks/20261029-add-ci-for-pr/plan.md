@@ -14,7 +14,7 @@
 - **Covers:** FR-1, FR-2, FR-3, FR-4, AC-1, AC-2, AC-3, AC-4
 - **Touches:** `.github/workflows/ci.yml`
 - **Verification:** actionlint (when available), else YAML parse + trigger grep
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P1.T1: Author the workflow file** — covers: FR-1
   - [ ] **P1.T1.1: Triggers `pull_request`→`main` + `push`→`main` with `paths-ignore: conductor/**`**
