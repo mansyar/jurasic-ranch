@@ -136,7 +136,8 @@ export function createWaddlePose(targetHeadingRadians = 0): WaddlePose {
  * never pauses for steering, so heading changes bend into arcs while the
  * Trike keeps walking (FR-4). Yaw scales with actual root speed
  * (curvature x speed, capped) for the slow-curvy-stroller feel: full speed
- * turns at ~1.45 rad/s, the blend ramp and graceful decel turn gentler.
+ * turns at ~1.63 rad/s (min(PI, 4.5 x 0.3625) — curvature x full-blend
+ * speed 0.29 / 0.8), the blend ramp and graceful decel turn gentler.
  */
 export function updateWaddlePose(pose: WaddlePose, dtSeconds: number): void {
   if (!(dtSeconds > 0)) {

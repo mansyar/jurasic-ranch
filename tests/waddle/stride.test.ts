@@ -179,7 +179,7 @@ describe("waddle stride (FR-6)", () => {
     );
     for (const foot of FEET) {
       expect(Math.abs(reports[foot].travel - WADDLE_STRIDE_METRES)).toBeLessThanOrEqual(
-        STRIDE_TOLERANCE_METRES + 0.01,
+        STRIDE_TOLERANCE_METRES,
       );
     }
     expect(Math.abs(mean - WADDLE_STRIDE_METRES)).toBeLessThanOrEqual(

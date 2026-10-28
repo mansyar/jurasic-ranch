@@ -188,7 +188,7 @@ export class TrikePlayer {
     return this.pose.moving;
   }
 
-  /** Queue a turn-in-place to the given heading (radians, +Z = 0). */
+  /** Bend toward the given heading in a walk arc (radians, +Z = 0). */
   turnTo(radians: number): void {
     this.pose.targetHeading = radians;
   }
