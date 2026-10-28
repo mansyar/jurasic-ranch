@@ -6,8 +6,9 @@ import {
   BlinkController,
   findBlinkTargets,
   TrikePlayer,
+  WANDER_RADIUS_METRES,
 } from "../../src/ranch/trike-player.js";
-import { WADDLE_LOOP_SECONDS } from "../../src/ranch/waddle.js";
+import { WADDLE_CYCLE_METRES, WADDLE_LOOP_SECONDS, wrapAngle } from "../../src/ranch/waddle.js";
 
 const DT = 1 / 60;
 const ROOT_URL = new URL("../../", import.meta.url);
@@ -79,7 +80,9 @@ describe("trike mixer", () => {
     let now = 10;
     let time = 0;
     let firstMoveAt = -1;
-    while (time < 3) {
+    // Short window on purpose: the stay-in-frame wander steers back past
+    // WANDER_RADIUS_METRES, so a multi-second straight walk no longer exists.
+    while (time < 0.8) {
       player.update(DT, now);
       now += DT;
       time += DT;
@@ -217,6 +220,52 @@ describe("dust pool", () => {
       now += DT;
     }
     expect(player.dust.aliveCount).toBe(0);
+  });
+});
+
+describe("stay-in-frame wander", () => {
+  it("keeps a 30 s walk inside the radius plus one stride, steering at least once", () => {
+    const rig = createTestRig();
+    const player = new TrikePlayer(rig, { clip: createWaddleClip(), random: () => 0.5 });
+    player.setWalking(true);
+    let now = 0;
+    let maxDistance = 0;
+    let maxHeadingDeviation = 0;
+    for (let i = 0; i < 30 * 60; i += 1) {
+      player.update(DT, now);
+      now += DT;
+      maxDistance = Math.max(maxDistance, Math.hypot(rig.position.x, rig.position.z));
+      maxHeadingDeviation = Math.max(maxHeadingDeviation, Math.abs(wrapAngle(player.heading)));
+    }
+    // It keeps walking (reaches the boundary) but never escapes it.
+    expect(maxDistance).toBeGreaterThan(WANDER_RADIUS_METRES - 0.3);
+    expect(maxDistance).toBeLessThanOrEqual(WANDER_RADIUS_METRES + WADDLE_CYCLE_METRES);
+    expect(maxHeadingDeviation).toBeGreaterThan(0.3);
+    expect(player.walking).toBe(true);
+  });
+
+  it("steers a far spawn back toward center and still halts on stop", () => {
+    const rig = createTestRig();
+    const player = new TrikePlayer(rig, { clip: createWaddleClip(), random: () => 0.5 });
+    rig.position.set(2, 0, 0);
+    player.setWalking(true);
+    let now = 0;
+    for (let i = 0; i < 120; i += 1) {
+      player.update(DT, now);
+      now += DT;
+    }
+    expect(player.heading).not.toBe(0);
+    player.setWalking(false);
+    for (let i = 0; i < 60; i += 1) {
+      player.update(DT, now);
+      now += DT;
+    }
+    const parked = rig.position.clone();
+    for (let i = 0; i < 60; i += 1) {
+      player.update(DT, now);
+      now += DT;
+    }
+    expect(rig.position.distanceTo(parked)).toBe(0);
   });
 });
 

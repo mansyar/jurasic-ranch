@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import * as THREE from "three";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TrikePlayer } from "../ranch/trike-player.js";
+import { PASTEL_BLUSH_HEX, PASTEL_BODY_HEX } from "../ranch/pastel.js";
 import { WADDLE_LOOP_SECONDS } from "../ranch/waddle.js";
 import { isAudioUnlocked } from "./audio.js";
 import {
@@ -153,6 +154,87 @@ describe("rigged trike loader", () => {
   it("rejects when the GLB carries no animations", async () => {
     loaderMocks.loadAsync.mockResolvedValue({ scene: new THREE.Group(), animations: [] });
     await expect(loadTrikePlayer()).rejects.toThrow("Waddle");
+  });
+});
+
+describe("rigged pastel look", () => {
+  beforeEach(() => {
+    loaderMocks.loadAsync.mockReset();
+  });
+
+  /** Brown vertex-color rig with a Head bone, mirroring the shipped GLB. */
+  function createBrownRig(): THREE.Group {
+    const root = new THREE.Group();
+    const head = new THREE.Group();
+    head.name = "Head";
+    root.add(head);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]), 3),
+    );
+    geometry.setAttribute(
+      "color",
+      new THREE.BufferAttribute(
+        new Float32Array([0.45, 0.29, 0.16, 0.45, 0.29, 0.16, 0.45, 0.29, 0.16]),
+        3,
+      ),
+    );
+    root.add(new THREE.Mesh(geometry, new THREE.MeshStandardMaterial()));
+    return root;
+  }
+
+  function placeholderHexes(): Set<number> {
+    const hexes = new Set<number>();
+    createPlaceholderTrike().traverse((child: THREE.Object3D) => {
+      if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
+        hexes.add(child.material.color.getHex());
+      }
+    });
+    return hexes;
+  }
+
+  it("swaps the rigged model to the same pastel green as the placeholder", async () => {
+    const rig = createBrownRig();
+    const clip = new THREE.AnimationClip("Waddle", 0.8, []);
+    loaderMocks.loadAsync.mockResolvedValue({ scene: rig, animations: [clip] });
+    const loaded = await loadTrikePlayer();
+    expect(placeholderHexes().has(PASTEL_BODY_HEX)).toBe(true);
+    let greenFound = false;
+    let flatShaded = false;
+    loaded.model.traverse((child: THREE.Object3D) => {
+      if (child instanceof THREE.Mesh) {
+        const colors = child.geometry.getAttribute("color");
+        if (colors instanceof THREE.BufferAttribute) {
+          greenFound =
+            greenFound || (colors.getY(0) > colors.getX(0) && colors.getY(0) > colors.getZ(0));
+        }
+        if (child.material instanceof THREE.MeshStandardMaterial) {
+          flatShaded = flatShaded || child.material.flatShading;
+        }
+      }
+    });
+    expect(greenFound).toBe(true);
+    expect(flatShaded).toBe(true);
+  });
+
+  it("pins pink blush cheeks under the rigged Head bone", async () => {
+    const rig = createBrownRig();
+    const clip = new THREE.AnimationClip("Waddle", 0.8, []);
+    loaderMocks.loadAsync.mockResolvedValue({ scene: rig, animations: [clip] });
+    const loaded = await loadTrikePlayer();
+    expect(placeholderHexes().has(PASTEL_BLUSH_HEX)).toBe(true);
+    const head = loaded.model.getObjectByName("Head");
+    expect(head).toBeDefined();
+    const cheeks =
+      head?.children.filter((child): child is THREE.Mesh => child instanceof THREE.Mesh) ?? [];
+    expect(cheeks.length).toBe(2);
+    for (const cheek of cheeks) {
+      expect(cheek.material instanceof THREE.MeshStandardMaterial).toBe(true);
+      if (cheek.material instanceof THREE.MeshStandardMaterial) {
+        expect(cheek.material.color.getHex()).toBe(PASTEL_BLUSH_HEX);
+      }
+    }
   });
 });
 

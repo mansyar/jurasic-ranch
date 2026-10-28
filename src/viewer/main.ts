@@ -2,6 +2,12 @@ import * as THREE from "three";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { TrikePlayer } from "../ranch/trike-player.js";
+import {
+  applyPastelRemap,
+  attachBlushCheeks,
+  PASTEL_BLUSH_HEX,
+  PASTEL_BODY_HEX,
+} from "../ranch/pastel.js";
 import { WADDLE_LOOP_SECONDS } from "../ranch/waddle.js";
 import { unlockAudio } from "./audio.js";
 import { resolvePixelRatio } from "./pixel-ratio.js";
@@ -42,7 +48,7 @@ const WALK_SETTING_KEY = "walking";
  */
 export function createPlaceholderTrike(): THREE.Group {
   const body = new THREE.MeshStandardMaterial({
-    color: 0x9ed68a,
+    color: PASTEL_BODY_HEX,
     flatShading: true,
     roughness: 0.9,
   });
@@ -52,7 +58,7 @@ export function createPlaceholderTrike(): THREE.Group {
     roughness: 0.9,
   });
   const blush = new THREE.MeshStandardMaterial({
-    color: 0xf2a0ac,
+    color: PASTEL_BLUSH_HEX,
     flatShading: true,
     roughness: 0.9,
   });
@@ -164,7 +170,13 @@ export async function loadTrikePlayer(): Promise<LoadedTrike> {
     if (clip === undefined) {
       throw new Error(`Trike GLB has no animations (expected "${WADDLE_CLIP_NAME}")`);
     }
-    return { model: gltf.scene, player: new TrikePlayer(gltf.scene, { clip }) };
+    // Pastel baby look: remap the authored browns to the placeholder green
+    // and pin blush cheeks to the blink Head bone. No-ops on models without
+    // vertex colors or a Head node, so the GLB file itself stays untouched.
+    const player = new TrikePlayer(gltf.scene, { clip });
+    applyPastelRemap(gltf.scene);
+    attachBlushCheeks(player.head);
+    return { model: gltf.scene, player };
   } finally {
     draco.dispose();
   }

@@ -9,7 +9,9 @@ import {
   plantsCrossed,
   puffCountForPlant,
   squashScaleY,
+  TURN_ALIGN_RADIANS,
   updateWaddlePose,
+  wrapAngle,
   type WaddlePose,
 } from "./waddle.js";
 
@@ -111,6 +113,12 @@ export interface TrikePlayerOptions {
   random?: () => number;
 }
 
+/** Stay-in-frame wander radius around the spawn point (origin) in metres. */
+export const WANDER_RADIUS_METRES = 0.8;
+
+/** Random steering spread (radians) when turning back toward the center. */
+export const WANDER_STEER_JITTER_RADIANS = 0.6;
+
 /**
  * Mixer + root-motion player. Turn-in-place completes before translation,
  * walk weight eases over ~0.2 s, dust + squash fire on foot plants, and the
@@ -152,6 +160,14 @@ export class TrikePlayer {
     return this.pose.heading;
   }
 
+  /**
+   * Head bone driving the head-dip blink; blush cheeks pin here too. Null
+   * when the loaded model has no Head node.
+   */
+  get head(): THREE.Object3D | null {
+    return this.targets.head;
+  }
+
   get clipDurationSeconds(): number {
     return this.action.getClip().duration;
   }
@@ -184,6 +200,31 @@ export class TrikePlayer {
     );
   }
 
+  /**
+   * Stay-in-frame wander: once the model leaves the wander radius, retarget
+   * the existing turn-then-walk heading back toward the center with a small
+   * random offset. The pose controller turns in place first, so translation
+   * pauses while steering. Only steers while walking (Stop still halts) and
+   * never overrides a turn already in progress.
+   */
+  private steerInsideWanderRadius(): void {
+    if (!this.pose.moving) {
+      return;
+    }
+    const x = this.model.position.x;
+    const z = this.model.position.z;
+    if (Math.hypot(x, z) <= WANDER_RADIUS_METRES) {
+      return;
+    }
+    const remaining = Math.abs(wrapAngle(this.pose.targetHeading - this.pose.heading));
+    if (remaining >= TURN_ALIGN_RADIANS) {
+      return;
+    }
+    const toCenter = Math.atan2(-x, -z);
+    const jitter = (this.random() - 0.5) * WANDER_STEER_JITTER_RADIANS;
+    this.pose.targetHeading = wrapAngle(toCenter + jitter);
+  }
+
   /** Advance mixer, root motion, squash, dust, and blink. */
   update(dtSeconds: number, nowSeconds: number): void {
     const step = Math.min(Math.max(dtSeconds, 0), 0.25);
@@ -206,6 +247,7 @@ export class TrikePlayer {
     const dir = this.forward();
     this.model.position.x += dir.x * distance;
     this.model.position.z += dir.z * distance;
+    this.steerInsideWanderRadius();
     this.model.rotation.y = this.pose.heading;
     const squash = squashScaleY(loopPhase(this.loopTime));
     this.model.scale.set(
