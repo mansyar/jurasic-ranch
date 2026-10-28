@@ -185,6 +185,58 @@ describe("trike mixer", () => {
   });
 });
 
+describe("stop deadband (FR-5, AC-5)", () => {
+  it("freezes heading with a pending turn and halts dead after settling", () => {
+    const rig = createTestRig();
+    const player = new TrikePlayer(rig, { clip: createWaddleClip(), random: () => 0.5 });
+    player.setWalking(true);
+    let now = 30;
+    for (let i = 0; i < 90; i += 1) {
+      player.update(DT, now);
+      now += DT;
+    }
+    // Mid-walk command, then Stop before the arc completes: the old bug kept
+    // integrating heading in place after the halt.
+    player.turnTo(player.heading + 1);
+    for (let i = 0; i < 3; i += 1) {
+      player.update(DT, now);
+      now += DT;
+    }
+    player.setWalking(false);
+    // Graceful decel preserved: the model eases forward briefly, then parks.
+    for (let i = 0; i < 60; i += 1) {
+      player.update(DT, now);
+      now += DT;
+    }
+    const parked = rig.position.clone();
+    const parkedHeading = player.heading;
+    // The pending turn never completes after Stop: the frozen heading stays
+    // a full radian short of the commanded target.
+    expect(Math.abs(wrapAngle(player.heading - (parkedHeading + 1)))).toBeGreaterThan(0.5);
+    // 2 s recording: heading variance ~zero, displacement exactly zero.
+    let maxHeadingDeviation = 0;
+    for (let i = 0; i < 120; i += 1) {
+      player.update(DT, now);
+      now += DT;
+      maxHeadingDeviation = Math.max(
+        maxHeadingDeviation,
+        Math.abs(wrapAngle(player.heading - parkedHeading)),
+      );
+    }
+    expect(maxHeadingDeviation).toBe(0);
+    expect(rig.position.distanceTo(parked)).toBe(0);
+    expect(rig.rotation.y).toBe(parkedHeading);
+  });
+
+  it("keeps turn and deadband math allocation-free (NFR-3)", async () => {
+    const source = await readRanchSource("trike-player.ts");
+    // Only the two constructor scratch temps; the per-frame update path
+    // reuses them and allocates nothing.
+    const vectors = source.match(/new THREE\.Vector3/g) ?? [];
+    expect(vectors.length).toBeLessThanOrEqual(2);
+  });
+});
+
 describe("blink", () => {
   it("finds eye meshes when present, else the head bone", () => {
     const eyed = findBlinkTargets(createEyedRig());

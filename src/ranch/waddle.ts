@@ -27,6 +27,14 @@ export const WALK_SPEED_METRES_PER_SECOND = WADDLE_STRIDE_METRES / WADDLE_LOOP_S
 export const TURN_RATE_RADIANS_PER_SECOND = Math.PI;
 
 /**
+ * Stop deadband (walk-blend units): at or below this blend the heading
+ * freezes (FR-5). This kills the near-stop jitter where tiny turn rates kept
+ * integrating at ~zero speed, and guarantees a true halt — after the 0.2 s
+ * graceful decel the pose is bit-identical every frame.
+ */
+export const STOP_BLEND_DEADBAND = 0.03;
+
+/**
  * Stroller-arc curvature: radians of heading per metre walked. While moving,
  * yaw = curvature x actual root speed, capped above — so the slower baby
  * speed automatically yields gentler arcs at a constant turn radius
@@ -138,6 +146,11 @@ export function updateWaddlePose(pose: WaddlePose, dtSeconds: number): void {
   const blendStep = dtSeconds / WALK_BLEND_SECONDS;
   const delta = target - pose.blend;
   pose.blend += Math.sign(delta) * Math.min(Math.abs(delta), blendStep);
+  // Stop deadband (FR-5): at ~zero speed the heading freezes instead of
+  // integrating tiny turn rates, so settling never jitters or drifts.
+  if (pose.blend <= STOP_BLEND_DEADBAND) {
+    return;
+  }
   const speedMetresPerSecond = pose.blend * WALK_SPEED_METRES_PER_SECOND;
   const yawRate = Math.min(
     TURN_RATE_RADIANS_PER_SECOND,
