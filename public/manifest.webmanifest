@@ -1,0 +1,19 @@
+{
+  "name": "Jurasic Ranch — Trike Waddle Walk",
+  "short_name": "Jurasic Ranch",
+  "description": "Watch a baby Triceratops waddle. Offline-first PWA.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#dff3d8",
+  "theme_color": "#7ec850",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
