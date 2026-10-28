@@ -52,7 +52,7 @@ pr:
   tool: "gh"
   base: "main"
   media: "always"
-  watch_ci: false
+  watch_ci: true
   watch_timeout_minutes: 15
   merge_method: "squash"
 ```
