@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import * as THREE from "three";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { TrikePlayer } from "../ranch/trike-player.js";
+import { DinoPlayer } from "../ranch/dino-player.js";
 import { WADDLE_LOOP_SECONDS } from "../ranch/waddle.js";
 import { isAudioUnlocked } from "./audio.js";
 import {
@@ -119,7 +119,7 @@ describe("rigged trike loader", () => {
     loaderMocks.dispose.mockReset();
   });
 
-  it("requests /models/trike.glb and wraps the Waddle clip in a TrikePlayer", async () => {
+  it("requests /models/trike.glb and wraps the Waddle clip in a DinoPlayer", async () => {
     const scene = new THREE.Group();
     const clip = new THREE.AnimationClip("Waddle", 0.8, []);
     loaderMocks.loadAsync.mockResolvedValue({ scene, animations: [clip] });
@@ -131,7 +131,7 @@ describe("rigged trike loader", () => {
     expect(loaderMocks.setDecoderPath).toHaveBeenCalledWith("/draco/");
     expect(loaderMocks.setDRACOLoader).toHaveBeenCalledTimes(1);
     expect(loaded.model).toBe(scene);
-    expect(loaded.player).toBeInstanceOf(TrikePlayer);
+    expect(loaded.player).toBeInstanceOf(DinoPlayer);
     expect(loaded.player.clipDurationSeconds).toBeCloseTo(0.8, 5);
   });
 

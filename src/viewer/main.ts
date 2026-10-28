@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { TrikePlayer } from "../ranch/trike-player.js";
+import { DinoPlayer, TRIKE_GAIT } from "../ranch/dino-player.js";
 import { WADDLE_LOOP_SECONDS } from "../ranch/waddle.js";
 import { unlockAudio } from "./audio.js";
 import { resolvePixelRatio } from "./pixel-ratio.js";
@@ -171,7 +171,7 @@ export function createPlaceholderTrike(): THREE.Group {
   tail.position.set(-0.55, 0.4, 0);
   upper.add(tail);
 
-  // Match the rigged TrikePlayer footprint (faces +Z, ~3.7 m baked baby
+  // Match the rigged DinoPlayer footprint (faces +Z, ~3.7 m baked baby
   // scale): the authored parts face +X at ~1.44 m, so rotate onto +Z then
   // scale by 2.6 into the 3.3–4.2 m shipped-GLB window.
   // Group origin sits at ground level, so feet stay on y = 0.
@@ -197,11 +197,11 @@ export function updatePlaceholderWalk(trike: THREE.Group, elapsedSeconds: number
 /** Rigged model plus its player, ready to swap into the scene. */
 export interface LoadedTrike {
   model: THREE.Object3D;
-  player: TrikePlayer;
+  player: DinoPlayer;
 }
 
 /**
- * Load the baked Draco GLB and wrap its `Waddle` clip in a TrikePlayer.
+ * Load the baked Draco GLB and wrap its `Waddle` clip in a DinoPlayer.
  * DOM- and renderer-free (loader boundary only), so tests can drive it with
  * a stubbed GLTFLoader while the real viewer owns the WebGL chrome.
  */
@@ -220,7 +220,7 @@ export async function loadTrikePlayer(): Promise<LoadedTrike> {
     // Baked pastel baby look: the GLB already carries the pastel palette in
     // its vertex colors, so no runtime recolor runs here. Only pin blush
     // cheeks to the blink Head bone. No-op on models without a Head node.
-    const player = new TrikePlayer(gltf.scene, { clip });
+    const player = new DinoPlayer(gltf.scene, { clip, gait: TRIKE_GAIT });
     attachBlushCheeks(player.head);
     return { model: gltf.scene, player };
   } finally {
@@ -295,7 +295,7 @@ export async function bootViewer(): Promise<void> {
   scene.add(trike);
 
   let walking = (await readSetting(WALK_SETTING_KEY)) === true;
-  let player: TrikePlayer | null = null;
+  let player: DinoPlayer | null = null;
   const syncChrome = (): void => {
     button.textContent = walking ? "Stop" : "Walk";
     button.setAttribute("aria-pressed", walking ? "true" : "false");
