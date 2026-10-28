@@ -120,9 +120,11 @@ export const WANDER_RADIUS_METRES = 0.8;
 export const WANDER_STEER_JITTER_RADIANS = 0.6;
 
 /**
- * Mixer + root-motion player. Turn-in-place completes before translation,
- * walk weight eases over ~0.2 s, dust + squash fire on foot plants, and the
- * model faces +Z at heading 0. The model is expected at scene root, feet y=0.
+ * Mixer + root-motion player. Heading bends into slow stroller arcs while the
+ * Trike keeps walking (no in-place spin), walk weight eases over ~0.2 s, and
+ * below the stop blend deadband the heading freezes so the model settles to
+ * a true halt. Dust + squash fire on foot plants, and the model faces +Z at
+ * heading 0. The model is expected at scene root, feet y=0.
  */
 export class TrikePlayer {
   readonly dust: DustPool;
@@ -136,6 +138,10 @@ export class TrikePlayer {
   private prevPhase = 0;
   private baseScale: THREE.Vector3;
   private random: () => number;
+  /** Scratch heading vector reused every frame: turn math never allocates. */
+  private readonly forwardTemp = new THREE.Vector3();
+  /** Scratch ground point reused for every dust puff: no per-plant vector. */
+  private readonly footTemp = new THREE.Vector3();
 
   constructor(model: THREE.Object3D, options: TrikePlayerOptions) {
     this.model = model;
@@ -187,25 +193,27 @@ export class TrikePlayer {
     this.pose.targetHeading = radians;
   }
 
-  private forward(): THREE.Vector3 {
-    return new THREE.Vector3(Math.sin(this.pose.heading), 0, Math.cos(this.pose.heading));
+  /** Write the unit facing vector for the current heading into `out`. */
+  private forwardTo(out: THREE.Vector3): THREE.Vector3 {
+    return out.set(Math.sin(this.pose.heading), 0, Math.cos(this.pose.heading));
   }
 
-  private footPosition(): THREE.Vector3 {
-    const dir = this.forward();
-    return new THREE.Vector3(
-      this.model.position.x + dir.x * 0.35,
+  /** Write the front-ground dust emission point into `out` (no alloc). */
+  private footPositionTo(out: THREE.Vector3): THREE.Vector3 {
+    this.forwardTo(this.forwardTemp);
+    return out.set(
+      this.model.position.x + this.forwardTemp.x * 0.35,
       0.03,
-      this.model.position.z + dir.z * 0.35,
+      this.model.position.z + this.forwardTemp.z * 0.35,
     );
   }
 
   /**
    * Stay-in-frame wander: once the model leaves the wander radius, retarget
-   * the existing turn-then-walk heading back toward the center with a small
-   * random offset. The pose controller turns in place first, so translation
-   * pauses while steering. Only steers while walking (Stop still halts) and
-   * never overrides a turn already in progress.
+   * the heading back toward the center with a small random offset. The pose
+   * controller bends toward it in a walk arc, so translation never pauses
+   * while steering. Only steers while walking (Stop still halts) and never
+   * overrides a turn already in progress.
    */
   private steerInsideWanderRadius(): void {
     if (!this.pose.moving) {
@@ -238,15 +246,18 @@ export class TrikePlayer {
       this.loopTime += step;
       const phase = loopPhase(this.loopTime);
       const crossed = plantsCrossed(this.prevPhase, phase);
-      for (let c = 0; c < crossed; c += 1) {
-        this.dust.puff(this.footPosition(), puffCountForPlant(this.random()));
+      if (crossed > 0) {
+        this.footPositionTo(this.footTemp);
+        for (let c = 0; c < crossed; c += 1) {
+          this.dust.puff(this.footTemp, puffCountForPlant(this.random()));
+        }
       }
       this.prevPhase = phase;
     }
     const distance = displacementMetres(this.pose, step);
-    const dir = this.forward();
-    this.model.position.x += dir.x * distance;
-    this.model.position.z += dir.z * distance;
+    this.forwardTo(this.forwardTemp);
+    this.model.position.x += this.forwardTemp.x * distance;
+    this.model.position.z += this.forwardTemp.z * distance;
     this.steerInsideWanderRadius();
     this.model.rotation.y = this.pose.heading;
     const squash = squashScaleY(loopPhase(this.loopTime));

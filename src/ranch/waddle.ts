@@ -1,5 +1,5 @@
 /**
- * Pure waddle-walk timing math (FR-5 turn-then-walk, FR-6 blink, FR-7 plants).
+ * Pure waddle-walk timing math (arc-limited turns, blink, plants).
  * DOM- and renderer-free so the whole timing contract is unit-testable.
  */
 
@@ -18,8 +18,22 @@ export const WADDLE_STRIDE_METRES = 0.29;
 /** Forward speed while walking at full blend: one stride per loop. */
 export const WALK_SPEED_METRES_PER_SECOND = WADDLE_STRIDE_METRES / WADDLE_LOOP_SECONDS;
 
-/** Yaw rate for turn-in-place; a 90 deg turn completes in 0.5 s (< 0.6 s). */
+/**
+ * Stroller-arc yaw cap: heading never turns faster than this, so a commanded
+ * reversal bends into a wide translating arc instead of a snap spin. Kept at
+ * the old turn-in-place rate so turnDurationSeconds stays a valid
+ * worst-case bound (90 deg in 0.5 s < 0.6 s).
+ */
 export const TURN_RATE_RADIANS_PER_SECOND = Math.PI;
+
+/**
+ * Stroller-arc curvature: radians of heading per metre walked. While moving,
+ * yaw = curvature x actual root speed, capped above — so the slower baby
+ * speed automatically yields gentler arcs at a constant turn radius
+ * (1 / curvature ~ 0.22 m), keeping the Trike inside the 0.8 m
+ * stay-in-frame wander circle while bending visibly.
+ */
+export const TURN_ARC_CURVATURE_RADIANS_PER_METRE = 4.5;
 
 /** Upper bound for a 90 deg turn-in-place (FR-5). */
 export const TURN_90_MAX_SECONDS = 0.6;
@@ -57,7 +71,7 @@ export const SQUASH_DEPTH = 0.05;
 /** Phase window each side of a plant over which squash applies. */
 const SQUASH_HALF_WIDTH_PHASE = 0.125;
 
-/** Pose controller state: turn-in-place first, then translate. */
+/** Pose controller state: blend follows Walk; heading bends into walk arcs. */
 export interface WaddlePose {
   heading: number;
   targetHeading: number;
@@ -110,25 +124,30 @@ export function createWaddlePose(targetHeadingRadians = 0): WaddlePose {
 }
 
 /**
- * Advance the pose by dt. The heading turns in place first; forward blend
- * only ramps up once aligned, and ramps back to 0 on stop — so translation
- * (see displacementMetres) never slides through a turn or pops.
+ * Advance the pose by dt. Blend follows the Walk button only — translation
+ * never pauses for steering, so heading changes bend into arcs while the
+ * Trike keeps walking (FR-4). Yaw scales with actual root speed
+ * (curvature x speed, capped) for the slow-curvy-stroller feel: full speed
+ * turns at ~1.45 rad/s, the blend ramp and graceful decel turn gentler.
  */
 export function updateWaddlePose(pose: WaddlePose, dtSeconds: number): void {
   if (!(dtSeconds > 0)) {
     return;
   }
-  const remaining = wrapAngle(pose.targetHeading - pose.heading);
-  const maxStep = TURN_RATE_RADIANS_PER_SECOND * dtSeconds;
-  if (Math.abs(remaining) > 0.0001) {
-    const step = Math.sign(remaining) * Math.min(Math.abs(remaining), maxStep);
-    pose.heading = wrapAngle(pose.heading + step);
-  }
-  const aligned = Math.abs(wrapAngle(pose.targetHeading - pose.heading)) < TURN_ALIGN_RADIANS;
-  const target = pose.moving && aligned ? 1 : 0;
+  const target = pose.moving ? 1 : 0;
   const blendStep = dtSeconds / WALK_BLEND_SECONDS;
   const delta = target - pose.blend;
   pose.blend += Math.sign(delta) * Math.min(Math.abs(delta), blendStep);
+  const speedMetresPerSecond = pose.blend * WALK_SPEED_METRES_PER_SECOND;
+  const yawRate = Math.min(
+    TURN_RATE_RADIANS_PER_SECOND,
+    TURN_ARC_CURVATURE_RADIANS_PER_METRE * speedMetresPerSecond,
+  );
+  const remaining = wrapAngle(pose.targetHeading - pose.heading);
+  if (Math.abs(remaining) > 0.0001) {
+    const step = Math.sign(remaining) * Math.min(Math.abs(remaining), yawRate * dtSeconds);
+    pose.heading = wrapAngle(pose.heading + step);
+  }
 }
 
 /** Metres covered this frame: one stride per loop, scaled by the eased blend. */
