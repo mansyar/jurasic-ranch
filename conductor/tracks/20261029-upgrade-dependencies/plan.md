@@ -41,17 +41,20 @@ The primary appends after acceptance:
 - **Covers:** FR-1, FR-3, FR-5, AC-2, AC-3, AC-4
 - **Touches:** `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `tsconfig.json`, `src/**`, `tests/**`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** verified
+- **Result:** All 4 majors landed (TS 7.0.2, node types 26.6.5, vitest 5.0.5, PWA 2.0.0); pnpm install exit 0, typecheck exit 0, tests 62/62 after 1 minimal mock fix, build exit 0 with SW precache 15 entries. Zero reverts.
+- **Checkpoint:** `PENDING`
+- **Evidence:** `conductor/tracks/20261029-upgrade-dependencies/verification/phase-2.md`
 
-- [ ] **P2.T1: Bump majors in package.json and install** — covers: FR-1
-  - [ ] **P2.T1.1: Bump typescript ^5.9.0→^7.0.0, @types/node ^22.0.0→^26.0.0**
-  - [ ] **P2.T1.2: Bump vitest ^3.2.0→^5.0.0, vite-plugin-pwa ^1.0.0→^2.0.0**
-  - [ ] **P2.T1.3: Run pnpm install, record any peer/engines failures**
-- [ ] **P2.T2: Adapt breaking configs** — covers: FR-3
-  - [ ] **P2.T2.1: Fix tsconfig / type errors for TS7 + @types/node 26 (or tsgo fallback)**
-  - [ ] **P2.T2.2: Fix vite PWA workbox + vitest config for v2/v5 breaking changes**
-- [ ] **P2.T3: Revert-or-keep decision** — covers: FR-5
-  - [ ] **P2.T3.1: Revert any major still red after 2 retries, record reason for evidence**
+- [x] **P2.T1: Bump majors in package.json and install** — covers: FR-1
+  - [x] **P2.T1.1: Bump typescript ^5.9.0→^7.0.0, @types/node ^22.0.0→^26.0.0**
+  - [x] **P2.T1.2: Bump vitest ^3.2.0→^5.0.0, vite-plugin-pwa ^1.0.0→^2.0.0**
+  - [x] **P2.T1.3: Run pnpm install, record any peer/engines failures**
+- [x] **P2.T2: Adapt breaking configs** — covers: FR-3
+  - [x] **P2.T2.1: Fix tsconfig / type errors for TS7 + @types/node 26 (or tsgo fallback)**
+  - [x] **P2.T2.2: Fix vite PWA workbox + vitest config for v2/v5 breaking changes**
+- [x] **P2.T3: Revert-or-keep decision** — covers: FR-5
+  - [x] **P2.T3.1: Revert any major still red after 2 retries, record reason for evidence**
 
 <!--
 The primary appends after acceptance:
