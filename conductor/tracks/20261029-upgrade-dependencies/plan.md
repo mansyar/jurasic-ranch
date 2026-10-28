@@ -43,7 +43,7 @@ The primary appends after acceptance:
 - **Verification:** `pnpm verify`
 - **Status:** verified
 - **Result:** All 4 majors landed (TS 7.0.2, node types 26.6.5, vitest 5.0.5, PWA 2.0.0); pnpm install exit 0, typecheck exit 0, tests 62/62 after 1 minimal mock fix, build exit 0 with SW precache 15 entries. Zero reverts.
-- **Checkpoint:** `PENDING`
+- **Checkpoint:** `26374cb`
 - **Evidence:** `conductor/tracks/20261029-upgrade-dependencies/verification/phase-2.md`
 
 - [x] **P2.T1: Bump majors in package.json and install** — covers: FR-1

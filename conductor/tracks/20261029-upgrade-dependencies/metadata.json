@@ -8,13 +8,13 @@
   "depends_on": [],
   "doc_sync": "pending",
   "id": "20261029-upgrade-dependencies",
-  "last_checkpoint": "255c882",
+  "last_checkpoint": "26374cb",
   "plan": "plan.md",
   "priority": "medium",
   "progress": {
     "phases_total": 3,
-    "phases_verified": 1,
-    "tasks_done": 3,
+    "phases_verified": 2,
+    "tasks_done": 6,
     "tasks_total": 8
   },
   "pr_state": null,
@@ -28,5 +28,5 @@
   "status": "in_progress",
   "title": "Upgrade Dependencies",
   "type": "chore",
-  "updated_at": "2026-10-28T22:12:55.443Z"
+  "updated_at": "2026-10-28T22:17:02.190Z"
 }
