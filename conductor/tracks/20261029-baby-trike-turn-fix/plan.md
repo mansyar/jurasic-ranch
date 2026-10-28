@@ -66,3 +66,15 @@ The primary appends after acceptance:
 
 - [x] **P3.T1: Arc-limited steering (max turn rate, no in-place spin)** — covers: FR-4, AC-4
 - [x] **P3.T2: Stop deadband + settle-then-halt regression test** — covers: FR-5, AC-5
+
+## Phase R1: Review Fixes
+
+- **Goal:** Resolve review findings F1, F2, F3, F4.
+- **Depends on:** Phase 3
+- **Covers:** F1, F2, F3, F4
+- **Touches:** `src/viewer/main.ts`, `src/viewer/viewer.test.ts`, `src/ranch/trike-player.ts`, `src/ranch/waddle.ts`, `tests/waddle/stride.test.ts`
+- **Verification:** `pnpm verify`
+- **Status:** in_progress
+
+- [ ] **R1.T1: Resolve F1 (placeholder footprint)** — covers: F1
+- [ ] **R1.T2: Resolve F2, F3, F4 (docs + tolerance)** — covers: F2, F3, F4
