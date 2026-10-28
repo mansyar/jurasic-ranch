@@ -74,7 +74,12 @@ The primary appends after acceptance:
 - **Covers:** F1, F2, F3, F4
 - **Touches:** `src/viewer/main.ts`, `src/viewer/viewer.test.ts`, `src/ranch/trike-player.ts`, `src/ranch/waddle.ts`, `tests/waddle/stride.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
+- **Result:** All four review findings resolved (placeholder rescaled with
+  footprint test; arc-turn docs; honest stride bound); `pnpm verify` exit 0
+  on primary re-run (62/62 tests).
+- **Checkpoint:** `3710c63`
+- **Evidence:** `conductor/tracks/20261029-baby-trike-turn-fix/verification/phase-R1.md`
 
-- [ ] **R1.T1: Resolve F1 (placeholder footprint)** — covers: F1
-- [ ] **R1.T2: Resolve F2, F3, F4 (docs + tolerance)** — covers: F2, F3, F4
+- [x] **R1.T1: Resolve F1 (placeholder footprint)** — covers: F1
+- [x] **R1.T2: Resolve F2, F3, F4 (docs + tolerance)** — covers: F2, F3, F4

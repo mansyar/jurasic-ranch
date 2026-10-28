@@ -5,7 +5,7 @@
 - **Branch:** `feat/20261029-baby-trike-turn-fix`
 - **Range:** `d671821..fb388fd`
 - **Date:** 2026-10-29
-- **Verdict:** `PASS WITH FINDINGS`
+- **Verdict:** `PASS`
 
 ## Summary
 
@@ -127,11 +127,13 @@ gait-block wording). No task dropped. Evidence files committed.
 
 ## Doc sync
 
-`pending` — CREDITS.md already updated pre-review (size-0.6 variant);
-re-check after review fixes.
+`none` — CREDITS.md was already corrected pre-review (size-0.6 variant);
+the review fixes touched code comments and test bounds only, no doc
+changes needed.
 
 ## History
 
 | Round | Verdict | Critical | High | Medium | Low | Fixed |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | PASS WITH FINDINGS | 0 | 0 | 1 | 3 | 0 |
+| 2 (re-review of fix delta) | PASS | 0 | 0 | 0 | 0 | 4 |
