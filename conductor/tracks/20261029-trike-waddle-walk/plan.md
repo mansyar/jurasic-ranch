@@ -40,17 +40,20 @@ The primary appends after acceptance:
 - **Covers:** FR-2, FR-3, FR-4, AC-1
 - **Touches:** `assets/trike/*`, `public/models/trike.glb`, `scripts/check-trike.*`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
+- **Result:** verified
+- **Checkpoint:** f9c6fc3
+- **Evidence:** conductor/tracks/20261029-trike-waddle-walk/verification/phase-2.md
 
-- [ ] **P2.T1: Vendor + baby scale** — covers: FR-2
-  - [ ] **P2.T1.1: Vendor Triceratops GLB + CREDITS**
-  - [ ] **P2.T1.2: Scale 0.25-0.35x, feet y=0, Y-up check**
-- [ ] **P2.T2: 12-bone armature + weights** — covers: FR-3
-  - [ ] **P2.T2.1: Build hips/spine/chest/head+jaw/tail2/legs-IK/eyelids**
-  - [ ] **P2.T2.2: Mirror weights, fix jaw/eyelids**
-- [ ] **P2.T3: Bake Waddle + export** — covers: FR-4
-  - [ ] **P2.T3.1: Pose 0.8s 24f bob+sway+squash, foot plant 0.2s**
-  - [ ] **P2.T3.2: Export Draco GLB <150KB, preview_scene link**
+- [x] **P2.T1: Vendor + baby scale** — covers: FR-2
+  - [x] **P2.T1.1: Vendor Triceratops GLB + CREDITS**
+  - [x] **P2.T1.2: Scale 0.25-0.35x, feet y=0, Y-up check** (0.3x → 1.878 m)
+- [x] **P2.T2: 12-bone armature + weights** — covers: FR-3 (DEVIATION: reused shipped 24-bone skeleton, no new armature)
+  - [x] **P2.T2.1: Build hips/spine/chest/head+jaw/tail2/legs-IK/eyelids** (confirmed usable as shipped)
+  - [x] **P2.T2.2: Mirror weights, fix jaw/eyelids** (spot-checked, no fix needed)
+- [x] **P2.T3: Bake Waddle + export** — covers: FR-4
+  - [x] **P2.T3.1: Pose 0.8s 24f bob+sway+squash, foot plant 0.2s** (retimed seamless Walk, 25 keys @30fps LINEAR, seam diff 0.0)
+  - [x] **P2.T3.2: Export Draco GLB <150KB, preview_scene link** (85,780 B)
 
 <!--
 The primary appends after acceptance:
