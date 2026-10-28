@@ -75,3 +75,32 @@ to constant root speed at duty ~0.73 (mean stance foot speed is ~0.5 m/s);
 matching stance speed instead would need speed modulation and contradicts
 the brief's stride-equals-travel prescription, so it is recorded here as a
 possible follow-up, not applied.
+
+## Primary verification
+
+- Command: `pnpm verify` (primary run, 2026-10-29) — exit 0.
+- oxlint: exit 0. Output is now quiet: the `package.json` lint script used
+  single quotes around `--ignore-pattern 'public/draco/**'`, which `cmd.exe`
+  (via pnpm on Windows) passes through literally, so the vendored decoder
+  was linted (~1,200 warning lines). Fixed to double quotes (primary-side
+  change, committed with this accept). Remaining warnings are real and few:
+  two in our files (fixed, see below) plus unused-var notes inside
+  `scripts/vendor/triceratops-base.mjs` (Polyfork's code, left alone).
+- Primary-side lint fixes (behavior-identical, folded into this accept):
+  `src/viewer/main.ts` spread → `head.children.slice()` with a comment
+  (snapshot still required: cheek removal mutates the live array);
+  `scripts/bake-trike-variant.js` `new Array(n)` →
+  `Array.from({ length: n })` (same preallocated fill; no rebake needed).
+- oxfmt --check: clean. tsrs --noEmit: clean.
+- vitest: 59/59 across 6 files (check-trike, waddle, trike-player, viewer,
+  pastel-variant, stride). All four feet within tolerance per the reworked
+  slide test.
+- vite build: green, PWA precache 10 entries.
+- Squash decision: NO squash. The range `8444a32..HEAD` spans the failed
+  attempt (a314d9d evidence of the red run) plus the rework; keeping task
+  commits preserves the honest trail. Checkpoint = `aeb1961`.
+- Deviations accepted: stride sampled from the shipped clip (no gait block
+  exists in the vendored module — plan wording stale, recorded); no
+  `trike-player.ts` change (retime lands via `waddle.ts` constants);
+  `FOOT_PLANT_PHASES` kept at `[0, 0.5]` with the 4-beat finding as
+  follow-up. AC-6/FR-6 satisfied.

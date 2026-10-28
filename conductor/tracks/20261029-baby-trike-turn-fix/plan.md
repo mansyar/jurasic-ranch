@@ -39,10 +39,15 @@ The primary appends after acceptance:
 - **Covers:** FR-6, AC-6
 - **Touches:** `src/ranch/waddle.ts`, `src/ranch/trike-player.ts`, `tests/waddle/*`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
+- **Result:** Stride 0.29 m / speed 0.3625 m/s sampled from the shipped clip;
+  all four feet within slide tolerance; `pnpm verify` exit 0 on primary
+  re-run (59/59 tests).
+- **Checkpoint:** `aeb1961`
+- **Evidence:** `conductor/tracks/20261029-baby-trike-turn-fix/verification/phase-2.md`
 
-- [ ] **P2.T1: Derive stride from new gait block (step/duty/clearance)** — covers: FR-6
-- [ ] **P2.T2: Foot-slide tolerance test across the cycle** — covers: AC-6
+- [x] **P2.T1: Derive stride from new gait block (step/duty/clearance)** — covers: FR-6
+- [x] **P2.T2: Foot-slide tolerance test across the cycle** — covers: AC-6
 
 ## Phase 3: Curvy turns + stop deadband
 

@@ -59,7 +59,8 @@ export function attachBlushCheeks(head: THREE.Object3D | null): THREE.Mesh[] {
   if (head === null) {
     return [];
   }
-  for (const old of [...head.children]) {
+  // Snapshot: removing cheeks mutates the live children array mid-loop.
+  for (const old of head.children.slice()) {
     if (old.name === "Blush_L" || old.name === "Blush_R") {
       head.remove(old);
     }

@@ -173,7 +173,7 @@ function readFloatAccessor(json, bin, accessorIndex) {
   }
   const base = (bufferView.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
   const view = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
-  const out = new Array(accessor.count * itemSize);
+  const out = Array.from({ length: accessor.count * itemSize });
   for (let i = 0; i < out.length; i += 1) {
     out[i] = view.getFloat32(base + i * 4, true);
   }
