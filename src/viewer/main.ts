@@ -12,13 +12,16 @@ import { readSetting, writeSetting } from "./storage.js";
  * paints the procedural placeholder instantly and swaps to this rigged model
  * as soon as it loads, so boot stays green even when the fetch fails.
  */
-export const TRIKE_MODEL_URL = "/models/trike.glb";
+/** Deploy base: "/" locally and in tests, subpath-safe under a future base. */
+const BASE_URL = import.meta.env.BASE_URL;
+
+export const TRIKE_MODEL_URL = `${BASE_URL}models/trike.glb`;
 
 /**
  * Same-origin Draco decoder vendored under `public/draco` (offline-first:
  * never the Google CDN default decoder path).
  */
-const DRACO_DECODER_PATH = "/draco/";
+const DRACO_DECODER_PATH = `${BASE_URL}draco/`;
 
 /** Name of the baked seamless loop inside the Trike GLB. */
 const WADDLE_CLIP_NAME = "Waddle";
@@ -33,8 +36,9 @@ const WALK_SETTING_KEY = "walking";
 
 /**
  * Build the Phase 1 placeholder Trike: a pastel flat-shaded baby about
- * 0.9 m long with its feet on y = 0. It paints instantly while the rigged GLB
- * loads, then leaves the scene on a successful swap.
+ * 1.9 m long facing +Z with its feet on y = 0 — the same footprint as the
+ * rigged swap target, so the swap does not pop. It paints instantly while
+ * the rigged GLB loads, then leaves the scene on a successful swap.
  */
 export function createPlaceholderTrike(): THREE.Group {
   const body = new THREE.MeshStandardMaterial({
@@ -114,6 +118,12 @@ export function createPlaceholderTrike(): THREE.Group {
   tail.rotation.z = Math.PI / 2;
   tail.position.set(-0.55, 0.4, 0);
   upper.add(tail);
+
+  // Match the rigged TrikePlayer footprint (faces +Z, ~1.9 m baby scale):
+  // the authored parts face +X at ~1.4 m, so rotate onto +Z then scale up.
+  // Group origin sits at ground level, so feet stay on y = 0.
+  trike.rotation.y = -Math.PI / 2;
+  trike.scale.setScalar(1.3);
 
   return trike;
 }

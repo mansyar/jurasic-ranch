@@ -76,7 +76,12 @@ describe("placeholder trike", () => {
     expect(trike.children.length).toBeGreaterThan(0);
     const box = new THREE.Box3().setFromObject(trike);
     expect(Math.abs(box.min.y)).toBeLessThan(1e-6);
-    expect(box.getSize(new THREE.Vector3()).x).toBeLessThan(1.6);
+    // Same footprint as the rigged swap target (~1.9 m, facing +Z): the swap
+    // must not pop in size or heading.
+    const size = box.getSize(new THREE.Vector3());
+    expect(size.z).toBeGreaterThan(1.5);
+    expect(size.z).toBeLessThan(2.2);
+    expect(trike.rotation.y).toBeCloseTo(-Math.PI / 2, 5);
   });
 
   it("loops the 0.8 s walk pose seamlessly", () => {
@@ -106,6 +111,9 @@ describe("placeholder trike", () => {
 describe("rigged trike loader", () => {
   beforeEach(() => {
     loaderMocks.loadAsync.mockReset();
+    loaderMocks.setDRACOLoader.mockReset();
+    loaderMocks.setDecoderPath.mockReset();
+    loaderMocks.dispose.mockReset();
   });
 
   it("requests /models/trike.glb and wraps the Waddle clip in a TrikePlayer", async () => {
@@ -115,6 +123,10 @@ describe("rigged trike loader", () => {
     const loaded = await loadTrikePlayer();
     expect(TRIKE_MODEL_URL).toBe("/models/trike.glb");
     expect(loaderMocks.loadAsync).toHaveBeenCalledWith("/models/trike.glb");
+    // Offline-first lock: the decoder must come from the vendored same-origin
+    // path, never the Google CDN default.
+    expect(loaderMocks.setDecoderPath).toHaveBeenCalledWith("/draco/");
+    expect(loaderMocks.setDRACOLoader).toHaveBeenCalledTimes(1);
     expect(loaded.model).toBe(scene);
     expect(loaded.player).toBeInstanceOf(TrikePlayer);
     expect(loaded.player.clipDurationSeconds).toBeCloseTo(0.8, 5);
