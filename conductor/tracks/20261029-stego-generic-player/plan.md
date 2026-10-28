@@ -44,7 +44,7 @@ The primary appends after acceptance:
 - **Covers:** FR-3, FR-4, AC-2
 - **Touches:** `assets/stego/**`, `public/models/stego.glb`, `scripts/vendor/bake-stego-*`, `scripts/**/check-stego*`, `tests/**/stego-*.ts`, `tests/**/pastel-*.ts`, `CREDITS.md`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P2.T1: Vendor + bake Stego** — covers: FR-3
   - [ ] **P2.T1.1: Lookup Polyfork Stego base, record final pastel distinct from Trike** — resolve TBD palette, colorblind-safe
