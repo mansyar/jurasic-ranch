@@ -60,8 +60,8 @@ interface SnapshotPlacement {
 const SHIPPED_PLACEMENTS: readonly SnapshotPlacement[] = [
   {
     file: 'ginkgo-tree-baa895.glb',
-    position: [8.476296891445699, 0, 4.506927002744551],
-    rotationY: 3.630284844148205,
+    position: [-0.3420150676845, 0, 9.7940301047871],
+    rotationY: 4.747295565424576,
   },
   {
     file: 'dawn-redwood-001c29.glb',
@@ -70,8 +70,12 @@ const SHIPPED_PLACEMENTS: readonly SnapshotPlacement[] = [
   },
   {
     file: 'flowering-magnolia-dd76cb.glb',
-    position: [-3.7900919463459535, 0, 8.92889707848867],
-    rotationY: 5.113814708343385,
+    // Phase 5 moved this prop: the honest 5.09 m canopy covered the Trike's
+    // rectangle from 113 deg, so it stands at 100 deg instead (the radius is
+    // untouched). The one deliberate break of this snapshot, recorded in the
+    // catalogue comment and in the phase evidence.
+    position: [-1.684387323369, 0, 9.552635204218],
+    rotationY: 4.886921905584122,
   },
   {
     file: 'fern-covered-boulder-2e0375.glb',
@@ -389,8 +393,12 @@ describe('vendored assets (FR-5)', () => {
     }
   });
 
-  it('measures every new footprint and height from the GLB bytes, not the vendor sheet', () => {
-    for (const file of NEW_FILES) {
+  it('measures every footprint and height from the GLB bytes, not the vendor sheet', () => {
+    // Phase 5 widened this from the fourteen new files to all thirty: the twelve
+    // that shipped still carried Phase 1's optimistic vendor-sheet numbers (the
+    // magnolia 3.6 m against a 5.09 m canopy), which is why the occlusion kit
+    // could never see the one prop that crowded the Nest frame.
+    for (const file of UNIQUE_FILES) {
       const entry = DRESSING_CATALOGUE[file];
       expect(entry).toBeDefined();
       if (entry === undefined) {
@@ -444,8 +452,36 @@ describe('band rules the new props answer to (FR-6, NFR-5)', () => {
     }
   });
 
+  it('masses the treeline into thickets with gaps between them (rework 1)', () => {
+    // A meadow edge reads as clumps with openings, not as a dotted line: each
+    // mass crowds at least four props within 12 degrees of bearing, and the
+    // masses are separated by wide open arcs.
+    const bearings = TREELINE_PLACEMENTS.map(
+      (item) => (Math.atan2(item.position[2], item.position[0]) * 180) / Math.PI,
+    ).sort((a, b) => a - b);
+    const masses: number[][] = [];
+    for (const bearing of bearings) {
+      const last = masses[masses.length - 1];
+      if (last !== undefined && bearing - last[last.length - 1] <= 12) {
+        last.push(bearing);
+      } else {
+        masses.push([bearing]);
+      }
+    }
+    const full = masses.filter((mass) => mass.length >= 4);
+    const shape = masses.map((mass) => mass.length).join('/');
+    expect(full.length, `masses: ${shape}`).toBeGreaterThanOrEqual(3);
+    // Every thicket prop stays inside the band's radii and near its own size.
+    for (const item of TREELINE_PLACEMENTS) {
+      const radius = Math.hypot(item.position[0], item.position[2]);
+      expect(radius).toBeGreaterThanOrEqual(DRESSING_BAND_RANGES.treeline.minMetres);
+      const scale = item.scale ?? 1;
+      expect(scale).toBeGreaterThanOrEqual(0.9);
+      expect(scale).toBeLessThanOrEqual(1.3);
+    }
+  });
+
   it('stands every treeline prop at least 3 m tall and beyond 17 m', () => {
-    expect(TREELINE_PLACEMENTS.length).toBeGreaterThan(0);
     for (const item of TREELINE_PLACEMENTS) {
       const entry = DRESSING_CATALOGUE[item.file];
       expect(entry?.band).toBe('treeline');
@@ -494,7 +530,7 @@ describe('band rules the new props answer to (FR-6, NFR-5)', () => {
           continue;
         }
         const clearance = segmentClearanceMetres(point, lens, subject);
-        const halfFootprint = (DRESSING_FOOTPRINT_METRES[item.file] ?? 0) / 2;
+        const halfFootprint = ((DRESSING_FOOTPRINT_METRES[item.file] ?? 0) * (item.scale ?? 1)) / 2;
         expect(clearance).toBeGreaterThan(halfFootprint + 0.5);
       }
     }

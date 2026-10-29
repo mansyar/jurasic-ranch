@@ -116,27 +116,30 @@ export interface DressingCatalogueEntry {
 }
 
 /**
- * One entry per vendored GLB. The footprints are the measured values the
- * layout tests already used; the heights are the GLBs' own world bounds
- * (measured across the node hierarchy, rounded to the centimetre).
+ * One entry per vendored GLB. Both numbers are the GLB's own world bounds,
+ * measured from the file's POSITION accessors and rounded to the centimetre —
+ * for all thirty files, the twelve that shipped included since Phase 5. The
+ * twelve shipped with Phase 1's optimistic vendor-sheet footprints (the
+ * magnolia read 3.6 m against a 5.09 m canopy, the redwood 3.4 m against 7.59),
+ * which made the occlusion kit blind to the props that most needed to fail it.
  *
  * Band is the file's radius under FR-6, not its height: all twelve shipped
  * props still stand on the mid band today, and the treeline restaging that
  * moves the tall trees outward lands with the new props.
  */
 export const DRESSING_CATALOGUE: Readonly<Record<string, DressingCatalogueEntry>> = {
-  'ginkgo-tree-baa895.glb': { footprintMetres: 3.4, heightMetres: 11.74, band: 'mid' },
-  'dawn-redwood-001c29.glb': { footprintMetres: 3.4, heightMetres: 20.0, band: 'mid' },
-  'flowering-magnolia-dd76cb.glb': { footprintMetres: 3.6, heightMetres: 6.1, band: 'mid' },
-  'fern-covered-boulder-2e0375.glb': { footprintMetres: 2.4, heightMetres: 1.27, band: 'mid' },
-  'moss-covered-stump-7253ab.glb': { footprintMetres: 1.3, heightMetres: 1.2, band: 'mid' },
+  'ginkgo-tree-baa895.glb': { footprintMetres: 5.69, heightMetres: 13.05, band: 'mid' },
+  'dawn-redwood-001c29.glb': { footprintMetres: 7.59, heightMetres: 21.32, band: 'mid' },
+  'flowering-magnolia-dd76cb.glb': { footprintMetres: 5.09, heightMetres: 3.65, band: 'mid' },
+  'fern-covered-boulder-2e0375.glb': { footprintMetres: 2.0, heightMetres: 1.64, band: 'mid' },
+  'moss-covered-stump-7253ab.glb': { footprintMetres: 1.0, heightMetres: 1.21, band: 'mid' },
   'wooden-fence-section-d72055.glb': { footprintMetres: 2.0, heightMetres: 1.1, band: 'mid' },
-  'farm-gate-8ab320.glb': { footprintMetres: 1.7, heightMetres: 1.2, band: 'mid' },
-  'water-trough-df3ced.glb': { footprintMetres: 2.0, heightMetres: 0.5, band: 'mid' },
-  'hand-water-pump-448037.glb': { footprintMetres: 1.2, heightMetres: 1.21, band: 'mid' },
-  'stone-well-b2dfcd.glb': { footprintMetres: 1.7, heightMetres: 1.75, band: 'mid' },
-  'corn-crop-b71f2f.glb': { footprintMetres: 1.3, heightMetres: 1.81, band: 'mid' },
-  'river-stone-cluster-0b55bc.glb': { footprintMetres: 1.6, heightMetres: 0.19, band: 'mid' },
+  'farm-gate-8ab320.glb': { footprintMetres: 2.72, heightMetres: 1.2, band: 'mid' },
+  'water-trough-df3ced.glb': { footprintMetres: 1.6, heightMetres: 0.5, band: 'mid' },
+  'hand-water-pump-448037.glb': { footprintMetres: 0.9, heightMetres: 1.47, band: 'mid' },
+  'stone-well-b2dfcd.glb': { footprintMetres: 0.97, heightMetres: 1.93, band: 'mid' },
+  'corn-crop-b71f2f.glb': { footprintMetres: 0.88, heightMetres: 1.82, band: 'mid' },
+  'river-stone-cluster-0b55bc.glb': { footprintMetres: 1.5, heightMetres: 0.19, band: 'mid' },
   // Phase 3. Every footprint is the widest ground extent of the GLB's own
   // world bounds and every height its measured top above the ground origin
   // (y = 0), read out of the bytes on disk rather than off the vendor sheet;
@@ -185,11 +188,17 @@ export const DRESSING_CATALOGUE: Readonly<Record<string, DressingCatalogueEntry>
   'windpump-tower-1633a9.glb': { footprintMetres: 2.0, heightMetres: 7.75, band: 'treeline' },
 };
 
-/** One prop instance: which GLB, where on the ground, which way it faces. */
+/**
+ * One prop instance: which GLB, where on the ground, which way it faces, and
+ * how big it grows. `scale` defaults to 1; a thicket varies it, because a mass
+ * of identical clones at identical sizes reads as wallpaper rather than as a
+ * meadow edge (rework 1).
+ */
 export interface DressingPlacement {
   file: string;
   position: readonly [number, number, number];
   rotationY: number;
+  scale?: number;
 }
 
 /** Which way a ring placement turns: the models are authored facing +Z. */
@@ -231,6 +240,39 @@ export function ring(
     position: [radiusMetres * Math.cos(azimuth), 0, radiusMetres * Math.sin(azimuth)],
     rotationY,
   };
+}
+
+/**
+ * One prop inside a thicket: a file, the bearing and radius it stands at, and
+ * how big it grows relative to its model.
+ */
+export interface ThicketProp {
+  readonly file: string;
+  readonly azimuthDegrees: number;
+  readonly radiusMetres: number;
+  readonly scale: number;
+}
+
+/**
+ * A thicket: overlapping props crowded onto a few neighbouring bearings.
+ *
+ * The first pass spaced the meadow rim evenly, which produced a dozen single
+ * cycads at regular intervals — a dotted line, not a wood edge (rework 1). A
+ * thicket instead packs its props within a handful of degrees and a couple of
+ * metres of radius, varied in size and facing, so the silhouettes overlap and
+ * read as one mass; the gap to the next thicket is what makes it a clump rather
+ * than a fence.
+ */
+export function thicket(props: readonly ThicketProp[]): DressingPlacement[] {
+  return props.map((prop) => {
+    const azimuth = toRadians(prop.azimuthDegrees);
+    return {
+      file: prop.file,
+      position: [prop.radiusMetres * Math.cos(azimuth), 0, prop.radiusMetres * Math.sin(azimuth)],
+      rotationY: azimuth + Math.PI,
+      scale: prop.scale,
+    };
+  });
 }
 
 /**
@@ -334,9 +376,11 @@ const UINT32_RANGE = 4_294_967_296;
  * replays the same placements, so `?seed=` fixes the jitter. Non-finite seeds
  * fall back to 1, and zero is remapped because xorshift cannot leave it. Kept
  * local rather than imported from the dev harness so the ranch layout never
- * depends on `src/dev`.
+ * depends on `src/dev`. Exported because it is the ranch's one seeded stream:
+ * the ambient sway draws its per-object phases from it rather than carrying a
+ * second generator (FR-11).
  */
-function seededStream(seed: number): () => number {
+export function createSeededStream(seed: number): () => number {
   let state = (Number.isFinite(seed) ? Math.trunc(seed) : 1) >>> 0;
   if (state === 0) {
     state = 0x9e3779b9;
@@ -374,7 +418,7 @@ export function scatter(
   area: ScatterArea,
   seed: number,
 ): DressingPlacement[] {
-  const random = seededStream(seed);
+  const random = createSeededStream(seed);
   const [centreX, centreZ] = area.centre ?? [0, 0];
   const placements: DressingPlacement[] = [];
   for (let index = 0; index < count; index += 1) {
@@ -457,13 +501,25 @@ function at(azimuthDegrees: number, radiusMetres: number): readonly [number, num
 /**
  * Valley backdrop: three pastel trees plus a boulder and a stump, spaced around
  * the rim so each of the three POV presets gets a backdrop and none of them
- * stands between a camera and the animal it names. Unchanged from phase 1 —
- * these are the props the 1e-9 snapshot pins (FR-2, AC-5).
+ * stands between a camera and the animal it names (FR-2, FR-6).
+ *
+ * Phase 5 moved two of these five with measured footprints in hand — see each
+ * placement's note. Nothing else from the twelve moved.
  */
 export const VALLEY_PLACEMENTS: readonly DressingPlacement[] = [
-  ring('ginkgo-tree-baa895.glb', 28, 9.6, 'inward'),
+  // Moved 28 deg -> 92 deg at 9.8 m: its measured canopy is 5.69 m wide, and at
+  // 9.6 m on 28 deg that canopy stood 5.7 m from the Ranch lens with its inner
+  // edge 0.75 m off the sightline, covering the Brachio's own rectangle (the
+  // capture's right-of-centre animal). Every placement that keeps it in that
+  // frame covers the animal, so it now stands behind the Ranch camera and reads
+  // in Nest and Garden instead — the same tree, out of the way.
+  ring('ginkgo-tree-baa895.glb', 92, 9.8, 'inward'),
   ring('dawn-redwood-001c29.glb', 200, 9.8, 'inward'),
-  ring('flowering-magnolia-dd76cb.glb', 113, 9.7, 'inward'),
+  // Moved 113 deg -> 100 deg: its measured canopy is 5.09 m, not the 3.6 m the
+  // vendor sheet claimed, and at 113 deg that box covered the Trike's rectangle
+  // in Nest. At 100 deg its inner edge clears the sightline by 2.4 m — 15.0 deg
+  // off-axis at the animal's depth against the Trike's 11.7 deg half-width.
+  ring('flowering-magnolia-dd76cb.glb', 100, 9.7, 'inward'),
   ring('fern-covered-boulder-2e0375.glb', 180, 9.0, 'inward'),
   ring('moss-covered-stump-7253ab.glb', 70, 9.4, 'inward'),
 ];
@@ -677,7 +733,9 @@ export const WALLOW_EDGE_PLACEMENTS: readonly DressingPlacement[] = [
 /**
  * Foreground sprigs (FR-6, P3.T3): one moss mat and one wildflower beside every
  * lens, 24 deg off its axis at 13 m — inside the foreground window, outside
- * every lens's ±18 deg, and never between a camera and its animal.
+ * every lens's ±18 deg, and never between a camera and its animal. Phase 5 added
+ * four more at 12.4-13 m on the arcs no lens looks down, so the near apron
+ * carries grass tufts instead of bare green.
  */
 export const FOREGROUND_PLACEMENTS: readonly DressingPlacement[] = [
   ring('club-moss-mat-edcb1b.glb', 34, 13, 'inward'),
@@ -686,6 +744,11 @@ export const FOREGROUND_PLACEMENTS: readonly DressingPlacement[] = [
   ring('wildflower-68d3a1.glb', 165.6, 13, 'inward'),
   ring('club-moss-mat-edcb1b.glb', 216, 13, 'inward'),
   ring('wildflower-68d3a1.glb', 215, 13, 'inward'),
+  // Phase 5 apron fill (FR-6): the same two files, more of them.
+  ring('club-moss-mat-edcb1b.glb', 145, 12.4, 'inward'),
+  ring('wildflower-68d3a1.glb', 200, 12.8, 'inward'),
+  ring('club-moss-mat-edcb1b.glb', 285, 13, 'inward'),
+  ring('wildflower-68d3a1.glb', 40, 12.9, 'inward'),
 ];
 
 /** One silhouette rhyme per ground preset (FR-16, AC-16). */
@@ -709,22 +772,62 @@ export const SILHOUETTE_RHYMES: readonly SilhouetteRhyme[] = [
 ];
 
 /**
- * The treeline: the rhymes above, plus one cycad filler well outside every lens
- * cone, and the windpump standing beyond them all as the horizon landmark
- * (FR-18). Every one of them is at least 17.8 m out, i.e. off the paddock
- * entirely, and reads as a silhouette rather than as scenery.
+ * The treeline: the rhymes above, plus the meadow edge the rework thickened.
+ *
+ * Phase 5's first pass spaced a dozen cycads and tree ferns evenly around the
+ * rim, and the Sky capture read them as single palms dropped on a lawn. They are
+ * now three thickets — four or five overlapping props each, on four or five
+ * neighbouring bearings, varied in size and facing — with open gaps between
+ * them, so the meadow edge reads as clumps with openings rather than a dotted
+ * line. Every prop is still at least 17.8 m out, i.e. off the paddock entirely,
+ * and every bearing sits more than 25 deg off all three lens cones (the lens
+ * axes are 256.2, 340.5 and 73.2 deg, and the test re-derives that from the live
+ * lens positions).
  */
 export const TREELINE_PLACEMENTS: readonly DressingPlacement[] = [
   ...SILHOUETTE_RHYMES.map((rhyme) =>
     ring(rhyme.file, rhyme.azimuthDegrees, rhyme.radiusMetres, 'inward'),
   ),
-  ring('cycad-05ad50.glb', 160, 19.5, 'inward'),
+  // South thicket: behind the Garden lens's shoulder, an open gap either side.
+  ...thicket([
+    { file: 'cycad-05ad50.glb', azimuthDegrees: 152, radiusMetres: 21, scale: 1.1 },
+    { file: 'tree-fern-78320e.glb', azimuthDegrees: 156, radiusMetres: 23.5, scale: 1.15 },
+    { file: 'cycad-05ad50.glb', azimuthDegrees: 160, radiusMetres: 19.5, scale: 1 },
+    { file: 'tree-fern-78320e.glb', azimuthDegrees: 164, radiusMetres: 25, scale: 0.95 },
+    { file: 'cycad-05ad50.glb', azimuthDegrees: 168, radiusMetres: 22, scale: 1.05 },
+  ]),
+  // South-west thicket: the mass the Ranch lens sees past its own treeline.
+  ...thicket([
+    { file: 'cycad-05ad50.glb', azimuthDegrees: 188, radiusMetres: 25.5, scale: 1.25 },
+    { file: 'tree-fern-78320e.glb', azimuthDegrees: 193, radiusMetres: 22.5, scale: 1.1 },
+    { file: 'cycad-05ad50.glb', azimuthDegrees: 198, radiusMetres: 24, scale: 1.05 },
+    { file: 'tree-fern-78320e.glb', azimuthDegrees: 203, radiusMetres: 26, scale: 1 },
+    { file: 'tree-fern-78320e.glb', azimuthDegrees: 208, radiusMetres: 23, scale: 1.15 },
+  ]),
+  // North thicket: the far side of the ring from the Ranch lens. The safe arc
+  // there is only eight degrees wide (30-38), so this mass overlaps along the
+  // radius instead of along the bearing.
+  ...thicket([
+    { file: 'tree-fern-78320e.glb', azimuthDegrees: 30, radiusMetres: 19.6, scale: 1.2 },
+    { file: 'cycad-05ad50.glb', azimuthDegrees: 33, radiusMetres: 22.4, scale: 1.1 },
+    { file: 'tree-fern-78320e.glb', azimuthDegrees: 36, radiusMetres: 25, scale: 0.95 },
+    { file: 'cycad-05ad50.glb', azimuthDegrees: 38, radiusMetres: 27, scale: 1.05 },
+  ]),
 ];
 
 /** FR-18: the windpump, and the file the rotor is mounted on. */
 export const WIND_PUMP_FILE = 'windpump-tower-1633a9.glb';
+/**
+ * The horizon landmark (FR-18), placed where a camera actually sees it.
+ *
+ * Rework 2 moved it from 210 deg / 28 m: the Sky preset's ground footprint ends
+ * near 27 m at that bearing, so the one prop built to be a landmark stood outside
+ * the only frame that could have shown it. At 142 deg / 22 m it sits on the
+ * meadow's outer band, a clear 2.6 m inside the frame's edge, still outside all
+ * three ground lenses' 25 deg cones, and still inside the meadow.
+ */
 export const LANDMARK_PLACEMENTS: readonly DressingPlacement[] = [
-  ring(WIND_PUMP_FILE, 210, 28, 'inward'),
+  ring(WIND_PUMP_FILE, 142, 22, 'inward'),
 ];
 
 /**

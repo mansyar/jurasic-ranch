@@ -9,6 +9,9 @@ import {
   GROUND_APRON_INNER_HEX,
   GROUND_APRON_OUTER_HEX,
   GROUND_DIRT_HEX,
+  GROUND_PATCHES,
+  GROUND_PATCH_HEX,
+  GROUND_GATE_PATH_HEX,
   GROUND_PLAY_HEX,
   GROUND_SEAM_RADIUS_METRES,
   GROUND_WEAR_HEX,
@@ -305,21 +308,86 @@ describe('the built ground group (FR-3, FR-4)', () => {
       const mesh = meshNamed(ground, name);
       expect(mesh.position.x).toBeCloseTo(disc.centre[0], 10);
       expect(mesh.position.z).toBeCloseTo(disc.centre[1], 10);
-      const geometry = mesh.geometry as THREE.CircleGeometry;
-      expect(geometry.parameters.radius).toBeCloseTo(disc.radiusMetres, 10);
+      const geometry = mesh.geometry as THREE.RingGeometry;
+      // The disc carries a generated radial ramp, so it is a ring with phi
+      // segments whose outer radius is the wear radius (P5.T9).
+      expect(geometry.parameters.innerRadius).toBe(0);
+      expect(geometry.parameters.outerRadius).toBeCloseTo(disc.radiusMetres, 10);
     }
     expect(names).toContain('RanchGroundGatePath');
     expect(names).toContain('RanchGroundTrackway-1');
     expect(names).toContain('RanchGroundTrackway-2');
-    const expectedCount = WORN_DISCS.length + 1 + 2 + 2;
+    // Play and apron, a wear disc per species, a ground patch per entry, the
+    // gate path with its two hoof spots, and two ruts (rework 1, 2).
+    const expectedCount = 2 + WORN_DISCS.length + GROUND_PATCHES.length + 1 + 2 + 2;
     expect(ground.children.length).toBe(expectedCount);
+  });
+
+  it('lays a few low-contrast tones over the field (rework 1)', () => {
+    const ground = createGround();
+    // Two or three tones: a bleached stretch, a shadier one, and the dirt yard
+    // the farm fittings stand in. Enough to turn a disc into land.
+    expect(GROUND_PATCHES.length).toBeGreaterThanOrEqual(3);
+    expect(GROUND_PATCHES.length).toBeLessThanOrEqual(6);
+    expect(GROUND_PATCHES.some((patch) => patch.tone === 'yard')).toBe(true);
+    const field = lightnessOf(GROUND_PLAY_HEX);
+    for (const tone of new Set(GROUND_PATCHES.map((patch) => patch.tone))) {
+      const colour = new THREE.Color(GROUND_PATCH_HEX[tone]);
+      expect(colour.getHex(), `${tone} differs from the field`).not.toBe(GROUND_PLAY_HEX);
+      // A meadow, not a quilt: within a sixth of the field's own lightness.
+      const delta = Math.abs(lightnessOf(GROUND_PATCH_HEX[tone]) - field);
+      expect(delta, `${tone} stays a shade`).toBeLessThan(0.15);
+    }
+    GROUND_PATCHES.forEach((patch, index) => {
+      const mesh = meshNamed(ground, `RanchGroundPatch-${patch.tone}-${index + 1}`);
+      expect(mesh.position.y).toBe(0);
+      expect(mesh.position.x).toBeCloseTo(patch.centre[0], 10);
+      expect(mesh.position.z).toBeCloseTo(patch.centre[1], 10);
+      expect(mesh.renderOrder).toBeLessThan(1);
+    });
+  });
+
+  it('paints the gate road as a track with an edge, not a smear (rework 2)', () => {
+    const ground = createGround();
+    const stub = gateStub();
+    const path = meshNamed(ground, 'RanchGroundGatePath');
+    const material = path.material as THREE.MeshStandardMaterial;
+    // A strip reads by its shoulder: the ramp is solid across the middle and only
+    // softens at the sides, where a blur faded from the centre line outward.
+    expect(material.alphaMap).not.toBeNull();
+    expect(material.transparent).toBe(true);
+    const field = lightnessOf(GROUND_PLAY_HEX);
+    const delta = Math.abs(lightnessOf(GROUND_GATE_PATH_HEX) - field);
+    expect(delta, 'the track is still visible').toBeGreaterThan(0.04);
+    expect(delta, 'the track is not a stain').toBeLessThan(0.15);
+    // The ruts wear from the same ramp, so all three read as one road.
+    for (const name of ['RanchGroundTrackway-1', 'RanchGroundTrackway-2']) {
+      const rut = meshNamed(ground, name);
+      expect((rut.material as THREE.MeshStandardMaterial).alphaMap).toBe(material.alphaMap);
+    }
+    // Hoof wear sits *inside* the track, down its middle, not wiped beside it.
+    const [x0, z0] = stub.start;
+    const [x1, z1] = stub.end;
+    const alongX = x1 - x0;
+    const alongZ = z1 - z0;
+    const lengthSquared = alongX * alongX + alongZ * alongZ;
+    for (const name of ['RanchGroundTrackWear-1', 'RanchGroundTrackWear-2']) {
+      const spot = meshNamed(ground, name);
+      const offsetX = spot.position.x - x0;
+      const offsetZ = spot.position.z - z0;
+      const along = (offsetX * alongX + offsetZ * alongZ) / lengthSquared;
+      expect(along, `${name} stays on the road`).toBeGreaterThan(0);
+      expect(along).toBeLessThan(1);
+      const across = Math.abs(offsetX * alongZ - offsetZ * alongX) / Math.sqrt(lengthSquared);
+      expect(across, `${name} keeps within the track`).toBeLessThan(stub.widthMetres / 2);
+    }
   });
 
   it('offsets decals out of the ground instead of lifting them', () => {
     const ground = createGround();
     const tones = ['RanchGroundPlay', 'RanchGroundApron'];
     const decals = ground.children.filter((child) => !tones.includes(child.name));
-    expect(decals.length).toBe(WORN_DISCS.length + 1 + 2);
+    expect(decals.length).toBe(WORN_DISCS.length + GROUND_PATCHES.length + 1 + 2 + 2);
     for (const child of decals) {
       const mesh = child as THREE.Mesh;
       const material = mesh.material as THREE.MeshStandardMaterial;

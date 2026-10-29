@@ -1,4 +1,4 @@
-import { statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -311,6 +311,71 @@ describe('dressing loader fallback (NFR-2 offline safety)', () => {
     const bounds = baked.geometry.boundingBox as THREE.Box3;
     // Both halves survive the merge in their own places.
     expect(bounds.max.x - bounds.min.x).toBeCloseTo(5, 3);
+  });
+
+  it('keeps a vertex-coloured palette through the bake (rework 1)', async () => {
+    // A Polyfork GLB carries its whole palette in COLOR_0 and leaves its
+    // material white. If the bake drops `vertexColors`, the prop renders blank —
+    // which is how the windpump came out in the Sky capture.
+    loaderMocks.loadAsync.mockImplementation(async () => {
+      const scene = new THREE.Group();
+      const geometry = new THREE.BoxGeometry(1, 1, 1);
+      const colours = new Float32Array(geometry.getAttribute('position').count * 3);
+      for (let index = 0; index < colours.length; index += 3) {
+        colours[index] = 0.26;
+        colours[index + 1] = 0.23;
+        colours[index + 2] = 0.17;
+      }
+      geometry.setAttribute('color', new THREE.BufferAttribute(colours, 3));
+      const left = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
+      left.position.x = 1;
+      const right = new THREE.Mesh(geometry.clone(), new THREE.MeshStandardMaterial());
+      right.position.x = -1;
+      scene.add(left, right);
+      return { scene, animations: [] };
+    });
+    const scene = new THREE.Scene();
+    await buildDressing(scene);
+    const clone = scene.getObjectByName('RanchDressing')?.children[0];
+    const baked = clone?.children[0] as THREE.Mesh;
+    expect(baked.geometry.getAttribute('color')).toBeDefined();
+    expect((baked.material as THREE.MeshStandardMaterial).vertexColors).toBe(true);
+  });
+
+  it('documents the windpump palette: one white material, colour in COLOR_0 (rework 1)', () => {
+    const bytes = readFileSync(
+      new URL('../../public/models/dressing/windpump-tower-1633a9.glb', import.meta.url),
+    );
+    const jsonLength = bytes.readUInt32LE(12);
+    const json = JSON.parse(bytes.subarray(20, 20 + jsonLength).toString('utf8')) as {
+      materials?: { pbrMetallicRoughness?: { baseColorFactor?: number[] } }[];
+      images?: unknown[];
+      meshes?: { primitives: { attributes: Record<string, number> }[] }[];
+    };
+    // One material, no base colour and no texture: the whole palette is in
+    // COLOR_0, so a renderer that drops `vertexColors` paints it blank white.
+    expect(json.materials).toHaveLength(1);
+    expect(json.materials?.[0]?.pbrMetallicRoughness?.baseColorFactor).toBeUndefined();
+    expect(json.images).toBeUndefined();
+    const primitives = (json.meshes ?? []).flatMap((mesh) => mesh.primitives);
+    expect(primitives.length).toBeGreaterThan(1);
+    for (const primitive of primitives) {
+      expect(primitive.attributes['COLOR_0']).toBeDefined();
+    }
+  });
+
+  it('scales a thicket prop by its placement, not by 1 (rework 1)', async () => {
+    loaderMocks.loadAsync.mockImplementation(async () => ({
+      scene: new THREE.Group(),
+      animations: [],
+    }));
+    const scene = new THREE.Scene();
+    await buildDressing(scene);
+    const dressing = scene.getObjectByName('RanchDressing');
+    dressing?.children.forEach((child, index) => {
+      const placement = DRESSING_MANIFEST[index];
+      expect(child.scale.x, `${placement.file} scale`).toBeCloseTo(placement.scale ?? 1, 10);
+    });
   });
 });
 

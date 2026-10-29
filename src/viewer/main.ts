@@ -3,6 +3,7 @@ import type { DinoPlayer } from '../ranch/dino-player.js';
 import { trioSpawnPositions } from '../ranch/avoidance.js';
 import { buildDressing } from '../ranch/dressing.js';
 import type { DressingFrame } from '../ranch/dressing.js';
+import { DEFAULT_SWAY_SEED, allowsPropTap, propUnderPointer } from '../ranch/ambient.js';
 import { DustPool } from '../ranch/dust.js';
 import { installGestureUnlock, installVisibilityHandling } from '../audio/gesture.js';
 import { loadAudioSettings, saveMuted, saveVolume } from '../audio/settings.js';
@@ -18,7 +19,7 @@ import {
   isAudioControlTarget,
   type AudioControls,
 } from './audio-controls.js';
-import { audioEngine, configureAudio, unlockAudio } from './audio.js';
+import { audioEngine, configureAudio, isAudioUnlocked, unlockAudio } from './audio.js';
 import {
   CANVAS_ID,
   STATUS_ID,
@@ -270,14 +271,61 @@ export async function bootViewer(): Promise<void> {
   // blocking boot, and the ground stays playable bare.
   // FR-18: the handle is filled in when the load lands, so the loop can turn
   // the windpump's fan without waiting for it.
+  // FR-11: the sway takes its phases from the same seed the harness fixes, so a
+  // capture replays one ripple; a plain boot uses the default seed.
+  const swaySeed = streams === null ? DEFAULT_SWAY_SEED : (options?.seed ?? DEFAULT_SWAY_SEED);
   const dressingFrame: DressingFrame = { dressing: null };
-  void buildDressing(scene)
+  void buildDressing(scene, { swaySeed })
     .then((built) => {
       dressingFrame.dressing = built;
     })
     .catch((error: unknown) => {
       console.warn('Ranch dressing unavailable; ground stays playable.', error);
     });
+
+  // FR-12: a tap on any dressed prop earns one sparkle — decoration only, never
+  // gameplay. The listener sits on the canvas, so chrome the HUD owns never
+  // reaches it; the raycast runs only after that check and the sleepy guard.
+  const tapPointer = new THREE.Vector2();
+  canvas.addEventListener('pointerdown', (event: PointerEvent) => {
+    const dressing = dressingFrame.dressing;
+    if (dressing === null) {
+      return;
+    }
+    const guards = {
+      sleepy: hud.sleepy.shown || hud.sleepyState() === 'sleepy',
+      hudOwnsPointer: event.target !== canvas,
+    };
+    if (!allowsPropTap(guards)) {
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    tapPointer.set(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    const hit = propUnderPointer(dressing.group, camera, tapPointer);
+    if (hit === null) {
+      return;
+    }
+    const at = performance.now();
+    if (!dressing.sparkles.allows(hit.prop, at)) {
+      return;
+    }
+    const burst = (): void => {
+      dressing.sparkles.react(hit.prop, hit.point, at);
+      audioEngine().play('sparkle');
+    };
+    // AC-9 edge: the first tap unlocks the engine and *then* sparkles, in that
+    // order, so the chime is not lost to a still-silent context. The promise is
+    // held rather than unlocked bare, so boot still never touches audio.
+    if (isAudioUnlocked()) {
+      burst();
+    } else {
+      const unlocking = unlockAudio();
+      void unlocking.then(burst, burst);
+    }
+  });
 
   window.addEventListener('resize', () => {
     viewer.resize();

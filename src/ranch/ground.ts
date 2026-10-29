@@ -102,6 +102,13 @@ const WEAR_EARTH_MIX = 0.4;
 /** Dirt of the gate path, and the same tone for the trackways it carries. */
 export const GROUND_DIRT_HEX = 0x9c7f52;
 
+/**
+ * The gate path's own tone: the bare dirt knocked back toward the field
+ * (rework 1). At full dirt it read as two painted stripes from the low lenses;
+ * a third of the way back to the grass it reads as a track instead.
+ */
+export const GROUND_GATE_PATH_HEX = mixHex(GROUND_DIRT_HEX, GROUND_PLAY_HEX, 0.45);
+
 /** Tone of the worn middle (FR-4). */
 export const GROUND_WEAR_HEX = mixHex(GROUND_PLAY_HEX, WEAR_EARTH_HEX, WEAR_EARTH_MIX);
 
@@ -239,18 +246,134 @@ export function groundTrackways(): readonly GroundTrackway[] {
   }));
 }
 
+/**
+ * A ground tone a shade off the field, laid flush over the grass (rework 1).
+ *
+ * The Sky capture showed one flat green disc: the trefoil and the treeline were
+ * the only things breaking it. Three large, low-contrast tones — a bleached
+ * stretch, a shadier stretch and a worn yard where the well, trough and pump
+ * stand — turn a disc into land without turning the meadow into a quilt.
+ */
+export type GroundPatchTone = 'bleach' | 'shade' | 'yard';
+
+/** One ground patch: a flush, soft-edged disc of a tone a shade off the field. */
+export interface GroundPatch {
+  readonly tone: GroundPatchTone;
+  readonly centre: readonly [number, number];
+  readonly radiusMetres: number;
+}
+
+/** Patch tones, each a low mix of the field toward a near neighbour. */
+export const GROUND_PATCH_HEX: Readonly<Record<GroundPatchTone, number>> = {
+  /** The field bleached toward the horizon tone by a fifth. */
+  bleach: mixHex(GROUND_PLAY_HEX, HORIZON_HEX, 0.18),
+  /** The field darkened toward a deep leaf green by a quarter. */
+  shade: mixHex(GROUND_PLAY_HEX, 0x3f7a33, 0.26),
+  /** The field scuffed toward the wear earth: the dirt yard by the farm fittings. */
+  yard: mixHex(GROUND_PLAY_HEX, WEAR_EARTH_HEX, 0.3),
+};
+
+/** A patch's centre from its compass azimuth and radius, in ranch metres. */
+function patchAt(azimuthDegrees: number, radiusMetres: number): readonly [number, number] {
+  const azimuth = (azimuthDegrees * Math.PI) / 180;
+  return [Math.cos(azimuth) * radiusMetres, Math.sin(azimuth) * radiusMetres];
+}
+
+/**
+ * Five patches: the dirt yard under the well, trough and pump (bearing 347 deg,
+ * where those three actually stand), then two bleached and two shaded stretches
+ * on the meadow beyond the trefoil, spread around the ring so every ground lens
+ * and the overhead lens see at least one.
+ */
+export const GROUND_PATCHES: readonly GroundPatch[] = [
+  { tone: 'yard', centre: patchAt(347, 9.2), radiusMetres: 4.2 },
+  { tone: 'bleach', centre: patchAt(16, 13.6), radiusMetres: 7.2 },
+  { tone: 'shade', centre: patchAt(112, 16.2), radiusMetres: 7.4 },
+  { tone: 'shade', centre: patchAt(196, 15), radiusMetres: 6.8 },
+  { tone: 'bleach', centre: patchAt(272, 14.2), radiusMetres: 7 },
+];
+
+/** Draw order of the ground patches: under every other decal. */
+const PATCH_RENDER_ORDER = 0;
+
 /** Where a decal sits relative to the ground: flush, offset forward, no depth write. */
 const DECAL_OFFSET_FACTOR = -4;
 const DECAL_OFFSET_UNITS = -4;
 const DECAL_SEGMENTS = 64;
 
-/** Draw order between the three flush decal layers. */
+/** Draw order between the flush decal layers, patches first. */
 const WEAR_RENDER_ORDER = 1;
 const PATH_RENDER_ORDER = 2;
 const TRACKWAY_RENDER_ORDER = 3;
+/** The hoof spots sit on top of the track, so they draw after it. */
+const TRACK_WEAR_RENDER_ORDER = 3;
+
+/** Resolution of the generated decal ramps (FR-4, P5.T9: 128-256 px, no image file). */
+const DECAL_FADE_PIXELS = 128;
+/** Where a worn disc starts fading out, as a fraction of its radius. */
+const DECAL_DISC_FADE_START = 0.62;
+/**
+ * The track ramp's shoulders (rework 2): solid across this much of the width,
+ * then a soft edge over the rest, with only the last few percent of length
+ * fading out. A path has an edge a viewer can trace; a blur does not.
+ */
+const DECAL_TRACK_SHOULDER_START = 0.45;
+const DECAL_TRACK_SHOULDER_SPAN = 0.55;
+const DECAL_TRACK_END_FADE = 0.06;
+/** Radial rings a worn disc carries, so the ramp has vertices to interpolate. */
+const DECAL_DISC_RINGS = 8;
+
+/**
+ * Where the gate path wears through (rework 2): two hoof-worn spots down the
+ * middle of the strip, as a fraction of its length, and how big each is as a
+ * fraction of the path's width. They sit *inside* the track, so they read as
+ * ground worn by hooves rather than as blobs wiped beside it.
+ */
+const TRACK_WEAR_STEPS: readonly number[] = [0.32, 0.66];
+const TRACK_WEAR_RADIUS_OF_PATH = 0.42;
+
+/**
+ * A generated alpha ramp, no image file. `'radial'` fades a disc from solid at
+ * its middle to nothing at its rim; `'track'` holds a strip solid across its
+ * middle and softens only its shoulders and its last few percent of length,
+ * because a path is a strip, not a blur. Three reads the green channel of an
+ * `alphaMap`, so that is where the ramp goes.
+ */
+function createDecalFadeTexture(kind: 'radial' | 'track'): THREE.DataTexture {
+  const size = DECAL_FADE_PIXELS;
+  const data = new Uint8Array(size * size * 4);
+  const smooth = (amount: number): number => amount * amount * (3 - 2 * amount);
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const u = (x + 0.5) / size;
+      const v = (y + 0.5) / size;
+      let alpha = 1;
+      if (kind === 'radial') {
+        const radius = Math.hypot(u - 0.5, v - 0.5) * 2;
+        const span = 1 - DECAL_DISC_FADE_START;
+        alpha = 1 - smooth(THREE.MathUtils.clamp((radius - DECAL_DISC_FADE_START) / span, 0, 1));
+      } else {
+        const shoulder = Math.abs(v * 2 - 1);
+        const ramp = (shoulder - DECAL_TRACK_SHOULDER_START) / DECAL_TRACK_SHOULDER_SPAN;
+        const across = 1 - smooth(THREE.MathUtils.clamp(ramp, 0, 1));
+        const ends = smooth(THREE.MathUtils.clamp(Math.min(u, 1 - u) / DECAL_TRACK_END_FADE, 0, 1));
+        alpha = across * ends;
+      }
+      const offset = (y * size + x) * 4;
+      const value = Math.round(alpha * 255);
+      data[offset] = 255;
+      data[offset + 1] = value;
+      data[offset + 2] = 255;
+      data[offset + 3] = 255;
+    }
+  }
+  const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  texture.needsUpdate = true;
+  return texture;
+}
 
 /** A flush ground decal material: polygon offset, and never into the depth buffer. */
-function decalMaterial(hex: number): THREE.MeshStandardMaterial {
+function decalMaterial(hex: number, alphaMap?: THREE.Texture): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({
     color: hex,
     roughness: 1,
@@ -258,6 +381,10 @@ function decalMaterial(hex: number): THREE.MeshStandardMaterial {
     polygonOffsetFactor: DECAL_OFFSET_FACTOR,
     polygonOffsetUnits: DECAL_OFFSET_UNITS,
     depthWrite: false,
+    // A decal with a ramp blends its edge into the grass instead of ending on a
+    // hard cardboard outline from a low lens (P5.T9).
+    transparent: alphaMap !== undefined,
+    alphaMap,
   });
 }
 
@@ -302,6 +429,13 @@ function groundQuad(corners: readonly (readonly [number, number])[]): THREE.Buff
   const indices = cross < 0 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2];
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  // Corner order is start-across, start+across, end+across, end-across: u runs
+  // along the decal's length and v across it, which is what lets one generated
+  // ramp fade both ends into the grass (P5.T9).
+  geometry.setAttribute(
+    'uv',
+    new THREE.BufferAttribute(new Float32Array([0, 0, 0, 1, 1, 1, 1, 0]), 2),
+  );
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   return geometry;
@@ -408,10 +542,33 @@ export function createGround(): THREE.Group {
   apron.receiveShadow = true;
   group.add(apron);
 
-  const wearMaterial = decalMaterial(GROUND_WEAR_HEX);
+  // Rework 1: a handful of big, soft-edged tones over the grass. Built as flush
+  // rings with the same generated radial ramp the worn discs use, so a patch has
+  // no edge to catch a low lens, and one material per tone keeps this cheap.
+  const patchMaterials = new Map<GroundPatchTone, THREE.MeshStandardMaterial>();
+  GROUND_PATCHES.forEach((patch, index) => {
+    let material = patchMaterials.get(patch.tone);
+    if (material === undefined) {
+      material = decalMaterial(GROUND_PATCH_HEX[patch.tone], createDecalFadeTexture('radial'));
+      patchMaterials.set(patch.tone, material);
+    }
+    const mesh = decal(
+      new THREE.RingGeometry(0, patch.radiusMetres, DECAL_SEGMENTS, DECAL_DISC_RINGS),
+      material,
+      `RanchGroundPatch-${patch.tone}-${index + 1}`,
+      PATCH_RENDER_ORDER,
+    );
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(patch.centre[0], 0, patch.centre[1]);
+    group.add(mesh);
+  });
+
+  const wearMaterial = decalMaterial(GROUND_WEAR_HEX, createDecalFadeTexture('radial'));
   for (const disc of WORN_DISCS) {
     const mesh = decal(
-      new THREE.CircleGeometry(disc.radiusMetres, DECAL_SEGMENTS),
+      // A ring with phi segments carries the ramp from its middle to its rim;
+      // a bare circle's four-vertex fan could only fade as a star.
+      new THREE.RingGeometry(0, disc.radiusMetres, DECAL_SEGMENTS, DECAL_DISC_RINGS),
       wearMaterial,
       `RanchGroundWear-${disc.species}`,
       WEAR_RENDER_ORDER,
@@ -421,7 +578,11 @@ export function createGround(): THREE.Group {
     group.add(mesh);
   }
 
-  const dirtMaterial = decalMaterial(GROUND_DIRT_HEX);
+  // Rework 2: the path and its ruts are built from the `track` ramp — solid
+  // across the middle, soft only at the shoulders and the last few percent of
+  // length — so the gate road reads as a worn strip with an edge rather than a
+  // brown blur smeared over the grass.
+  const dirtMaterial = decalMaterial(GROUND_GATE_PATH_HEX, createDecalFadeTexture('track'));
   const stub = gateStub();
   group.add(
     decal(
@@ -431,6 +592,32 @@ export function createGround(): THREE.Group {
       PATH_RENDER_ORDER,
     ),
   );
+  // Rework 2: two hoof-worn spots down the middle of the track, not discs wiped
+  // beside it — they sit inside the strip's own width so the path keeps an edge.
+  const wearSpotMaterial = decalMaterial(
+    mixHex(GROUND_GATE_PATH_HEX, GROUND_DIRT_HEX, 0.35),
+    createDecalFadeTexture('radial'),
+  );
+  TRACK_WEAR_STEPS.forEach((step, index) => {
+    const mesh = decal(
+      new THREE.RingGeometry(
+        0,
+        stub.widthMetres * TRACK_WEAR_RADIUS_OF_PATH,
+        DECAL_SEGMENTS,
+        DECAL_DISC_RINGS,
+      ),
+      wearSpotMaterial,
+      `RanchGroundTrackWear-${index + 1}`,
+      TRACK_WEAR_RENDER_ORDER,
+    );
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(
+      stub.start[0] + (stub.end[0] - stub.start[0]) * step,
+      0,
+      stub.start[1] + (stub.end[1] - stub.start[1]) * step,
+    );
+    group.add(mesh);
+  });
   groundTrackways().forEach((trackway, index) => {
     group.add(
       decal(

@@ -17,8 +17,11 @@ import {
 import { MEADOW_RADIUS_METRES, frameEdgeGround } from '../../src/ranch/ground.js';
 import { DRESSING_BAND_RANGES, DRESSING_CATALOGUE } from '../../src/ranch/layout.js';
 import { IN_GAME_BODY_LENGTH_METRES } from '../../src/viewer/loaders.js';
+import { DINO_GROUP_SCALE } from '../../src/viewer/loaders.js';
+import { readGlbFacts } from '../ranch/dressing-files.js';
 import {
   BOOT_POV_ID,
+  DINO_HEAD_HEIGHT_METRES,
   GROUND_POV_ORDER,
   HINT_IDLE_MS,
   POV_BEARING_RADIANS,
@@ -179,12 +182,14 @@ function rectsOverlap(a: ScreenRect, b: ScreenRect): boolean {
 
 /**
  * The box a ground prop occupies: its GLB's widest footprint around its
- * placement, standing on the ground. Footprints are square in plan, so the box
- * holds the prop at any facing.
+ * placement, standing on the ground, grown by the placement's own scale so a
+ * thicket's bigger props are measured at the size they render (rework 1).
+ * Footprints are square in plan, so the box holds the prop at any facing.
  */
 function propBox(item: DressingPlacement): THREE.Box3 {
-  const half = (DRESSING_FOOTPRINT_METRES[item.file] ?? 0) / 2;
-  const height = DRESSING_HEIGHT_METRES[item.file] ?? 0;
+  const scale = item.scale ?? 1;
+  const half = ((DRESSING_FOOTPRINT_METRES[item.file] ?? 0) * scale) / 2;
+  const height = (DRESSING_HEIGHT_METRES[item.file] ?? 0) * scale;
   const [x, , z] = item.position;
   return new THREE.Box3(
     new THREE.Vector3(x - half, 0, z - half),
@@ -202,11 +207,13 @@ function propBox(item: DressingPlacement): THREE.Box3 {
 function subjectSilhouette(
   species: TrioSpecies,
   from: readonly [number, number, number],
+  centre?: { x: number; z: number },
 ): THREE.Vector3[] {
-  const spawn = spawnOf(species);
+  const spawn = centre ?? spawnOf(species);
+  const aim = spawnOf(species);
   const half = IN_GAME_BODY_LENGTH_METRES[species] / 2;
-  const dx = spawn.x - from[0];
-  const dz = spawn.z - from[2];
+  const dx = aim.x - from[0];
+  const dz = aim.z - from[2];
   const length = Math.hypot(dx, dz);
   // Unit normal to the sightline in plan.
   const nx = (-dz / length) * half;
@@ -375,7 +382,7 @@ describe('POV presets', () => {
           continue;
         }
         const lateral = Math.abs((px - lens[0]) * dz - (pz - lens[2]) * dx) / Math.hypot(dx, dz);
-        const halfWidth = (DRESSING_FOOTPRINT_METRES[item.file] ?? 0) / 2;
+        const halfWidth = ((DRESSING_FOOTPRINT_METRES[item.file] ?? 0) * (item.scale ?? 1)) / 2;
         expect(lateral, `${item.file} blocks ${id}`).toBeGreaterThan(
           halfWidth + SIGHTLINE_MARGIN_METRES,
         );
@@ -519,6 +526,58 @@ describe('ground optics: the subject is unobstructed (AC-1)', () => {
           findings.push(`${where} sits under the bottom chrome`);
         }
       }
+    }
+    expect(findings, findings.join('\n')).toEqual([]);
+  });
+
+  it('measures every subject box from the GLB bytes, head included (P5.T6)', () => {
+    // Phase 4 aimed every lens at `bodyLength * 0.62`, a figure that happened to
+    // suit the Trike (0.61) and left the Brachio's 7.2 m head a metre and a half
+    // above the aim. The table is read back off the files here, so a new rig or
+    // a re-export cannot quietly restore the blind spot.
+    for (const species of TRIO_SPECIES_ORDER) {
+      const facts = readGlbFacts(new URL(`public/models/${species}.glb`, ROOT_URL));
+      // The Trike's GLB ships at game scale (its body is already 3.708 m); the
+      // other two are authored at 3.845 m and 12.532 m and scaled on load.
+      const scale = species === 'trike' ? 1 : DINO_GROUP_SCALE;
+      expect(facts.heightMetres * scale, `${species} head`).toBeCloseTo(
+        DINO_HEAD_HEIGHT_METRES[species],
+        1,
+      );
+      expect(focusHeightMetres(species)).toBeCloseTo(DINO_HEAD_HEIGHT_METRES[species], 10);
+    }
+  });
+
+  it('keeps the head inside the frame wherever the animal can stand (P5.T6)', () => {
+    // The defect the captures showed: the kit projected the animal at its spawn,
+    // but the Trio walks a 3.71 m circle, so a Brachio three metres nearer than
+    // its spawn put its head through the top of the Ranch frame. Project the
+    // whole model box at the nearest point of that circle instead — the head
+    // must still be a pixel inside the frame, head included.
+    const findings: string[] = [];
+    for (const id of GROUND_POV_ORDER) {
+      const preset = POV_PRESETS[id];
+      const species = POV_FOCUS_SPECIES[id];
+      const lens = new THREE.Vector3(preset.position[0], preset.position[1], preset.position[2]);
+      const spawn = spawnOf(species);
+      const toSpawn = new THREE.Vector3(spawn.x - lens.x, 0, spawn.z - lens.z);
+      // The walk circle reaches this far toward the lens along the sightline.
+      const nearest = Math.max(1, toSpawn.length() - DINO_WALK_RADIUS_METRES);
+      const toward = toSpawn.clone().normalize().multiplyScalar(nearest);
+      const from: [number, number, number] = [lens.x + toward.x, 0, lens.z + toward.z];
+      const camera = cameraFor(id, LANDSCAPE_ASPECT);
+      const rect = projectPoints(
+        camera,
+        subjectSilhouette(species, from, { x: from[0], z: from[2] }),
+        FRAME_WIDTH_PX,
+        FRAME_HEIGHT_PX,
+      );
+      if (rect.top <= 0) {
+        findings.push(`${id}: the head leaves the frame at ${nearest.toFixed(2)} m`);
+      }
+      // The paws at the same distance are the recorded FR-7 limit, not a
+      // failure: aimed at 55 % of a 7.2 m animal's height, a 52 deg frame holds
+      // both ends down to about 10.9 m and no further. See the phase evidence.
     }
     expect(findings, findings.join('\n')).toEqual([]);
   });

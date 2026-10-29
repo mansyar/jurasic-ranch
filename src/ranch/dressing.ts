@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
+  createSeededStream,
   DRESSING_CATALOGUE,
   DRESSING_MANIFEST,
   WALLOW_CENTRE_METRES,
@@ -17,6 +18,7 @@ import {
   WIND_PUMP_FILE,
 } from './layout.js';
 import type { DressingPlacement } from './layout.js';
+import { AmbientSway, DEFAULT_SWAY_SEED, SparkleReactions } from './ambient.js';
 
 /**
  * Ranch dressing (FR-1, FR-3, FR-5): the vendored Polyfork GLBs in
@@ -148,6 +150,10 @@ export interface DressingSummary {
   waterLine: THREE.Group | null;
   /** FR-18's turning fan, or null when the windpump failed to load. */
   rotor: DressingRotor | null;
+  /** FR-11: the corn, reeds and litter, swaying on the seeded stream. */
+  sway: AmbientSway;
+  /** FR-12: the one sparkle a tap on a prop earns. */
+  sparkles: SparkleReactions;
   /** Draw calls the dressing adds, one per mesh and instance batch (NFR-1). */
   drawCalls: number;
   /** Triangles the dressing adds (NFR-1). */
@@ -328,6 +334,15 @@ function bakeToOneCall(root: THREE.Object3D): void {
     if (geometry === null) {
       return;
     }
+    // Rework 1: a Polyfork GLB carries its whole palette in COLOR_0 and leaves
+    // its material white. A material that arrives without `vertexColors` renders
+    // the prop blank, which is what the windpump did. Turn the attribute on for
+    // any merged buffer that has one, so the palette survives the bake.
+    const standard = material as THREE.MeshStandardMaterial;
+    if (geometry.getAttribute('color') !== undefined && !standard.vertexColors) {
+      standard.vertexColors = true;
+      material.needsUpdate = true;
+    }
     baked.push(new THREE.Mesh(geometry, material));
   }
   for (const mesh of meshes) {
@@ -426,11 +441,24 @@ export function updateDressing(
   dt: number,
   reducedMotion: boolean,
 ): void {
+  // FR-11: the sway owns its own reduced-motion handling, so it runs before the
+  // rotor's early return — a still fan must not also freeze the grass mid-lean.
+  dressing?.sway.update(dt, reducedMotion);
+  dressing?.sparkles.update(dt);
   const rotor = dressing?.rotor;
   if (rotor === null || rotor === undefined || reducedMotion || dt <= 0) {
     return;
   }
   rotor.node.rotation[rotor.axis] -= WIND_PUMP_RADIANS_PER_SECOND * dt;
+}
+
+/**
+ * What the caller may steer about a build. The seed is the dev harness seed:
+ * it fixes the sway's per-prop phases, so `?seed=42` replays one ripple
+ * (FR-11, NFR-8).
+ */
+export interface BuildDressingOptions {
+  swaySeed?: number;
 }
 
 /**
@@ -440,7 +468,10 @@ export function updateDressing(
  * boot stays green offline (NFR-2). Loader-boundary only (DOM- and
  * renderer-free), so tests drive it with a stubbed GLTFLoader.
  */
-export async function buildDressing(scene: THREE.Scene): Promise<DressingSummary> {
+export async function buildDressing(
+  scene: THREE.Scene,
+  options: BuildDressingOptions = {},
+): Promise<DressingSummary> {
   const group = new THREE.Group();
   group.name = 'RanchDressing';
 
@@ -471,6 +502,11 @@ export async function buildDressing(scene: THREE.Scene): Promise<DressingSummary
     const node = source.clone(true);
     node.position.set(item.position[0], item.position[1], item.position[2]);
     node.rotation.y = item.rotationY;
+    // Rework 1: a thicket varies its props' size, so a mass is not wallpaper.
+    node.scale.setScalar(item.scale ?? 1);
+    // FR-11/FR-12: the manifest entry is the prop's identity — the sway matches
+    // it against its own class table, and a tap's cooldown is keyed on it.
+    node.userData['file'] = item.file;
     node.traverse((child: THREE.Object3D) => {
       if (child instanceof THREE.Mesh) {
         child.castShadow = true;
@@ -489,6 +525,14 @@ export async function buildDressing(scene: THREE.Scene): Promise<DressingSummary
     }
   }
   scene.add(group);
+
+  // FR-11/FR-12: aliveness hangs off the dressed group. The sway reads the
+  // manifest entries' own phases from the seeded stream, and the sparkle pool
+  // takes its own stream one seed over so adding a swaying file never shifts it.
+  const swaySeed = options.swaySeed ?? DEFAULT_SWAY_SEED;
+  const sway = new AmbientSway(group, swaySeed);
+  const sparkles = new SparkleReactions(createSeededStream(swaySeed + 1));
+  scene.add(sparkles.points);
 
   const waterLine = buildWaterLine(cache);
   scene.add(waterLine);
@@ -510,6 +554,8 @@ export async function buildDressing(scene: THREE.Scene): Promise<DressingSummary
     group,
     waterLine: waterLine.children.length === 0 ? null : waterLine,
     rotor,
+    sway,
+    sparkles,
     drawCalls:
       measured.drawCalls +
       waterLineMeasured.drawCalls +

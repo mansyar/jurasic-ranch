@@ -120,20 +120,30 @@ export const POV_EYE_METRES: Readonly<Record<GroundPovPresetId, number>> = {
 };
 
 /**
- * A dino's head stands this far up, as a fraction of its body length: the
- * Phase-4 measurement of the shipped rigs put the Brachio's head near 4.6 m
- * over a 7.42 m body, and the trio share one group scale, so one ratio covers
- * all three. It is the only height the viewer has — the GLBs' world bounds are
- * not readable without a loader, and a test must be able to check the aim.
+ * How tall each rigged model stands in game, head included, measured from its
+ * GLB's own bounds (`public/models/<species>.glb`) times `DINO_GROUP_SCALE`:
+ * trike 2.247 m, stego 3.820 x 0.59233 = 2.263 m, brachio 12.200 x 0.59233 =
+ * 7.226 m. The Brachio is the ranch's reason for a per-species table: it stands
+ * 0.97 m of height per metre of body, where the Trike manages 0.61, so one
+ * shared ratio aimed every lens at a height the sauropod's head left long ago.
+ * Phase 5 corrected this from the GLB bytes; `tests/viewer/pov.test.ts` re-reads
+ * the same bytes so the table cannot drift from the models on disk.
  */
-export const DINO_HEAD_HEIGHT_OF_BODY_LENGTH = 0.62;
+export const DINO_HEAD_HEIGHT_METRES: Readonly<
+  Record<keyof typeof IN_GAME_BODY_LENGTH_METRES, number>
+> = {
+  trike: 2.247,
+  stego: 2.263,
+  brachio: 7.226,
+};
 
 /**
  * Where a ground lens aims, as a fraction of the focus animal's height
- * (FR-7: 55-60 %). Aiming at `bodyLength / 2` put the animal's own head at the
- * top of the frame; aiming above the body's middle leaves head and tail room.
+ * (FR-7: 55-60 %). Phase 5 pinned it to the floor of the window: the Brachio is
+ * 7.2 m tall, so every point of aim lifted above 55 % pushes its paws under the
+ * bottom chrome when it wanders toward the lens.
  */
-export const POV_LOOK_AT_HEIGHT_FRACTION = 0.58;
+export const POV_LOOK_AT_HEIGHT_FRACTION = 0.55;
 
 /**
  * Vertical field of view per preset, in degrees (FR-7: 48-52 deg on the ground
@@ -158,9 +168,9 @@ export const POV_FOCUS_SPAWN_INDEX: Readonly<Record<GroundPovPresetId, number>> 
   garden: TRIO_SPAWN_SPECIES_ORDER.indexOf(POV_FOCUS_SPECIES.garden),
 };
 
-/** How tall the animal a preset frames stands, in metres (FR-7). */
+/** How tall the animal a preset frames stands, whole model, head included (FR-7). */
 export function focusHeightMetres(species: keyof typeof IN_GAME_BODY_LENGTH_METRES): number {
-  return IN_GAME_BODY_LENGTH_METRES[species] * DINO_HEAD_HEIGHT_OF_BODY_LENGTH;
+  return DINO_HEAD_HEIGHT_METRES[species];
 }
 
 /**

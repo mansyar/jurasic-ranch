@@ -15,9 +15,6 @@
 - **Touches:** `src/ranch/layout.ts`, `src/ranch/dressing.ts`, `tests/ranch/layout.test.ts`, `tests/ranch/dressing.test.ts`
 - **Verification:** `pnpm verify`
 - **Status:** verified
-
-**Result:** verified
-**Checkpoint:** a190a1c
 **Evidence:** conductor/tracks/20261030-ranch-vista/verification/phase-1.md
 
 - [x] **P1.T1: Extract placement helpers** - covers: FR-1
@@ -41,9 +38,6 @@
 - **Touches:** `src/ranch/ground.ts`, `src/viewer/scene.ts`, `src/viewer/sky.ts`, `src/viewer/main.ts`, `tests/ranch/ground.test.ts`, `tests/viewer/sky.test.ts`
 - **Verification:** `pnpm verify`
 - **Status:** verified
-
-**Result:** verified
-**Checkpoint:** 90ac304
 **Evidence:** conductor/tracks/20261030-ranch-vista/verification/phase-2.md
 
 - [x] **P2.T1: Meadow apron** - covers: FR-3
@@ -72,9 +66,6 @@
 - **Touches:** `scripts/vendor-dressing.mjs`, `public/models/dressing/`, `src/ranch/layout.ts`, `src/ranch/dressing.ts`, `CREDITS.md`, `tests/ranch/dressing.test.ts`, `tests/ranch/layout.test.ts`
 - **Verification:** `pnpm verify`
 - **Status:** verified
-
-**Result:** verified
-**Checkpoint:** 0a8e602
 **Evidence:** conductor/tracks/20261030-ranch-vista/verification/phase-3.md
 
 - [x] **P3.T1: Vendor pipeline** - covers: FR-5
