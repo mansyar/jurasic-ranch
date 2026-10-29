@@ -7,4 +7,4 @@
 - [x] **Track: Add PR CI** - [20261029-add-ci-for-pr](./archive/20261029-add-ci-for-pr/index.md) - chore - medium
 - [x] **Track: Brachio Joins the Ranch** — [20261029-brachio-joins-ranch](./archive/20261029-brachio-joins-ranch/index.md) — feature — high
 - [x] **Track: Ranch Warmth UI** - [20261029-ranch-warmth-ui](./archive/20261029-ranch-warmth-ui/index.md) - feature - high
-- [ ] **Track: Ranch Housekeeping** - [20261029-ranch-housekeeping](./tracks/20261029-ranch-housekeeping/index.md) - refactor - medium
+- [~] **Track: Ranch Housekeeping** - [20261029-ranch-housekeeping](./tracks/20261029-ranch-housekeeping/index.md) - refactor - medium

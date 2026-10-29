@@ -28,7 +28,7 @@
 
 - **Goal:** `src/viewer/main.ts` is under 300 lines of boot and wiring, with behaviour unchanged and all tests green.
 - **Depends on:** Phase 1
-- **Covers:** FR-1, FR-2, AC-1, AC-2, NFR-2
+- **Covers:** FR-1, FR-2, AC-1, AC-2, NFR-2, NFR-5
 - **Touches:** `src/viewer/main.ts`, `src/viewer/scene.ts`, `src/viewer/hud.ts`, `src/viewer/loaders.ts`, `src/viewer/placeholders.ts`, `src/viewer/loop.ts`, `src/viewer/viewer.test.ts`, `tests/**/*.ts`
 - **Verification:** `pnpm verify` plus a side-by-side screenshot against `cb12399` recorded in the phase evidence
 - **Status:** pending
@@ -56,7 +56,7 @@
 
 - **Goal:** `pnpm verify` really checks formatting everywhere and blocks on coverage below 60%.
 - **Depends on:** Phase 2
-- **Covers:** FR-4, FR-5, FR-6, FR-7, AC-4, AC-5, AC-6, AC-7
+- **Covers:** FR-4, FR-5, FR-6, FR-7, AC-4, AC-5, AC-6, AC-7, NFR-4, NFR-5
 - **Touches:** `package.json`, `.oxfmtrc.json`, `src/**/*.ts`, `tests/**/*.ts`, `scripts/**/*.ts`, `pnpm-lock.yaml`, `.github/workflows/ci.yml`
 - **Verification:** `pnpm verify` (must now include a coverage report) and a deliberate mis-format probe
 - **Status:** pending
@@ -78,7 +78,7 @@
 
 - **Goal:** the app loads models through three's bundled decoder and the duplicate `public/draco/` payload is gone.
 - **Depends on:** Phase 2
-- **Covers:** FR-8, FR-9, AC-8, AC-9, NFR-3
+- **Covers:** FR-8, FR-9, AC-8, AC-9, NFR-3, NFR-6
 - **Touches:** `public/draco/**`, `src/viewer/loaders.ts`, `vite.config.ts`
 - **Verification:** `pnpm verify`, a browser load of all three dinos, plus a recorded before/after `dist/` size comparison
 - **Status:** pending
