@@ -124,7 +124,7 @@ catalog — five of its six tests fail when either half of the fix is reverted.
 | AC-2 | Muting taps before `setMuted(true)`, unmuting after | `tests/viewer/audio-controls*.test.ts` call-order spies; live mute trace | met |
 | AC-3 | Species buttons dispatch their own coo | live: stego/trike/brachio each 1 start, `coo-*` per `data-species` | met |
 | AC-4 | Ten taps in 1 s → one coo; two species together → one coo | live gate probe (0 starts inside the window) + `tests/audio/feedback.test.ts` | met |
-| AC-5 | `hello` once per session, not before the fade, never muted or after a mute-first gesture | greeting trace above; `shouldGreet` unit tests; routing tests | met (after rework) |
+| AC-5 | `hello` once per session, not before the fade, never muted or after a mute-first gesture | greeting trace above; `shouldGreet` unit tests; routing tests | partial at Phase 4 — once-per-session and the fade were proven; the mute-control direction was not (F1), closed in Round R1 |
 | AC-6 | Queued first press plays one `tap` after unlock, none on reject | live trace (11456 ms start after a locked press); routing tests for the locked path | met |
 | AC-7 | Gear, Close and slider are silent | `tests/viewer/audio-controls*.test.ts` (zero `onSfx`); live probe | met |
 | AC-8 | Forced engine failure stays silent and throws nothing | Phase 2/3 unit tests on the failing-engine path | met |
@@ -167,3 +167,21 @@ catalog — five of its six tests fail when either half of the fix is reverted.
 | `src/viewer/audio.ts` | rework: dispatches by catalog bus so `hello` reaches `playVoice` |
 | `tests/viewer/audio-routing.test.ts` | new regression suite for the bus rule |
 | `tests/viewer/audio-controls-feedback.test.ts` | fake engine needed a `playVoice` recorder once the greeting routes there |
+
+## Round R1 correction
+
+Recorded after review Round 1 (F6). The rows above are not otherwise rewritten.
+
+- **P4.T3.1 — manual exception: pending.** No audible verdict was recorded in
+  this phase. The onset/routing table is instrumented measurement inside an
+  automated Chromium session whose desktop window was not visible, and the
+  audible pass is AC-10 (`tablet-touch-play`), still open. The plan's checked
+  P4.T3.1 line overstates this; the primary corrects it there.
+- **AC-5** — at the time of Phase 4 the evidence proved once-per-session, the
+  400 ms fade, and silence while muted at fire time. The mute-control direction
+  was not proven: `afterUnlock()` inferred "the unlocking gesture was a mute
+  control" from `audioEngine().muted`, so an unmute-first session greeted (F1),
+  while a Walk unlock that a parent unmuted inside the fade was suppressed for
+  the session. Round R1 replaces that inference with explicit provenance and
+  covers both directions in `tests/viewer/audio-routing.test.ts`.
+
