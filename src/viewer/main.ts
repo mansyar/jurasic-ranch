@@ -548,11 +548,17 @@ export async function bootViewer(): Promise<void> {
   }
   syncPov();
 
+  const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   window.setInterval(() => {
-    if (shouldShowHint(lastInteractionMs, performance.now(), HINT_IDLE_MS)) {
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      document.body.classList.add(hintModeFor(reduced));
+    if (!shouldShowHint(lastInteractionMs, performance.now(), HINT_IDLE_MS)) {
+      return;
     }
+    // FR-5 precedence: sleepy owns the stage once drowsy, so the interval
+    // never re-adds the hint class the animation loop strips each frame.
+    if (hintSuppressedBySleepy(sleepy.update(performance.now()))) {
+      return;
+    }
+    document.body.classList.add(hintModeFor(reducedMotionQuery.matches));
   }, 1000);
 
   // FR-6: no pinch/double-tap zoom on the tablet stage.
@@ -656,7 +662,7 @@ export async function bootViewer(): Promise<void> {
     if (hintSuppressedBySleepy(sleepyState)) {
       document.body.classList.remove("hint-glow", "hint-static");
     }
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = reducedMotionQuery.matches;
     for (const player of players) {
       player.setSleepyWeight(sleepy.sleepyWeight);
     }

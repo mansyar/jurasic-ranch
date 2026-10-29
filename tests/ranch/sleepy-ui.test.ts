@@ -11,6 +11,7 @@ import {
   sleepyOverlayHtml,
   type SleepyOverlaySink,
 } from '../../src/viewer/sleepy-ui.js';
+import { shouldShowHint } from '../../src/viewer/pov.js';
 
 const ROOT_URL = new URL('../../', import.meta.url);
 
@@ -107,5 +108,18 @@ describe('sleepy versus hint-glow precedence (P3.T3)', () => {
     expect(viewer).toContain('setSleepyVisible');
     expect(viewer).toContain('setSleepyWeight');
     expect(viewer).toContain('hintSuppressedBySleepy');
+  });
+
+  it('never adds the hint class while drowsy/sleepy, even past the idle threshold (F1)', async () => {
+    // Idle long enough that the hint timer fires and sleepy has taken over.
+    expect(shouldShowHint(0, 95_000)).toBe(true);
+    expect(hintSuppressedBySleepy('drowsy')).toBe(true);
+    expect(hintSuppressedBySleepy('sleepy')).toBe(true);
+    // The interval guard mirrors that precedence: suppression is checked
+    // before the hint class is added.
+    const viewer = await readFile(new URL('src/viewer/main.ts', ROOT_URL), 'utf8');
+    const interval = viewer.slice(viewer.indexOf('window.setInterval'));
+    expect(interval).toContain('hintSuppressedBySleepy');
+    expect(interval.slice(0, interval.indexOf('classList.add'))).toContain('hintSuppressedBySleepy');
   });
 });
