@@ -30,7 +30,7 @@
 | 4 | `pnpm test tests/viewer/dev-harness-gate.test.ts` | red (F4) | 1 | `consults ?dev=1 before fetching the harness module` failed; other 5 passed |
 | 5 | `pnpm test tests/dev/harness-panel.test.ts` | red (F5) | 1 | 2 failed — `expected undefined to be an instance of Mesh` (rings unnamed) |
 | 6 | `pnpm test tests/dev/dev-options.test.ts` | red (F7) | 1 | `expected 12 to be null` for `?dev=1&seed=12abc` |
-| 7 | `pnpm test tests/dev/seed-determinism.test.ts` | green (F1) | 0 | 6 passed, incl. the non-vacuous guard that a shared stream diverges |
+| 7 | `pnpm test tests/dev/seed-determinism.test.ts` | green (F1) | 0 | 7 passed, incl. the non-vacuous guard that a shared stream diverges |
 | 8 | `pnpm test tests/dev/harness-panel.test.ts tests/dev/dev-options.test.ts` | green (F2–F7) | 0 | 2 files, 23 tests passed |
 | 9 | `pnpm verify` | green (final) | 0 | lint, format `--check`, typecheck, 33 files / **312 tests**, build (25 modules), dist guard `dist clean: no dev harness markers in dist` |
 

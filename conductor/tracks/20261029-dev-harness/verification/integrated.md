@@ -15,7 +15,7 @@
 | static | `pnpm typecheck` | 0 | tsrs clean, including the `.d.mts` declaration for the `.mjs` guard |
 | static | `pnpm build` | 0 | vite build, 25 modules, precache 29 entries / 4428.51 KiB |
 | static | `node scripts/check-dist-clean.mjs` | 0 | `dist clean: no dev harness markers in dist` |
-| unit | `pnpm test` | 0 | 31 files / 290 tests (234 pre-existing + 56 new harness tests) |
+| unit | `pnpm test` | 0 | 33 files / 313 tests (234 pre-existing + 79 harness tests) |
 | smoke | dev server `/?dev=1` | 0 | panel mounts, `window.__ranch.snapshot()` returns the documented shape, bulldozer-free trio at 0.6928 m pairwise, solo/POV/hint proven live |
 
 ## Acceptance criteria across phases
@@ -30,9 +30,9 @@
 | AC-6 (forced states) | 2 | `blink.test.ts`; live POV + hint |
 | AC-7 (overlays) | 2 | `harness-state.test.ts` `overlayTransforms`: follows a moved dino, hidden dinos yield no overlays, arrow yaw equals heading; the group is built from live positions |
 | AC-8 (snapshot) | 1 + 2 | `snapshot.test.ts`; live distances 0.6928 m = 120° triangle at r=0.4 |
-| AC-9 (determinism) | 1 | seeded-RNG tests; plays the same sequence for the same seed |
+| AC-9 (determinism) | 1 + R1 | `tests/dev/seed-determinism.test.ts` (7 tests): two runs of seed 42 reach identical positions, extra blinks leave positions untouched, streams bind by dino id not construction order; the guard fails on a deliberately shared stream. Reproducible captures additionally require `&pause=1`, since determinism is only defined for a fixed frame sequence |
 | AC-10 (dist clean) | 3 | guard passes in `verify`; planted marker makes it exit 1 |
-| AC-11 (no regressions) | 3 | 290 tests green; precache +0.34 KiB from prod-side null checks only |
+| AC-11 (no regressions) | 3 | 313 tests green; precache 4428.51 → 4428.59 KiB from prod-side null checks and the pre-import query read only |
 
 ## Deviations
 

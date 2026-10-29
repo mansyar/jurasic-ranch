@@ -105,10 +105,31 @@ The primary appends after acceptance:
 - **Covers:** F1, F2, F3, F4, F5, F6, F7
 - **Touches:** `src/dev/dev-options.ts`, `src/dev/harness.ts`, `src/dev/harness-state.ts`, `src/dev/snapshot.ts`, `src/viewer/main.ts`, `src/ranch/dino-player.ts`, `tests/dev/**`, `tests/viewer/dev-harness-gate.test.ts`, `conductor/tracks/20261029-dev-harness/verification/phase-R1.md`, `conductor/tracks/20261029-dev-harness/verification/integrated.md`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** verified
 
-- [ ] **R1.T1: Independent seeded streams (F1)** - covers: F1
-- [ ] **R1.T2: Independent per-dino toggles (F2)** - covers: F2
-- [ ] **R1.T3: Testable overlays and corrected evidence (F3)** - covers: F3
-- [ ] **R1.T4: Skip the harness import without ?dev=1 (F4)** - covers: F4
-- [ ] **R1.T5: Shared constants, HUD a11y, strict seed parsing (F5, F6, F7)** - covers: F5, F6, F7
+- [x] **R1.T1: Independent seeded streams (F1)** - covers: F1
+- [x] **R1.T2: Independent per-dino toggles (F2)** - covers: F2
+- [x] **R1.T3: Testable overlays and corrected evidence (F3)** - covers: F3
+- [x] **R1.T4: Skip the harness import without ?dev=1 (F4)** - covers: F4
+- [x] **R1.T5: Shared constants, HUD a11y, strict seed parsing (F5, F6, F7)** - covers: F5, F6, F7
+
+**Result:** verified
+**Checkpoint:** cb3a82f
+**Evidence:** conductor/tracks/20261029-dev-harness/verification/phase-R1.md
+
+## Phase R2: Review Fixes (round 2)
+
+- **Goal:** Close the round-2 residuals: the blink stream fallback that could silently re-break determinism, the untested viewer wiring, the undocumented `&pause=1` requirement, and the stale evidence counts.
+- **Depends on:** Phase R1
+- **Covers:** F1-RESIDUAL, F1-GLUE, F1-DEFAULT, DOC-SYNC
+- **Touches:** `src/ranch/dino-player.ts`, `tests/viewer/dev-harness-gate.test.ts`, `conductor/tech-stack.md`, `conductor/tracks/20261029-dev-harness/verification/**`
+- **Verification:** `pnpm verify`
+- **Status:** verified
+
+- [x] **R2.T1: Enforce the blink stream at the call site, not the default** - covers: F1-DEFAULT
+- [x] **R2.T2: Assert the viewer wiring per dino** - covers: F1-GLUE
+- [x] **R2.T3: Document the reproducible `&pause=1` URL and refresh evidence** - covers: F1-RESIDUAL, DOC-SYNC
+
+**Result:** verified
+**Checkpoint:** 6e26ca6
+**Evidence:** conductor/tracks/20261029-dev-harness/verification/phase-R2.md
