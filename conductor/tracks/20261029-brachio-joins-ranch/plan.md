@@ -14,19 +14,19 @@
 - **Covers:** FR-1, FR-2, FR-5, FR-6, FR-10, AC-1, AC-3, AC-7
 - **Touches:** `src/ranch/waddle.ts`, `src/ranch/dino-player.ts`, `src/ranch/avoidance.ts`, `tests/**/brachio-*.ts`, `tests/**/trio-*.ts`, `tests/**/avoidance-*.ts`, `tests/**/dino-*.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P1.T1: Define BRACHIO_GAIT + Brachio config** — covers: FR-1
-  - [ ] **P1.T1.1: Gait params stride 0.24 loop 1.0 turnRate 1.8 curvature 3.0 wander 0.8** — speed ~0.24 m/s shuffle, 90° <1.0 s
-  - [ ] **P1.T1.2: Export BRACHIO_GAIT with TRIKE/STEGO, waddle math unchanged** — loopPhase/squash/dust reuse
-- [ ] **P1.T2: Trio wander + pairwise avoidance** — covers: FR-5, FR-6, FR-2, FR-10
-  - [ ] **P1.T2.1: Triangle spawn 120° offsets + pairwise soft-steer <0.4 m** — never stop, no bounce, extends dual logic
-  - [ ] **P1.T2.2: 30 s trio wander test in-frame + min sep >0.25 m + Trike/Stego regression** — no pop, no duplication
+- [x] **P1.T1: Define BRACHIO_GAIT + Brachio config** — covers: FR-1
+  - [x] **P1.T1.1: Gait params stride 0.24 loop 1.0 turnRate 1.8 curvature 3.0 wander 0.8** — speed ~0.24 m/s shuffle, 90° <1.0 s
+  - [x] **P1.T1.2: Export BRACHIO_GAIT with TRIKE/STEGO, waddle math unchanged** — loopPhase/squash/dust reuse
+- [x] **P1.T2: Trio wander + pairwise avoidance** — covers: FR-5, FR-6, FR-2, FR-10
+  - [x] **P1.T2.1: Triangle spawn 120° offsets + pairwise soft-steer <0.4 m** — never stop, no bounce, extends dual logic
+  - [x] **P1.T2.2: 30 s trio wander test in-frame + min sep >0.25 m + Trike/Stego regression** — no pop, no duplication
 
 <!--
 The primary appends after acceptance:
 **Result:** verified
-**Checkpoint:** <short-sha>
+**Checkpoint:** 4793dc5
 **Evidence:** conductor/tracks/20261029-brachio-joins-ranch/verification/phase-1.md
 -->
 

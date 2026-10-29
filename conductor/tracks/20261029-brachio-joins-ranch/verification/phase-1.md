@@ -77,3 +77,10 @@
   teleports (heading steps assert <0.1 rad vs ~0.05 physical max).
 - No viewer, GLB bake, CREDITS, index.html, or vite config touched. Trike/Stego
   exports and all shared waddle math (loopPhase/squash/dust/deadband) untouched.
+
+## Primary verification
+
+- Squashed 41f5aa5 + 79cfeaf + 8787c38 → 4793dc5 (same author, conventional, non-empty, no merge — guard passes).
+- Deleted scratch `tests/waddle/debug-trio.test.ts` (subagent blocker, untracked).
+- `pnpm verify` exit 0 post-squash: oxlint + oxfmt check + tsrs + 139 tests (16 files) + vite build; precache 16 entries.
+- Diff 6260568..4793dc5 matches Touches (dino-player, avoidance, brachio/trio tests, phase-1 evidence); waddle.ts untouched as intended (math reused).
