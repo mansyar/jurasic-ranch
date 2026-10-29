@@ -45,19 +45,23 @@ The primary appends after acceptance:
 - **Covers:** FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-10, AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, NFR-1, NFR-2, NFR-3
 - **Touches:** `src/dev/**`, `src/viewer/main.ts`, `src/ranch/dino-player.ts`, `tests/**`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P2.T1: Forceable blink** - covers: FR-5
-  - [ ] **P2.T1.1: `BlinkController.forceBlink()` / `DinoPlayer.forceBlink()`** start a blink on the next update without disturbing the 3-5 s schedule that follows.
-  - [ ] **P2.T1.2: test** proves a forced blink returns `true` on the next update and the normal schedule still resets.
-- [ ] **P2.T2: Harness module** - covers: FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8
-  - [ ] **P2.T2.1: Panel DOM** built at runtime (collapsible, keyboard-reachable, clear of the Walk button and POV pills) with visibility/solo buttons, pause/step, HUD, forced-state buttons, POV buttons and overlay toggles.
-  - [ ] **P2.T2.2: Overlay group** draws the shared wander radius, a per-dino avoidance trigger ring and a per-dino heading arrow, refreshed from live positions and toggled as one unit.
-  - [ ] **P2.T2.3: `installDevHarness(bridge)`** returns a frame hook that honours pause/step and publishes `window.__ranch` (`snapshot`, visibility, solo, walking, pause, step, POV, forced states); re-installation replaces rather than duplicates.
-- [ ] **P2.T3: Viewer integration** - covers: FR-1, FR-10
-  - [ ] **P2.T3.1: dev-only dynamic import** guarded by `import.meta.env.DEV`, with the bridge passed after the scene, trio and dust pool exist.
-  - [ ] **P2.T3.2: animation loop** consults the frame hook (paused frames still render; `dt` unchanged when harness is absent) and the seeded RNG feeds `DustPool` and the dino players only when `?dev=1&seed=` is present.
-  - [ ] **P2.T3.3: no-`?dev=1` path** verified unchanged: no extra DOM node, no extra network request, same render output.
+- [x] **P2.T1: Forceable blink** - covers: FR-5
+  - [x] **P2.T1.1: `BlinkController.forceBlink()` / `DinoPlayer.forceBlink()`** start a blink on the next update without disturbing the 3-5 s schedule that follows.
+  - [x] **P2.T1.2: test** proves a forced blink returns `true` on the next update and the normal schedule still resets.
+- [x] **P2.T2: Harness module** - covers: FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8
+  - [x] **P2.T2.1: Panel DOM** built at runtime (collapsible, keyboard-reachable, clear of the Walk button and POV pills) with visibility/solo buttons, pause/step, HUD, forced-state buttons, POV buttons and overlay toggles.
+  - [x] **P2.T2.2: Overlay group** draws the shared wander radius, a per-dino avoidance trigger ring and a per-dino heading arrow, refreshed from live positions and toggled as one unit.
+  - [x] **P2.T2.3: `installDevHarness(bridge)`** returns a frame hook that honours pause/step and publishes `window.__ranch` (`snapshot`, visibility, solo, walking, pause, step, POV, forced states); re-installation replaces rather than duplicates.
+- [x] **P2.T3: Viewer integration** - covers: FR-1, FR-10
+  - [x] **P2.T3.1: dev-only dynamic import** guarded by `import.meta.env.DEV`, with the bridge passed after the scene, trio and dust pool exist.
+  - [x] **P2.T3.2: animation loop** consults the frame hook (paused frames still render; `dt` unchanged when harness is absent) and the seeded RNG feeds `DustPool` and the dino players only when `?dev=1&seed=` is present.
+  - [x] **P2.T3.3: no-`?dev=1` path** verified unchanged: no extra DOM node, no extra network request, same render output.
+
+**Result:** verified
+**Checkpoint:** b566a4b
+**Evidence:** conductor/tracks/20261029-dev-harness/verification/phase-2.md
 
 <!--
 Review fixes are appended by `conductor-review` as:

@@ -125,3 +125,17 @@ bundle; it fetches nothing.
 - `tests/dev/harness-state.test.ts` — 13 tests
 - `tests/ranch/blink.test.ts` — 6 tests
 - `tests/viewer/dev-harness-gate.test.ts` — 5 tests
+
+## Primary verification
+
+- Squash guard: 4 commits (same author, conventional, no merge commit) squashed to `b566a4b`.
+- Working tree clean; `git diff --name-only bf178fa..HEAD` reported exactly 8 paths, all inside Touches plus this evidence file.
+- `pnpm verify` re-run by the primary: exit 0 — oxlint clean, oxfmt clean, tsrs clean, vitest 30 files / 281 tests, vite build OK. Precache moved 4428.17 → 4428.51 KiB (+0.34 KiB) from the production-side null-check plumbing; no harness chunk is emitted.
+- Live probe in the dev server (http://localhost:5174/?dev=1) via `window.__ranch`:
+  - `[data-dev-panel]` present; panel exposes All/Trike/Stego/Brachio, Pause/Step 1/Step 10, Blink/Dust/Sleepy/Hint, Ranch/Nest/Garden, Overlays.
+  - `snapshot()` returned the documented shape with all three dinos rigged and pairwise distances `0.6928` each — exactly the 120 deg triangle at r=0.4 (`trioSpawnPositions`), and `minSeparation` matched.
+  - `solo("stego")` flipped visibility to `[false, true, false]`; `solo(null)` restored all three without moving them.
+  - `setPov("garden")` reported `pov: "garden"`; `hint()` added `hint-glow` to `<body>`.
+  - Reloading without `?dev=1` left `window.__ranch` undefined and no `[data-dev-panel]` node.
+- **Environment limitation:** the in-app review pane never composites frames here (`requestAnimationFrame` never fires — `rafFired: 0`; `browser.screenshot` refuses with "needs a visible tab"), so rAF-gated behavior could not be observed live: movement, `step()`, the sleepy stage and the fps HUD all read as static. Those paths are covered by the pure-logic tests (`harness-state.test.ts`: step consumes exactly N frames then re-pauses) and by `blink.test.ts`; live confirmation of movement/step/sleepy is deferred to a human browser session.
+- AC table reviewed: AC-1, AC-2, AC-3, AC-6 (pov/hint), AC-8 pass live or by unit; AC-4, AC-5, AC-6 (blink/dust/sleepy) are unit-proven with live observation deferred by the compositor limitation.
