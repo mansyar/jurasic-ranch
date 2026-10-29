@@ -138,3 +138,20 @@
 - [x] **R1.T4: Narrow NFR-2 and correct the records** - covers: F3, F6
   - [x] **R1.T4.1:** NFR-2 narrowed to the dispatch path, with the one-shot greeting scheduler named as allowed
   - [x] **R1.T4.2:** P4.T3.1 marked pending on the human pass; the Phase 4 AC-5 row corrected; a comment in `toggleMute` records why a locked mute press is silent (F2, accepted)
+
+## Phase R2: Review Fixes (round 2)
+
+- **Goal:** Close F7 and F8 from the round 2 review.
+- **Depends on:** Phase R1
+- **Covers:** F7, F8
+- **Touches:** `src/viewer/audio.ts`, `tests/viewer/audio-routing.test.ts`, `conductor/tracks/20261030-ranch-audible/verification/phase-R1.md`
+- **Verification:** `pnpm verify`
+- **Status:** verified
+- **Result:** F7 closed by capturing provenance once, inside the `scheduled` guard, so a later mute press cannot rewrite a Walk unlock; F8 closed by correcting the phase R1 record. `pnpm verify` exit 0 at 46 test files / 545 tests.
+- **Checkpoint:** `26a7b59`
+- **Evidence:** `verification/phase-R2.md`
+
+- [x] **R2.T1: Capture provenance only on the resolving unlock** — covers: F7
+  - [x] **R2.T1.1:** `firstGestureWasMute = source?.viaMuteControl === true` moved after the `scheduled` guard
+  - [x] **R2.T1.2:** Test: a Walk unlock followed by a mute press inside the fade still greets
+- [x] **R2.T2: Correct the phase R1 record** — covers: F8
