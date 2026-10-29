@@ -318,7 +318,7 @@ describe('single Walk toggles all three dinos (FR-7, AC-4)', () => {
     expect(walkStatusText(true)).toContain('Brachio');
     expect(walkStatusText(true)).toContain('🦕');
     expect(walkStatusText(true)).toContain('🦖');
-    expect(walkStatusText(true)).toContain('🦴');
+    expect(walkStatusText(true)).toContain('🦒');
     expect(walkStatusText(false)).toBe('Tap Walk to waddle');
   });
 
@@ -410,7 +410,7 @@ describe('trio ranch shell (NFR-4, FR-7, FR-8, FR-9)', () => {
     expect(html).toContain('Brachio');
     expect(html).toContain('🦕');
     expect(html).toContain('🦖');
-    expect(html).toContain('🦴');
+    expect(html).toContain('🦒');
   });
 
   it('keeps one 72 px Walk button with pressed + status wiring', async () => {

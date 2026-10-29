@@ -1,5 +1,8 @@
 import type { PerspectiveCamera } from 'three';
+import type { AudioAssetId } from '../audio/catalog.js';
+import { createCooGate, sfxForSurface, type SpeciesId } from '../audio/feedback.js';
 import { IDLE_AFTER_MS, SleepyController, type SleepyState } from '../ranch/sleepy.js';
+import { playFeedback as dispatchFeedback } from './audio.js';
 import type { AudioControls } from './audio-controls.js';
 import {
   HINT_IDLE_MS,
@@ -28,7 +31,12 @@ export function setStatus(status: HTMLElement | null, text: string): void {
 
 /** Status pill copy: names all three species while walking (NFR-4 icon + word). */
 export function walkStatusText(walking: boolean): string {
-  return walking ? '🦕 Trike + 🦖 Stego + 🦴 Brachio walking' : 'Tap Walk to waddle';
+  return walking ? '🦕 Trike + 🦖 Stego + 🦒 Brachio walking' : 'Tap Walk to waddle';
+}
+
+/** Narrow a `data-species` attribute to one of the three catalog species. */
+function isSpeciesId(value: string | undefined): value is SpeciesId {
+  return value === 'trike' || value === 'stego' || value === 'brachio';
 }
 
 /**
@@ -119,7 +127,20 @@ export function createHud(options: HudOptions): Hud {
     markInteraction();
     syncWalkChrome();
   };
+  /**
+   * Local dispatch guard (FR-9): a locked, muted, failed or disposed engine is
+   * silence, never an error thrown into a child's tap.
+   */
+  const playFeedback = (assetId: AudioAssetId): void => {
+    try {
+      dispatchFeedback(assetId);
+    } catch {
+      // FR-9: nothing to surface, nothing to retry.
+    }
+  };
   button.addEventListener('click', () => {
+    // FR-1: sound the press even when it is the one that stops the walk.
+    playFeedback(sfxForSurface('walk'));
     setWalking(!walking);
   });
   syncWalkChrome();
@@ -149,10 +170,32 @@ export function createHud(options: HudOptions): Hud {
       if (id !== 'ranch' && id !== 'nest' && id !== 'garden') {
         return;
       }
+      // FR-2: re-pressing the active view still answers with a tap.
+      playFeedback(sfxForSurface('pov'));
       setPov(id);
     });
   }
   syncPov();
+
+  // FR-4, FR-5: each baby coos through the one gate, so a mash is one sound.
+  const cooGate = createCooGate();
+  const speciesButtons = Array.from(
+    document.querySelectorAll<HTMLButtonElement>('#species button[data-species]'),
+  );
+  for (const speciesButton of speciesButtons) {
+    speciesButton.addEventListener('click', () => {
+      const species = speciesButton.dataset['species'];
+      if (!isSpeciesId(species)) {
+        return;
+      }
+      const assetId = cooGate.tryCoo(species, performance.now());
+      if (assetId === null) {
+        // FR-5: a refused press is swallowed, never queued or retried.
+        return;
+      }
+      playFeedback(assetId);
+    });
+  }
 
   const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   window.setInterval(() => {

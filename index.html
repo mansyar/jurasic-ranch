@@ -172,12 +172,25 @@
         pointer-events: none;
       }
       #species li {
+        display: flex;
+      }
+      /* FR-4: the pill is the button now, so the row owns no padding and the
+         button itself is the 72 px target. #species is pointer-events: none,
+         so each button re-enables its own taps. */
+      #species button {
+        pointer-events: auto;
+        min-inline-size: 72px;
+        min-height: 72px;
         padding: 8px 14px;
+        border: none;
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.85);
         color: #2f4a2f;
+        font-family: inherit;
         font-size: 14px;
         font-weight: 700;
+        cursor: pointer;
+        touch-action: manipulation;
       }
       /* FR-6, FR-8: bottom-right sound stack, kept clear of #pov and Walk. */
       #audio-controls {
@@ -282,9 +295,9 @@
       <canvas id="scene"></canvas>
       <p id="status" role="status">Loading…</p>
       <ul id="species" aria-label="Dino babies">
-        <li>🦕 Trike</li>
-        <li>🦖 Stego</li>
-        <li>🦴 Brachio</li>
+        <li><button type="button" data-species="trike">🦕 Trike</button></li>
+        <li><button type="button" data-species="stego">🦖 Stego</button></li>
+        <li><button type="button" data-species="brachio">🦒 Brachio</button></li>
       </ul>
       <button id="walk-button" type="button" aria-pressed="false">Walk</button>
       <nav id="pov" aria-label="Viewpoints">
