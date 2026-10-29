@@ -269,6 +269,10 @@ export class DinoPlayer {
     this.action.weight = 0;
     this.action.play();
     this.pose = createWaddlePose();
+    // Seeded callers must pass an explicit blink stream: when this falls back
+    // to `random`, wall-clock blink draws shift the values that drive wander
+    // and dust, and seeded poses stop reproducing (AC-9). `dev-harness-gate`
+    // asserts that src/viewer/main.ts always passes both streams.
     this.blink = new BlinkController(options.blinkRandom ?? this.random);
     this.targets = findBlinkTargets(model);
     this.baseScale = model.scale.clone();

@@ -23,6 +23,20 @@ describe("dev harness production gate (FR-1, FR-10, AC-1)", () => {
     expect(requestedAt).toBeLessThan(importAt);
   });
 
+  it("passes movement and blink streams to each player separately (AC-9)", async () => {
+    const viewer = await read("src/viewer/main.ts");
+    for (const id of ["trike", "stego", "brachio"]) {
+      const loader = `load${id[0].toUpperCase()}${id.slice(1)}Player`;
+      const start = viewer.indexOf(`void ${loader}(`);
+      expect(start).toBeGreaterThanOrEqual(0);
+      const call = viewer.slice(start, start + 220);
+      expect(call).toContain(`streams?.movement.${id} ?? Math.random`);
+      expect(call).toContain(`streams?.blink.${id}`);
+      // A blink fed by the movement stream would silently reintroduce the bug.
+      expect(call.match(/streams\?\.movement\./g) ?? []).toHaveLength(1);
+    }
+  });
+
   it("guards the harness import with import.meta.env.DEV", async () => {
     const viewer = await read("src/viewer/main.ts");
     // Publish + install only behind the same dev flag and the `?dev=1` option.
