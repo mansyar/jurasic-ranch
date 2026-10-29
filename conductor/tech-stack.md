@@ -91,6 +91,22 @@
 - MVP: local only (`vite preview --host` for tablet)
 - Later: static GitHub Pages, Add-to-Homescreen PWA, landscape locked
 
+## PR Media
+
+- `gh` 2.103.0 is the delivery tool, and `--attach` (on `gh pr create` and
+  `gh pr comment`) is how pictures reach a PR: `<file>#<alt text>`, up to 50
+  files per command, and a reference already in the body is rewritten to point
+  at the upload. An older CLI lacks the flag, so the body links the evidence
+  path instead.
+- No screenshot binaries in git. Captures live in the gitignored
+  `.conductor/evidence/<track-id>/` and are uploaded at PR time; the review
+  artifacts under `conductor/tracks/<track-id>/verification/` carry the paths,
+  not the pixels.
+- Capture recipe: dev harness at `/?dev=1&seed=42&pause=1`, 1280x800 tablet
+  landscape, JPEG - one per `#pov` preset plus a before/after pair. The rule
+  itself is `pr.media: "always"` in `conductor/workflow.md` (see PR Media
+  there for the full contract).
+
 ## Test / Typecheck / Lint / Format
 
 - Typecheck: tsrs (Oct 2026 Rust port, primary) with tsgo TS7 fallback `tsgo --noEmit`
