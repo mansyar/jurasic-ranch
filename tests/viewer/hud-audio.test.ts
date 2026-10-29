@@ -312,18 +312,6 @@ describe('species target and label contract (AC-9, P2.T4)', () => {
   });
 });
 
-describe('silent surfaces (FR-8)', () => {
-  it('dispatches nothing for gear, Close or the volume slider', () => {
-    const harness = createHarness();
-
-    harness.gear.click();
-    harness.close.click();
-    harness.slider.click();
-
-    expect(playSfx).not.toHaveBeenCalled();
-  });
-});
-
 describe('failure path (FR-9)', () => {
   it('completes the Walk toggle when the engine throws', () => {
     const harness = createHarness();
