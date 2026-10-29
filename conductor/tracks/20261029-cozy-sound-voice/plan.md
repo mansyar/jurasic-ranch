@@ -54,21 +54,21 @@
 - **Covers:** FR-2, FR-3, FR-4, FR-5, FR-9, NFR-2, NFR-7
 - **Touches:** `src/audio/engine.ts`, `src/audio/gesture.ts`, `src/viewer/audio.ts`, `src/viewer/main.ts`, `tests/audio/engine.test.ts`, `tests/audio/gesture.test.ts`, `tests/viewer/viewer.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P3.T1: Build the Howler-backed engine** — covers: FR-1, FR-3, FR-4, FR-5, FR-9
-  - [ ] **P3.T1.1:** Lazy-load Howler, create Howls with `preload` and Web Audio, and warn once per failed asset without throwing.
-  - [ ] **P3.T1.2:** Implement seamless music loop with fade-in, hidden-tab pause/resume, duck to `0.35x` during voice, and restore after the 0.3 s tail.
-  - [ ] **P3.T1.3:** Implement newest-wins voice playback, SFX overlap cap, `stopAll`, `setMuted`, `setVolume`, and `dispose`.
-  - [ ] **P3.T1.4:** Test every transition with a fake Howl/Howler module; no real audio in unit tests.
-- [ ] **P3.T2: Add gesture unlock and visibility handling** — covers: FR-2, FR-3, NFR-7
-  - [ ] **P3.T2.1:** Unlock once on the first document `pointerdown` or `keydown`; no AudioContext before the gesture; repeated gestures are no-ops.
-  - [ ] **P3.T2.2:** Keep the first gesture mute-safe: resolve mute before starting music so tapping mute produces no blip.
-  - [ ] **P3.T2.3:** Resume a suspended context after device sleep; pause music on `visibilitychange` and resume only when visible and unmuted.
-- [ ] **P3.T3: Integrate the engine into boot** — covers: FR-2, FR-9
-  - [ ] **P3.T3.1:** Replace the walk-only `unlockAudio` path in `main.ts` with the engine while keeping `src/viewer/audio.ts` as the thin facade.
-  - [ ] **P3.T3.2:** Update the viewer tests that assert the old silent stub behavior.
-  - [ ] **P3.T3.3:** Confirm a missing-asset rename produces one warning and a successful boot.
+- [x] **P3.T1: Build the Howler-backed engine** — covers: FR-1, FR-3, FR-4, FR-5, FR-9
+  - [x] **P3.T1.1:** Lazy-load Howler, create Howls with `preload` and Web Audio, and warn once per failed asset without throwing.
+  - [x] **P3.T1.2:** Implement seamless music loop with fade-in, hidden-tab pause/resume, duck to `0.35x` during voice, and restore after the 0.3 s tail.
+  - [x] **P3.T1.3:** Implement newest-wins voice playback, SFX overlap cap, `stopAll`, `setMuted`, `setVolume`, and `dispose`.
+  - [x] **P3.T1.4:** Test every transition with a fake Howl/Howler module; no real audio in unit tests.
+- [x] **P3.T2: Add gesture unlock and visibility handling** — covers: FR-2, FR-3, NFR-7
+  - [x] **P3.T2.1:** Unlock once on the first document `pointerdown` or `keydown`; no AudioContext before the gesture; repeated gestures are no-ops.
+  - [x] **P3.T2.2:** Keep the first gesture mute-safe: resolve mute before starting music so tapping mute produces no blip.
+  - [x] **P3.T2.3:** Resume a suspended context after device sleep; pause music on `visibilitychange` and resume only when visible and unmuted.
+- [x] **P3.T3: Integrate the engine into boot** — covers: FR-2, FR-9
+  - [x] **P3.T3.1:** Replace the walk-only `unlockAudio` path in `main.ts` with the engine while keeping `src/viewer/audio.ts` as the thin facade.
+  - [x] **P3.T3.2:** Update the viewer tests that assert the old silent stub behavior.
+  - [x] **P3.T3.3:** Confirm a missing-asset rename produces one warning and a successful boot.
 
 ## Phase 4: Sound Controls, Persistence & Parent Gate
 
