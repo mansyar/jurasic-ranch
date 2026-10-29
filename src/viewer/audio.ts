@@ -4,13 +4,22 @@
  * first gesture, so boot stays silent until a pointerdown or keydown.
  */
 
-import { AudioEngine } from '../audio/engine.js';
+import { AudioEngine, type AudioEngineOptions } from '../audio/engine.js';
 
 let engine: AudioEngine | null = null;
+let engineOptions: AudioEngineOptions = {};
+
+/**
+ * Configure the lazily built engine with the persisted mute/volume providers
+ * (FR-6, FR-7). Call it before the first gesture builds the singleton.
+ */
+export function configureAudio(options: AudioEngineOptions): void {
+  engineOptions = options;
+}
 
 /** The lazily built engine shared by unlock, visibility, and the dev bridge. */
 export function audioEngine(): AudioEngine {
-  engine ??= new AudioEngine();
+  engine ??= new AudioEngine(engineOptions);
   return engine;
 }
 
