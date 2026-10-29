@@ -93,7 +93,7 @@
 - **Covers:** FR-8, FR-9, AC-8, AC-9, NFR-3, NFR-6
 - **Touches:** `public/draco/**`, `src/viewer/loaders.ts`, `vite.config.ts`
 - **Verification:** `pnpm verify`, a browser load of all three dinos, plus a recorded before/after `dist/` size comparison
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P4.T1: Drop the redundant copy** - covers: FR-8
   - [ ] **P4.T1.1:** Remove the `setDecoderPath` call and the `DRACO_DECODER_PATH` constant from the loader module
