@@ -137,10 +137,9 @@ def measure_loudness(path: Path) -> dict[str, float] | None:
 def encode(path_in: Path, path_out: Path, tail_seconds: float) -> None:
     """Normalise, pad, and encode one line to mono 44.1 kHz 128 kbps mp3."""
     measured = measure_loudness(path_in)
-    if measured is None:
-        chain = f'loudnorm=I={LOUDNESS_TARGET}:TP={TRUE_PEAK}:LRA={LOUDNESS_RANGE}'
-    else:
-        chain = (
+    chains: list[str] = []
+    if measured is not None:
+        chains.append(
             f'loudnorm=I={LOUDNESS_TARGET}:TP={TRUE_PEAK}:LRA={LOUDNESS_RANGE}'
             f':measured_I={measured["input_i"]}'
             f':measured_TP={measured["input_tp"]}'
@@ -149,29 +148,40 @@ def encode(path_in: Path, path_out: Path, tail_seconds: float) -> None:
             f':offset={measured["target_offset"]}'
             ':linear=true'
         )
-    filters = f'{chain},apad=pad_dur={tail_seconds},aresample={SAMPLE_RATE}'
-    run(
-        [
-            FFMPEG,
-            '-y',
-            '-hide_banner',
-            '-loglevel',
-            'error',
-            '-i',
-            str(path_in),
-            '-af',
-            filters,
-            '-ac',
-            str(CHANNELS),
-            '-ar',
-            str(SAMPLE_RATE),
-            '-c:a',
-            'libmp3lame',
-            '-b:a',
-            BITRATE,
-            str(path_out),
-        ]
-    )
+    # Dynamic mode is the fallback: linear mode refuses some very short clips.
+    chains.append(f'loudnorm=I={LOUDNESS_TARGET}:TP={TRUE_PEAK}:LRA={LOUDNESS_RANGE}')
+
+    last_error = ''
+    for chain in chains:
+        result = subprocess.run(
+            [
+                FFMPEG,
+                '-y',
+                '-hide_banner',
+                '-loglevel',
+                'error',
+                '-i',
+                str(path_in),
+                '-af',
+                f'{chain},apad=pad_dur={tail_seconds},aresample={SAMPLE_RATE}',
+                '-ac',
+                str(CHANNELS),
+                '-ar',
+                str(SAMPLE_RATE),
+                '-c:a',
+                'libmp3lame',
+                '-b:a',
+                BITRATE,
+                str(path_out),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            return
+        last_error = (result.stderr or '').strip()
+    fail(f'cannot encode {path_out.name}: {last_error}')
 
 
 def probe_duration(path: Path) -> float:

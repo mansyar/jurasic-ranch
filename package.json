@@ -15,7 +15,7 @@
     "icons": "node scripts/build-icons.mjs",
     "audio:check": "node scripts/check-audio-pack.mjs",
     "typecheck": "tsrs --noEmit",
-    "verify": "pnpm lint && pnpm format --check && pnpm typecheck && pnpm coverage && pnpm build && node scripts/check-dist-clean.mjs"
+    "verify": "pnpm lint && pnpm format --check && pnpm typecheck && pnpm coverage && node scripts/check-audio-pack.mjs && pnpm build && node scripts/check-dist-clean.mjs"
   },
   "dependencies": {
     "howler": "^2.2.4",

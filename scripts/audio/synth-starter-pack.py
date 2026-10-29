@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synthesize the CC0 starter-pack music loop and five UI/creature SFX.
+"""Synthesize the CC0 starter-pack music loop and six UI/creature SFX.
 
 Every sound here is generated from scratch with numpy — no downloaded samples,
 no unclear provenance — and is dedicated CC0 by the project (see CREDITS.md).
@@ -262,7 +262,12 @@ MELODY = {
 }
 
 # Four-bar progression (C, Am, F, G) repeated four times = 16 bars.
-CHORDS = [('C3', ['C4', 'E4', 'G4']), ('A3', ['A4', 'C5', 'E5']), ('F3', ['A4', 'C5', 'D5']), ('G3', ['G4', 'D5', 'E5'])]
+CHORDS = [
+    ('C3', ['C4', 'E4', 'G4']),
+    ('A3', ['A4', 'C5', 'E5']),
+    ('F3', ['A4', 'C5', 'D5']),
+    ('G3', ['G4', 'D5', 'E5']),
+]
 
 # One bar of melody: (beat inside the bar, note). Leaves space to breathe.
 BAR_PATTERNS = [
