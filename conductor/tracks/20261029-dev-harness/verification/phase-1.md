@@ -83,3 +83,10 @@ least one assertion.
 - `pnpm coverage` was not part of this phase's `Verification` command and was
   permission-denied in this sandbox; coverage is argued structurally above
   rather than reported as a number.
+
+## Primary verification
+
+- Squash guard: 4 commits (same author, conventional, no merge commit) squashed to `76ba7b2` via `git reset --soft` against the phase base.
+- Working tree clean; `git diff --name-only e24bf87..HEAD` reported exactly 7 paths, all inside Touches (src/dev/**, 	ests/dev/**) plus this evidence file.
+- `pnpm verify` re-run by the primary: exit 0 — oxlint clean, oxfmt clean, tsrs clean, vitest 27 files / 257 tests, vite build OK (precache 29 entries / 4428.17 KiB, unchanged).
+- AC table reviewed line by line; AC-1 and AC-9 are partial **by design** and their viewer halves are P2.T3 scope.

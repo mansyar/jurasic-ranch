@@ -16,15 +16,19 @@
 - **Covers:** FR-1, FR-7, FR-8, AC-1, AC-8, AC-9, NFR-4
 - **Touches:** `src/dev/**`, `tests/dev/**`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P1.T1: Dev option parsing and seeded RNG** - covers: FR-1, FR-8
-  - [ ] **P1.T1.1: `parseDevQuery`** returns `{ enabled, seed, solo, paused, overlays }`; `dev` must equal `1` for `enabled`, and `seed` parses only finite integers (0 and negatives valid, junk ignored).
-  - [ ] **P1.T1.2: `seededRandom`** is a deterministic PRNG (mulberry32 or equivalent) whose first N outputs are stable for a given seed and differ across seeds.
-  - [ ] **P1.T1.3: tests** cover `?dev=1`, `?dev=0`, no query, `seed=0`, `seed=-7`, `seed=abc`, `seed=` and seed-without-dev.
-- [ ] **P1.T2: Snapshot builder** - covers: FR-7
-  - [ ] **P1.T2.1: `buildSnapshot(input)`** projects dino handles plus walking/paused/pov/sleepy/fps into the documented JSON shape, computing all pairwise distances and `minSeparation`.
-  - [ ] **P1.T2.2: tests** assert pairwise distances equal `hypot` of reported positions, `minSeparation` equals the smallest pair, and a single visible dino yields an empty `pairs` list with `minSeparation: null`.
+- [x] **P1.T1: Dev option parsing and seeded RNG** - covers: FR-1, FR-8
+  - [x] **P1.T1.1: `parseDevQuery`** returns `{ enabled, seed, solo, paused, overlays }`; `dev` must equal `1` for `enabled`, and `seed` parses only finite integers (0 and negatives valid, junk ignored).
+  - [x] **P1.T1.2: `seededRandom`** is a deterministic PRNG (mulberry32 or equivalent) whose first N outputs are stable for a given seed and differ across seeds.
+  - [x] **P1.T1.3: tests** cover `?dev=1`, `?dev=0`, no query, `seed=0`, `seed=-7`, `seed=abc`, `seed=` and seed-without-dev.
+- [x] **P1.T2: Snapshot builder** - covers: FR-7
+  - [x] **P1.T2.1: `buildSnapshot(input)`** projects dino handles plus walking/paused/pov/sleepy/fps into the documented JSON shape, computing all pairwise distances and `minSeparation`.
+  - [x] **P1.T2.2: tests** assert pairwise distances equal `hypot` of reported positions, `minSeparation` equals the smallest pair, and a single visible dino yields an empty `pairs` list with `minSeparation: null`.
+
+**Result:** verified
+**Checkpoint:** 76ba7b2
+**Evidence:** conductor/tracks/20261029-dev-harness/verification/phase-1.md
 
 <!--
 The primary appends after acceptance:
