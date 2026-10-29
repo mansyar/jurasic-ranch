@@ -59,6 +59,8 @@ export class BlinkController {
   private headNode: THREE.Object3D | null = null;
   private headBaseRotationX = 0;
   private applied = false;
+  /** Dev harness request: start a blink on the next `update()` (FR-5). */
+  private forceRequested = false;
 
   constructor(random: () => number = Math.random, startAtSeconds = 0) {
     this.random = random;
@@ -74,6 +76,14 @@ export class BlinkController {
    */
   update(nowSeconds: number, targets: BlinkTargets, droop01 = 0): boolean {
     const droop = Math.min(Math.max(droop01, 0), 1);
+    if (this.forceRequested) {
+      this.forceRequested = false;
+      // A forced blink only starts a new one; a blink already in flight is
+      // left alone so its schedule stays intact.
+      if (this.blinkStartedAt < 0) {
+        this.blinkStartedAt = nowSeconds;
+      }
+    }
     if (this.blinkStartedAt < 0 && nowSeconds >= this.nextBlinkAt) {
       this.blinkStartedAt = nowSeconds;
     }
@@ -102,6 +112,15 @@ export class BlinkController {
       this.applied = false;
     }
     return false;
+  }
+
+  /**
+   * Queue an immediate blink (FR-5): the next `update()` starts one, and the
+   * 3-5 s schedule re-arms from that blink's close so the normal cadence is
+   * not corrupted.
+   */
+  forceBlink(): void {
+    this.forceRequested = true;
   }
 
   private applyLid(lid: number, targets: BlinkTargets): void {
@@ -189,6 +208,13 @@ export interface DinoPlayerOptions {
   clip: THREE.AnimationClip;
   texture?: THREE.Texture;
   random?: () => number;
+  /**
+   * Separate generator for the blink schedule (FR-8). Blink draws are gated by
+   * wall-clock time, so sharing one stream with wander jitter and dust would
+   * let extra blink draws shift the poses of a seeded run. Defaults to
+   * `random`, keeping unseeded behaviour identical.
+   */
+  blinkRandom?: () => number;
   /** Gait tuning; defaults to the Trike gait. */
   gait?: GaitParams;
   /**
@@ -243,7 +269,11 @@ export class DinoPlayer {
     this.action.weight = 0;
     this.action.play();
     this.pose = createWaddlePose();
-    this.blink = new BlinkController(this.random);
+    // Seeded callers must pass an explicit blink stream: when this falls back
+    // to `random`, wall-clock blink draws shift the values that drive wander
+    // and dust, and seeded poses stop reproducing (AC-9). `dev-harness-gate`
+    // asserts that src/viewer/main.ts always passes both streams.
+    this.blink = new BlinkController(options.blinkRandom ?? this.random);
     this.targets = findBlinkTargets(model);
     this.baseScale = model.scale.clone();
     this.dust = options.dust ?? new DustPool({ texture: options.texture, random: this.random });
@@ -297,6 +327,17 @@ export class DinoPlayer {
   /** Bend toward the given heading in a walk arc (radians, +Z = 0). */
   turnTo(radians: number): void {
     this.pose.targetHeading = radians;
+  }
+
+  /**
+   * Force a blink on the next `update()` (dev harness, FR-5). A no-op when
+   * the model exposes no blink target, so a failed GLB load never throws.
+   */
+  forceBlink(): void {
+    if (this.targets.eyes.length === 0 && this.targets.head === null) {
+      return;
+    }
+    this.blink.forceBlink();
   }
 
   /** Write the unit facing vector for the current heading into `out`. */
