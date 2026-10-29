@@ -7,6 +7,7 @@
  */
 
 import type { AudioAssetId } from '../audio/catalog.js';
+import { sfxForSurface } from '../audio/feedback.js';
 import { HOLD_DURATION_MS, HoldGate } from '../audio/gate.js';
 import { clampVolume } from '../audio/mix.js';
 
@@ -293,16 +294,17 @@ export function createAudioControls(options: AudioControlsOptions): AudioControl
     frameId = ticker.requestFrame(stepHold);
   };
 
-  // FR-3: the tap lands on the audible side of the boundary - before muting
-  // silences it, after unmuting lifts the silence - then unlock has its go.
+  // FR-3/FR-11: the tap lands on the audible side of the boundary - before
+  // muting silences it, after unmuting lifts the silence - then unlock has its
+  // go. The id comes from the pure surface table, never a literal.
   const toggleMute = (): void => {
     if (muted) {
       setMuted(false);
       unlock();
-      onSfx?.('tap');
+      onSfx?.(sfxForSurface('mute'));
       return;
     }
-    onSfx?.('tap');
+    onSfx?.(sfxForSurface('mute'));
     setMuted(true);
     unlock();
   };
