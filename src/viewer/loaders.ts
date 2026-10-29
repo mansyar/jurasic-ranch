@@ -105,6 +105,8 @@ async function loadDinoPlayer(
   species: string,
   gait: GaitParams,
   sharedDust?: DustPool,
+  random?: () => number,
+  blinkRandom?: () => number,
 ): Promise<LoadedDino> {
   const draco = new DRACOLoader();
   try {
@@ -119,7 +121,13 @@ async function loadDinoPlayer(
     // Baked pastel baby look: the GLB already carries the pastel palette in
     // its vertex colors, so no runtime recolor runs here. Only pin blush
     // cheeks to the blink Head bone. No-op on models without a Head node.
-    const player = new DinoPlayer(gltf.scene, { clip, gait, dust: sharedDust });
+    const player = new DinoPlayer(gltf.scene, {
+      clip,
+      gait,
+      dust: sharedDust,
+      random,
+      blinkRandom,
+    });
     attachBlushCheeks(player.head);
     return { model: gltf.scene, player };
   } finally {
@@ -127,17 +135,40 @@ async function loadDinoPlayer(
   }
 }
 
-/** Load the baked Trike GLB with the Trike gait (FR-2 behaviour unchanged). */
-export function loadTrikePlayer(sharedDust?: DustPool): Promise<LoadedTrike> {
-  return loadDinoPlayer(TRIKE_MODEL_URL, 'Trike', TRIKE_GAIT, sharedDust);
+/**
+ * Load the baked Trike GLB with the Trike gait (FR-2 behaviour unchanged).
+ * `random`/`blinkRandom` are the dev harness's seeded streams (FR-8); omitted,
+ * the player generates with `Math.random` exactly as before.
+ */
+export function loadTrikePlayer(
+  sharedDust?: DustPool,
+  random?: () => number,
+  blinkRandom?: () => number,
+): Promise<LoadedTrike> {
+  return loadDinoPlayer(TRIKE_MODEL_URL, 'Trike', TRIKE_GAIT, sharedDust, random, blinkRandom);
 }
 
 /** Load the baked Stego GLB with the Stego gait (FR-4). */
-export function loadStegoPlayer(sharedDust?: DustPool): Promise<LoadedDino> {
-  return loadDinoPlayer(STEGO_MODEL_URL, 'Stego', STEGO_GAIT, sharedDust);
+export function loadStegoPlayer(
+  sharedDust?: DustPool,
+  random?: () => number,
+  blinkRandom?: () => number,
+): Promise<LoadedDino> {
+  return loadDinoPlayer(STEGO_MODEL_URL, 'Stego', STEGO_GAIT, sharedDust, random, blinkRandom);
 }
 
 /** Load the baked Brachio GLB with the Brachio shuffle gait (FR-1). */
-export function loadBrachioPlayer(sharedDust?: DustPool): Promise<LoadedDino> {
-  return loadDinoPlayer(BRACHIO_MODEL_URL, 'Brachio', BRACHIO_GAIT, sharedDust);
+export function loadBrachioPlayer(
+  sharedDust?: DustPool,
+  random?: () => number,
+  blinkRandom?: () => number,
+): Promise<LoadedDino> {
+  return loadDinoPlayer(
+    BRACHIO_MODEL_URL,
+    'Brachio',
+    BRACHIO_GAIT,
+    sharedDust,
+    random,
+    blinkRandom,
+  );
 }

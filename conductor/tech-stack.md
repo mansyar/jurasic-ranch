@@ -54,6 +54,7 @@
 
 - pnpm 12, Node 22, Python 3.10 + espeak-ng + kokoro-onnx, Blender 4.x (rigs), Audacity (normalize -16 LUFS)
 - `.env` not needed (no keys), seed stickers in IndexedDB
+- Dev harness (2026-10-29): `pnpm dev --host`, then open `/?dev=1` - `?dev=1` is the only way to load it, and it is dev-only behind `import.meta.env.DEV`, so the production bundle never carries it. Add `&seed=<integer>` for deterministic wander jitter and dust, and `&pause=1` for reproducible captures: determinism is only defined once the clock stops, so the canonical reproducible URL is `/?dev=1&seed=42&pause=1` (load, `step(n)`, `snapshot()`). `window.__ranch` exposes `snapshot()` (walking, paused, POV, sleepy stage, fps, per-dino visibility/position/heading, pairwise distances, `minSeparation`) plus visibility, solo, walk, pause, step, POV and forced-state controls. `pnpm verify` runs `scripts/check-dist-clean.mjs` after `vite build` and fails if `__ranch`, `data-dev-panel`, `installDevHarness` or `parseDevQuery` reach `dist/`.
 
 ## Constraints
 

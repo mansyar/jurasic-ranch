@@ -103,6 +103,13 @@ export interface LoopStage {
   brachioModel: THREE.Object3D;
 }
 
+/**
+ * Per-frame hook that may rewrite the delta the simulation advances by. The
+ * dev harness installs one to pause and step; with no hook the loop uses the
+ * frame delta unchanged.
+ */
+export type RenderDtHook = (dt: number, now: number) => number;
+
 /** Everything the render loop reads from the booted viewer. */
 export interface LoopView {
   renderer: THREE.WebGLRenderer;
@@ -113,15 +120,24 @@ export interface LoopView {
   trike: THREE.Group;
   stego: THREE.Group;
   brachio: THREE.Group;
+  /** Dev-harness pause/step hook; absent in production. */
+  devFrame?: RenderDtHook | null;
 }
 
 /** Start the rAF loop: the one place that decides which subsystem sees `dt`. */
 export function startLoop(view: LoopView): void {
-  const { renderer, scene, camera, hud, stage, trike, stego, brachio } = view;
+  const { renderer, scene, camera, hud, stage, trike, stego, brachio, devFrame } = view;
   const clock = new THREE.Clock();
   renderer.setAnimationLoop(() => {
-    const dt = Math.min(clock.getDelta(), 0.25);
+    const rawDt = Math.min(clock.getDelta(), 0.25);
     const now = clock.elapsedTime;
+    // FR-3: a paused harness frame still renders but advances nothing.
+    // NFR-1: with no hook `dt` is bit-identical to `rawDt`.
+    const dt = devFrame == null ? rawDt : devFrame(rawDt, now);
+    if (dt <= 0) {
+      renderer.render(scene, camera);
+      return;
+    }
     // FR-4: sleepy cues after ~90 s idle; any tap already reset the
     // controller via markInteraction. Sleepy owns the stage over the hint
     // glow (FR-5 precedence), and the ZZZ overlay only plays at full sleepy.

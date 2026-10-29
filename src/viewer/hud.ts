@@ -1,5 +1,5 @@
 import type { PerspectiveCamera } from 'three';
-import { SleepyController } from '../ranch/sleepy.js';
+import { IDLE_AFTER_MS, SleepyController, type SleepyState } from '../ranch/sleepy.js';
 import {
   HINT_IDLE_MS,
   applyPovPreset,
@@ -50,6 +50,18 @@ export interface Hud {
   readonly sleepy: SleepyStage;
   /** Whether the Walk toggle is on. */
   isWalking(): boolean;
+  /** Flip the Walk toggle through the same path the button takes. */
+  setWalking(walking: boolean): void;
+  /** The active POV preset id. */
+  pov(): PovPresetId;
+  /** Cut the camera to a preset through the same path the pills take. */
+  setPov(id: PovPresetId): void;
+  /** Push the sleepy controller past its idle threshold (dev harness only). */
+  forceSleepy(): void;
+  /** Pretend the last interaction was long ago, so the hint glow appears. */
+  forceHint(): void;
+  /** The sleepy state the last frame computed. */
+  sleepyState(): SleepyState;
   /** Show the rotate hint while the viewport is portrait (FR-6). */
   syncRotateHint(): void;
 }
@@ -96,11 +108,14 @@ export function createHud(options: HudOptions): Hud {
     }
   };
   window.addEventListener('pointerdown', markInteraction, { passive: true });
-  button.addEventListener('click', () => {
-    walking = !walking;
+  const setWalking = (next: boolean): void => {
+    walking = next;
     onWalkChange(walking);
     markInteraction();
     syncWalkChrome();
+  };
+  button.addEventListener('click', () => {
+    setWalking(!walking);
   });
   syncWalkChrome();
 
@@ -117,16 +132,19 @@ export function createHud(options: HudOptions): Hud {
       );
     }
   };
+  const setPov = (id: PovPresetId): void => {
+    activePov = id;
+    applyPovPreset(camera, activePov);
+    markInteraction();
+    syncPov();
+  };
   for (const povButton of povButtons) {
     povButton.addEventListener('click', () => {
       const id = povButton.dataset['pov'];
       if (id !== 'ranch' && id !== 'nest' && id !== 'garden') {
         return;
       }
-      activePov = id;
-      applyPovPreset(camera, activePov);
-      markInteraction();
-      syncPov();
+      setPov(id);
     });
   }
   syncPov();
@@ -189,6 +207,17 @@ export function createHud(options: HudOptions): Hud {
   return {
     sleepy,
     isWalking: (): boolean => walking,
+    setWalking,
+    pov: (): PovPresetId => activePov,
+    setPov,
+    forceSleepy: (): void => {
+      controller.markInteraction(performance.now() - IDLE_AFTER_MS - 1);
+    },
+    forceHint: (): void => {
+      lastInteractionMs = performance.now() - HINT_IDLE_MS - 1;
+      document.body.classList.add(hintModeFor(reducedMotionQuery.matches));
+    },
+    sleepyState: (): SleepyState => controller.state,
     syncRotateHint,
   };
 }

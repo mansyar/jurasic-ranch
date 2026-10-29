@@ -13,7 +13,13 @@ import {
   setStatus,
 } from './hud.js';
 import { loadBrachioPlayer, loadStegoPlayer, loadTrikePlayer, type LoadedDino } from './loaders.js';
-import { TRIO_SPAWN_HEADINGS_RADIANS, setAllWalking, startLoop, type LoopStage } from './loop.js';
+import {
+  TRIO_SPAWN_HEADINGS_RADIANS,
+  setAllWalking,
+  startLoop,
+  type LoopStage,
+  type RenderDtHook,
+} from './loop.js';
 import {
   createPlaceholderBrachio,
   createPlaceholderStego,
@@ -21,12 +27,28 @@ import {
 } from './placeholders.js';
 import { createViewerScene, enableShadows } from './scene.js';
 import { readSetting, writeSetting } from './storage.js';
+import type { DevBridge } from '../dev/harness.js';
 
 /** Boot the offline viewer: daylight scene, fixed camera, 72px Walk button. */
 export async function bootViewer(): Promise<void> {
   if (typeof document === 'undefined' || typeof window === 'undefined') {
     return;
   }
+  // FR-1/FR-10: the harness is a dev-build-only dynamic import. Production
+  // builds statically replace `import.meta.env.DEV` with false, so neither the
+  // query read nor the chunk survives in `dist/`, and the kid-facing DOM, RNG
+  // and bundle stay exactly as before. Read `dev=1` before the import: an
+  // ordinary dev boot must not fetch the harness module (F4).
+  const devRequested =
+    import.meta.env.DEV && new URLSearchParams(window.location.search).get('dev') === '1';
+  const dev = devRequested ? await import('../dev/harness.js') : null;
+  const options = dev?.parseDevQuery(window.location.search) ?? null;
+  // FR-8/AC-9: one generator per consumer, derived from `seed` by fixed index,
+  // so GLB resolution order and wall-clock blink draws never shift poses.
+  const streams =
+    dev !== null && options?.enabled === true && options.seed !== null
+      ? dev.seededStreams(options.seed)
+      : null;
   const canvas = document.getElementById(CANVAS_ID);
   const button = document.getElementById(WALK_BUTTON_ID);
   const status = document.getElementById(STATUS_ID);
@@ -61,7 +83,7 @@ export async function bootViewer(): Promise<void> {
   scene.add(brachio);
 
   // FR-9: one shared DustPool feeds all three players (single draw call).
-  const sharedDust = new DustPool();
+  const sharedDust = new DustPool({ random: streams?.dust ?? Math.random });
   scene.add(sharedDust.points);
 
   const stage: LoopStage = {
@@ -108,7 +130,7 @@ export async function bootViewer(): Promise<void> {
   // finishes. A failed load keeps its placeholder walking (offline
   // first-visit safety) and surfaces the reason in the console; the other
   // dinos are unaffected.
-  void loadTrikePlayer(sharedDust)
+  void loadTrikePlayer(sharedDust, streams?.movement.trike ?? Math.random, streams?.blink.trike)
     .then((loaded) => {
       swapToRigged(trike, loaded, TRIO_SPAWN_HEADINGS_RADIANS[0], (player, model) => {
         stage.trikePlayer = player;
@@ -119,7 +141,7 @@ export async function bootViewer(): Promise<void> {
       console.warn('Rigged trike unavailable; keeping the placeholder.', error);
     });
 
-  void loadStegoPlayer(sharedDust)
+  void loadStegoPlayer(sharedDust, streams?.movement.stego ?? Math.random, streams?.blink.stego)
     .then((loaded) => {
       swapToRigged(stego, loaded, TRIO_SPAWN_HEADINGS_RADIANS[1], (player, model) => {
         stage.stegoPlayer = player;
@@ -130,7 +152,11 @@ export async function bootViewer(): Promise<void> {
       console.warn('Rigged stego unavailable; keeping the placeholder.', error);
     });
 
-  void loadBrachioPlayer(sharedDust)
+  void loadBrachioPlayer(
+    sharedDust,
+    streams?.movement.brachio ?? Math.random,
+    streams?.blink.brachio,
+  )
     .then((loaded) => {
       swapToRigged(brachio, loaded, TRIO_SPAWN_HEADINGS_RADIANS[2], (player, model) => {
         stage.brachioPlayer = player;
@@ -153,6 +179,59 @@ export async function bootViewer(): Promise<void> {
     hud.syncRotateHint();
   });
 
+  // FR-1/FR-7: the bridge mirrors the kid-facing controls exactly, so a dev
+  // press can never leave `walking` or `activePov` out of sync with the chrome.
+  const devBridge: DevBridge | null =
+    dev !== null && options !== null && options.enabled
+      ? {
+          scene,
+          camera,
+          renderer,
+          dust: sharedDust,
+          dinos: [
+            {
+              id: 'trike',
+              label: 'Trike',
+              getModel: () => stage.trikeModel,
+              getPlayer: () => stage.trikePlayer,
+            },
+            {
+              id: 'stego',
+              label: 'Stego',
+              getModel: () => stage.stegoModel,
+              getPlayer: () => stage.stegoPlayer,
+            },
+            {
+              id: 'brachio',
+              label: 'Brachio',
+              getModel: () => stage.brachioModel,
+              getPlayer: () => stage.brachioPlayer,
+            },
+          ],
+          getWalking: () => hud.isWalking(),
+          setWalking: (next: boolean) => {
+            hud.setWalking(next);
+          },
+          getPov: () => hud.pov(),
+          setPov: (id) => {
+            hud.setPov(id);
+          },
+          forceSleepy: () => {
+            hud.forceSleepy();
+          },
+          forceHint: () => {
+            hud.forceHint();
+          },
+          getSleepyState: () => hud.sleepyState(),
+        }
+      : null;
+
+  // NFR-1: stays null without `?dev=1`, so the only cost is one null check.
+  let devFrame: RenderDtHook | null = null;
+  if (dev !== null && devBridge !== null && options !== null) {
+    devFrame = dev.installDevHarness(devBridge, options);
+  }
+
   startLoop({
     renderer,
     scene,
@@ -162,6 +241,7 @@ export async function bootViewer(): Promise<void> {
     trike,
     stego,
     brachio,
+    devFrame,
   });
 }
 

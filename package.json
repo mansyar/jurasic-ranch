@@ -14,7 +14,7 @@
     "format": "oxfmt index.html package.json vite.config.ts tsconfig.json .oxfmtrc.json \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"scripts/**/*.mjs\" \"!scripts/vendor/**/*.mjs\"",
     "icons": "node scripts/build-icons.mjs",
     "typecheck": "tsrs --noEmit",
-    "verify": "pnpm lint && pnpm format --check && pnpm typecheck && pnpm coverage && pnpm build"
+    "verify": "pnpm lint && pnpm format --check && pnpm typecheck && pnpm coverage && pnpm build && node scripts/check-dist-clean.mjs"
   },
   "dependencies": {
     "howler": "^2.2.4",
