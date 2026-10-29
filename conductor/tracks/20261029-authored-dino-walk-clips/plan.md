@@ -35,21 +35,33 @@
 - **Covers:** FR-1, FR-2, FR-9, NFR-3, AC-1
 - **Touches:** `scripts/vendor/bake-stego-variant.js`, `scripts/vendor/bake-brachio-variant.js`, `scripts/vendor/*-base-params.json`, `scripts/bake-trike-variant.js` (shared helpers only), `public/models/stego.glb`, `public/models/brachio.glb`, `CREDITS.md`
 - **Verification:** `pnpm verify` plus a second bake that reproduces byte-identical GLBs
-- **Status:** in_progress
+- **Status:** verified
 - **Tasks:**
-  - [ ] **P2.T1: Replace the donor transfer with a graft** - covers: FR-1
-    - [ ] **P2.T1.1: Drop the Trike-donor extraction, `STEGO_POSITION_TRACK_SCALE` and the position rescaling entirely**
-    - [ ] **P2.T1.2: Import the official GLB's `Idle`/`Walk`/`Run` and attach them to the baked scene**
-    - [ ] **P2.T1.3: Fail loudly when a grafted clip names a bone the baked rig lacks**
-  - [ ] **P2.T2: Bake at authored proportions** - covers: FR-2
-    - [ ] **P2.T2.1: Call `createAsset()` at `size: 1.0` with the current pastel knobs, keeping one material and the baked `COLOR_0`**
-    - [ ] **P2.T2.2: Confirm the exported GLB's joints equal the official GLB's joints in name and rest TRS**
-  - [ ] **P2.T3: Ship both files** - covers: FR-1, AC-1
-    - [ ] **P2.T3.1: Run the Draco pass and write both GLBs via the existing atomic rename**
-    - [ ] **P2.T3.2: Verify the shipped files expose `Idle`, `Walk`, `Run` and no `Waddle`**
-  - [ ] **P2.T4: Reproducibility and credit** - covers: NFR-3, FR-9
-    - [ ] **P2.T4.1: Re-run both bakes and prove byte-identical output**
-    - [ ] **P2.T4.2: Update `CREDITS.md` and both script docblocks to name the official GLB as the clip source**
+  - [x] **P2.T1: Replace the donor transfer with a graft** - covers: FR-1
+    - [x] **P2.T1.1: Drop the Trike-donor extraction, `STEGO_POSITION_TRACK_SCALE` and the position rescaling entirely**
+    - [x] **P2.T1.2: Import the official GLB's `Idle`/`Walk`/`Run` and attach them to the baked scene**
+    - [x] **P2.T1.3: Fail loudly when a grafted clip names a bone the baked rig lacks**
+  - [x] **P2.T2: Bake at authored proportions** - covers: FR-2
+    - [x] **P2.T2.1: Call `createAsset()` at `size: 1.0` with the current pastel knobs, keeping one material and the baked `COLOR_0`**
+    - [x] **P2.T2.2: Confirm the exported GLB's joints equal the official GLB's joints in name and rest TRS**
+  - [x] **P2.T3: Ship both files** - covers: FR-1, AC-1
+    - [x] **P2.T3.1: Run the Draco pass and write both GLBs via the existing atomic rename**
+    - [x] **P2.T3.2: Verify the shipped files expose `Idle`, `Walk`, `Run` and no `Waddle`**
+  - [x] **P2.T4: Reproducibility and credit** - covers: NFR-3, FR-9
+    - [x] **P2.T4.1: Re-run both bakes and prove byte-identical output**
+    - [x] **P2.T4.2: Update `CREDITS.md` and both script docblocks to name the official GLB as the clip source**
+
+**Result:** verified
+**Checkpoint:** _(set after squash)_
+**Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-2.md
+
+> The graft could not go through `GLTFExporter`: it resamples at 24 fps and
+> re-emits all three TRS paths, so `Walk` came back as 2.375 s with scale
+> channels. The bake now exports the mesh alone, runs the Draco pass, then
+> injects the official animation blocks into the compressed GLB by joint name.
+> `vite.config.ts` also needed `maximumFileSizeToCacheInBytes: 4 MiB` because
+> the clips push `brachio.glb` past workbox's 2 MiB default; Phase 6 owns the
+> final precache budget.
 
 ## Phase 3: Regression gate on bone displacement
 

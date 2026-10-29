@@ -1,48 +1,71 @@
 /**
- * Bake the pastel baby Stegosaurus variant GLB (track 20261029-stego-generic-player, Phase 2).
+ * Bake the pastel Stegosaurus GLB (track 20261029-authored-dino-walk-clips, Phase 2).
  *
- * The shipped game file `public/models/stego.glb` is generated from the vendored
- * Polyfork parametric module — no network at bake time; the bare `three`
- * specifier below resolves via node_modules (three ^0.180.0, matching the
- * module's own importmap note).
+ * The shipped game file `public/models/stego.glb` is the vendored Polyfork
+ * parametric module's mesh and palette with Polyfork's OWN authored `Idle`,
+ * `Walk` and `Run` clips on it. Nothing here reads the Trike: the donor transfer
+ * this bake used until this phase is gone, because glTF translation channels are
+ * absolute local translations and a foreign clip drags every bone off its rest
+ * offset.
  *
- * Pinned Polyfork call (do not drift; re-running reproduces the same variant):
+ * Two sources, one file:
  *
- *   createAsset({"size":0.6,"plates":24,"plateSize":1,"tail":1,"plateColour":"umber",
- *     "hide":"#7fb5a3","belly":"#f6ead0","blend":"#bacfb9","feet":"#6da08e",
- *     "mark":"#4f5e59","plate":"#efa27e","plateTrim":"#b26a4d","spike":"#fff3dd"})
+ *   1. Mesh, palette and rig — `createAsset()` from the vendored module at
+ *      authored proportions. No bake-time size knob decides gameplay size; it
+ *      is the viewer's per-species group scale:
  *
- * Size 0.6 rebuilds the animal at ~3.9 m: a baby Stego pen-mate of the Trike
- * (dusty-teal hide, cream belly, peach plates with terracotta trim — distinct
- * from the Trike green and colorblind-safe by luminance separation). The size
- * knob's documented range is 0.6–1.4, so 0.6 is the smallest baby the module
- * builds; the umber plate pattern lands on the plates' facet bands while the
- * explicit peach/terracotta hexes override the pattern's brown defaults. Feet
- * stay on y = 0.
+ *        createAsset({"size":1,"plateColour":"umber","hide":"#7fb5a3",
+ *          "belly":"#f6ead0","blend":"#bacfb9","feet":"#6da08e","mark":"#4f5e59",
+ *          "plate":"#efa27e","plateTrim":"#b26a4d","spike":"#fff3dd"})
+ *
+ *      The geometry knobs (`plates`, `plateSize`, `tail`, `neck`, `head`) are
+ *      deliberately absent: each rebuilds bones, and Phase 1 measured that the
+ *      official GLB's rest pose equals the module's DEFAULTS at size 1.0 —
+ *      24/24 joints, worst delta 0.0000 m / 0.000°. Colour knobs never move a
+ *      bone, so the pastel palette is safe to pin.
+ *
+ *   2. Clips — the official published GLB, the only place Polyfork ships its
+ *      authored animation (the vendored module contains no `AnimationClip`):
+ *
+ *        curl -L -o .conductor/evidence/polyfork/stegosaurus-base.glb \
+ *          https://polyfork.dev/cdn/stegosaurus-base.glb
+ *
+ *      `Idle` (48 channels), `Walk` (48) and `Run` (48) are carried verbatim:
+ *      name, duration, keyframe times and values unchanged, `translation` and
+ *      `rotation` only. The authored clips carry no scale channels, so none is
+ *      synthesised. A clip naming a bone the baked rig lacks aborts the bake,
+ *      naming every such bone, before anything is written.
  *
  * Steps:
- *   1. Build the variant with createAsset() (single mesh, single material,
- *      baked pastel COLOR_0 vertex colors, flat shading, same 22-bone
- *      quadruped skeleton as the Trike).
- *   2. Extract the Waddle clip from the shipped Trike GLB and rebuild it on
- *      the Stego skeleton: same bone names, same 0.8 s timing, quaternion
- *      tracks verbatim, position tracks scaled by STEGO_POSITION_TRACK_SCALE.
- *      Donor channels with no Stego counterpart are dropped and reported
- *      (never silently half-built: the bake logs every drop).
- *   3. Export an uncompressed GLB via three's GLTFExporter to a temp file.
- *   4. Re-export through headless Blender with Draco mesh compression to the
- *      final path (three's GLTFExporter has no Draco writer; this reuses the
- *      same Blender Draco tooling the repo used for the Trike GLB).
+ *   1. Build the pastel variant with `createAsset()` (single mesh, single
+ *      material, baked pastel COLOR_0, flat shading, 24-bone skeleton), and
+ *      graft the authored clips onto it once as a pre-flight: any bone the rig
+ *      lacks aborts here, with the full list, before Blender runs.
+ *   2. Export the mesh to an uncompressed temp GLB via three's GLTFExporter.
+ *   3. Re-export through headless Blender with Draco mesh compression
+ *      (`bake-stego-variant.py`; three's GLTFExporter has no Draco writer).
+ *   4. Inject the authored clips into the COMPRESSED GLB's JSON chunk, remapping
+ *      `target.node` by joint name and copying key times, values and
+ *      interpolation byte for byte.
+ *   5. Read the bytes back and prove the clips survived, then rename into place.
+ *
+ * The clips are injected rather than exported because `GLTFExporter` cannot
+ * preserve them: it re-times keyframes to its 24 fps default (a 2.4 s cycle came
+ * out at 2.375 s, 289 keys collapsed to 58) and it emits TRS for every animated
+ * node, turning a 48 channel clip into 72. Injection also has to happen AFTER
+ * the Blender pass, because Blender's glTF round trip re-times animation onto
+ * integer frames — the same 2.375 s. The mesh-only export is what Blender sees.
  *
  * Usage:
- *   node scripts/vendor/bake-stego-variant.js [--donor <glb>] [--out <glb>]
+ *   node scripts/vendor/bake-stego-variant.js [--official <glb>] [--out <glb>]
  *     [--blender <bin>] [--keep-temp]
  *
- * Defaults: --donor is public/models/trike.glb, --out is
- * public/models/stego.glb, --blender is `blender` (override with
- * STEGO_BLENDER_BIN). Any failure exits non-zero and never leaves a
- * half-written GLB: the final path is written only via an atomic rename after
- * a successful Draco pass.
+ * Defaults: --official is `.conductor/evidence/polyfork/stegosaurus-base.glb`
+ * (gitignored; the two official files are read at bake time and never shipped),
+ * --out is `public/models/stego.glb`, --blender is `blender` (override with
+ * STEGO_BLENDER_BIN). Any failure exits non-zero and never leaves a half-written
+ * GLB: the final path is written only via an atomic rename after the clips have
+ * been injected and read back.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -51,9 +74,13 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import * as THREE from 'three';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
-import { extractAnimationTracks } from '../bake-trike-variant.js';
+import {
+  assertAuthoredClipsPreserved,
+  extractAnimationClips,
+  graftAuthoredClips,
+  injectGlbAnimations,
+} from '../bake-trike-variant.js';
 import { createAsset } from './stegosaurus-base.mjs';
 
 /**
@@ -81,18 +108,21 @@ if (typeof globalThis.FileReader === 'undefined') {
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = dirname(dirname(HERE));
 const BLENDER_SCRIPT = join(HERE, 'bake-stego-variant.py');
-const DEFAULT_DONOR_GLB = join(REPO_ROOT, 'public', 'models', 'trike.glb');
+const OFFICIAL_CDN_FILE = 'stegosaurus-base.glb';
+const DEFAULT_OFFICIAL_GLB = join(REPO_ROOT, '.conductor', 'evidence', 'polyfork', OFFICIAL_CDN_FILE);
 const DEFAULT_OUT_GLB = join(REPO_ROOT, 'public', 'models', 'stego.glb');
+
+/** Authored proportions: the module's own default skeleton, at its own size. */
+const AUTHORED_SIZE = 1;
 
 /**
  * Pinned variant params. The variant test asserts these verbatim, so a drift
- * here fails `pnpm verify` instead of shipping a wrong-colored dino.
+ * here fails `pnpm verify` instead of shipping a wrong-coloured dino. Colour
+ * plus the authored size only — see the docblock for why no geometry knob
+ * appears and why no group scale is applied.
  */
 export const STEGO_VARIANT_PARAMS = {
-  size: 0.6,
-  plates: 24,
-  plateSize: 1,
-  tail: 1,
+  size: AUTHORED_SIZE,
   plateColour: 'umber',
   hide: '#7fb5a3',
   belly: '#f6ead0',
@@ -103,20 +133,6 @@ export const STEGO_VARIANT_PARAMS = {
   plateTrim: '#b26a4d',
   spike: '#fff3dd',
 };
-
-/**
- * Position-track scale for the Waddle rebuild. The Trike donor GLB carries
- * size-0.6 bind-space locations and the Stego variant skeleton also lives in
- * size-0.6 space on a same-class adult reference (6.49 m vs the Trike
- * 6.26 m), so donor translations carry over at the Trike bake's 0.6 scale —
- * no retime: the rebuilt clip measures the same ~0.29 m stride. The stride
- * test absorbs the 4 % reference gap within its 0.02 m tolerance.
- */
-export const STEGO_POSITION_TRACK_SCALE = 0.6;
-
-const EXPECTED_CLIP_NAME = 'Waddle';
-const CLIP_MIN_SECONDS = 0.79;
-const CLIP_MAX_SECONDS = 0.81;
 
 /** Procedural variant group: the exact geometry the bake exports. */
 export function createStegoVariantGroup() {
@@ -129,59 +145,30 @@ export function createStegoDefaultGroup() {
 }
 
 /**
- * Rebuild the Trike donor Waddle clip on the Stego skeleton: same timing,
- * quaternion tracks verbatim, position tracks scaled into the variant's
- * bind-pose space. Donor channels whose bone has no Stego counterpart are
- * dropped and recorded on the clip's userData (the same quadruped rig means
- * the expected drop set is empty). Throws (never half-builds) on a wrong
- * clip, an out-of-range duration, or an unsupported channel path.
+ * Load the authored `Idle`, `Walk` and `Run` from a published GLB and rebuild
+ * them as three clips on `skeletonRoot`. Species-named wrapper over the shared
+ * graft; see `graftAuthoredClips` for the copy rules. The bake uses it as a
+ * pre-flight check against the baked skeleton, and the tests use it to play the
+ * shipped clips headless.
  */
-export function buildStegoWaddleClip(skeletonRoot, animation) {
-  if (animation.name !== EXPECTED_CLIP_NAME) {
-    throw new Error(`Expected a "${EXPECTED_CLIP_NAME}" clip, found "${animation.name}".`);
-  }
-  if (animation.durationSeconds < CLIP_MIN_SECONDS || animation.durationSeconds > CLIP_MAX_SECONDS) {
-    throw new Error(`Waddle duration ${animation.durationSeconds.toFixed(3)} s is outside 0.79-0.81 s.`);
-  }
-  const dropped = [];
-  const tracks = [];
-  for (const channel of animation.channels) {
-    const node = skeletonRoot.getObjectByName(channel.nodeName);
-    if (node === undefined || node === null) {
-      dropped.push(channel.nodeName);
-      continue;
-    }
-    if (channel.path === 'translation') {
-      const scaled = new Float32Array(channel.values.length);
-      for (let i = 0; i < scaled.length; i += 1) {
-        scaled[i] = channel.values[i] * STEGO_POSITION_TRACK_SCALE;
-      }
-      const track = new THREE.VectorKeyframeTrack(`${channel.nodeName}.position`, channel.times, scaled);
-      track.setInterpolation(THREE.InterpolateLinear);
-      tracks.push(track);
-    } else if (channel.path === 'rotation') {
-      const track = new THREE.QuaternionKeyframeTrack(
-        `${channel.nodeName}.quaternion`,
-        channel.times,
-        channel.values.slice(),
+export function buildStegoClips(skeletonRoot, officialBytes) {
+  return graftAuthoredClips(skeletonRoot, extractAnimationClips(officialBytes));
+}
+
+/** Read the official clip source, naming both fetch routes when it is absent. */
+async function readOfficialGlb(path) {
+  try {
+    return await readFile(path);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw new Error(
+        `Official clip source missing at ${path}. Fetch it first:\n` +
+          `  curl -L -o ${path} https://polyfork.dev/cdn/${OFFICIAL_CDN_FILE}\n` +
+          `or copy it from .conductor/evidence/phase-1/${OFFICIAL_CDN_FILE}.`,
       );
-      track.setInterpolation(THREE.InterpolateLinear);
-      tracks.push(track);
-    } else if (channel.path === 'scale') {
-      const track = new THREE.VectorKeyframeTrack(
-        `${channel.nodeName}.scale`,
-        channel.times,
-        channel.values.slice(),
-      );
-      track.setInterpolation(THREE.InterpolateLinear);
-      tracks.push(track);
-    } else {
-      throw new Error(`Unsupported animation path "${channel.path}" on "${channel.nodeName}".`);
     }
+    throw error;
   }
-  const clip = new THREE.AnimationClip(EXPECTED_CLIP_NAME, animation.durationSeconds, tracks);
-  clip.userData.dropped = [...new Set(dropped)];
-  return clip;
 }
 
 /** Find the script-relative Blender Draco pass (scripts/vendor/bake-stego-variant.py). */
@@ -190,26 +177,25 @@ function blenderArgs(tmpIn, tmpOut) {
 }
 
 /**
- * Run the full bake. Options: donorGlbPath (Waddle donor, default the shipped
- * Trike GLB), outPath (final Draco GLB, default public/models/stego.glb),
- * blenderBin (default `blender`, STEGO_BLENDER_BIN overrides), keepTemp
- * (debug). Resolves with a summary; rejects with a clear error and never
- * leaves a half-written outPath.
+ * Run the full bake. Options: officialGlbPath (authored clip source, default
+ * `.conductor/evidence/polyfork/stegosaurus-base.glb`), outPath (final Draco
+ * GLB, default public/models/stego.glb), blenderBin (default `blender`,
+ * STEGO_BLENDER_BIN overrides), keepTemp (debug). Resolves with the clip
+ * summary; rejects with a clear error and never leaves a half-written outPath.
  */
 export async function bakeStegoVariant(options = {}) {
-  const donorGlbPath = options.donorGlbPath ?? DEFAULT_DONOR_GLB;
+  const officialGlbPath = options.officialGlbPath ?? DEFAULT_OFFICIAL_GLB;
   const outPath = options.outPath ?? DEFAULT_OUT_GLB;
   const blenderBin = options.blenderBin ?? process.env['STEGO_BLENDER_BIN'] ?? 'blender';
-  const donorBytes = await readFile(donorGlbPath);
-  const donorAnim = extractAnimationTracks(donorBytes);
+  const officialBytes = await readOfficialGlb(officialGlbPath);
+  const authored = extractAnimationClips(officialBytes);
   const group = createStegoVariantGroup();
-  const clip = buildStegoWaddleClip(group, donorAnim);
-  if (clip.userData.dropped.length > 0) {
-    console.log(`bake-stego-variant: dropped donor channels: ${clip.userData.dropped.join(', ')}`);
-  }
-  const exporter = new GLTFExporter();
-  const exported = await exporter.parseAsync(group, { binary: true, animations: [clip] });
-  const tmpIn = join(tmpdir(), `stego-baby-uncompressed-${process.pid}.glb`);
+  // Pre-flight against the real baked skeleton: a missing bone fails here, with
+  // the full list, instead of after Blender has written a GLB.
+  buildStegoClips(group, officialBytes);
+  // Mesh only. The clips go into the Draco output's JSON chunk below.
+  const exported = await new GLTFExporter().parseAsync(group, { binary: true });
+  const tmpIn = join(tmpdir(), `stego-uncompressed-${process.pid}.glb`);
   // Blender appends `.glb` when the export path lacks it, so the temp name
   // keeps the suffix: the next run overwrites any stranded temp, then the
   // atomic rename moves it into place (never a half-written outPath).
@@ -226,6 +212,9 @@ export async function bakeStegoVariant(options = {}) {
     if (result.status !== 0) {
       throw new Error(`Blender Draco pass failed (exit ${result.status}). Uncompressed export kept at ${tmpIn}.`);
     }
+    const injected = injectGlbAnimations(await readFile(tmpOut), authored);
+    assertAuthoredClipsPreserved(injected, authored);
+    await writeFile(tmpOut, injected);
     await rename(tmpOut, outPath);
   } catch (error) {
     await rm(tmpOut, { force: true });
@@ -235,15 +224,22 @@ export async function bakeStegoVariant(options = {}) {
       await rm(tmpIn, { force: true });
     }
   }
-  return { outPath, durationSeconds: clip.duration, trackCount: clip.tracks.length };
+  return {
+    outPath,
+    clips: authored.map((animation) => ({
+      name: animation.name,
+      durationSeconds: animation.durationSeconds,
+      trackCount: animation.channels.length,
+    })),
+  };
 }
 
 function parseArgs(argv) {
   const options = {};
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === '--donor' && i + 1 < argv.length) {
-      options.donorGlbPath = resolve(argv[i + 1]);
+    if (arg === '--official' && i + 1 < argv.length) {
+      options.officialGlbPath = resolve(argv[i + 1]);
       i += 1;
     } else if (arg === '--out' && i + 1 < argv.length) {
       options.outPath = resolve(argv[i + 1]);
@@ -254,7 +250,7 @@ function parseArgs(argv) {
     } else if (arg === '--keep-temp') {
       options.keepTemp = true;
     } else {
-      throw new Error(`Unknown argument "${arg}". Usage: node scripts/vendor/bake-stego-variant.js [--donor <glb>] [--out <glb>] [--blender <bin>] [--keep-temp].`);
+      throw new Error(`Unknown argument "${arg}". Usage: node scripts/vendor/bake-stego-variant.js [--official <glb>] [--out <glb>] [--blender <bin>] [--keep-temp].`);
     }
   }
   return options;
@@ -265,9 +261,10 @@ const isMain = process.argv[1] !== undefined && resolve(process.argv[1]) === fil
 if (isMain) {
   try {
     const summary = await bakeStegoVariant(parseArgs(process.argv.slice(2)));
-    console.log(
-      `bake-stego-variant: wrote ${summary.outPath} (Waddle ${summary.durationSeconds.toFixed(3)} s, ${summary.trackCount} tracks).`,
-    );
+    const clips = summary.clips
+      .map((clip) => `${clip.name} ${clip.durationSeconds.toFixed(3)} s / ${clip.trackCount} tracks`)
+      .join(', ');
+    console.log(`bake-stego-variant: wrote ${summary.outPath} (${clips}).`);
   } catch (error) {
     console.error(`bake-stego-variant: ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;

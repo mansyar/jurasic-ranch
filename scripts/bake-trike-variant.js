@@ -180,20 +180,14 @@ function readFloatAccessor(json, bin, accessorIndex) {
   return { values: Float32Array.from(out), itemSize, count: accessor.count };
 }
 
-/**
- * Extract the first animation's channels from raw GLB bytes. Animation
- * samplers are never Draco-compressed, so this works on the shipped GLB.
- */
-export function extractAnimationTracks(bytes) {
-  const { json, bin } = parseGlb(bytes);
-  const animations = json.animations ?? [];
-  if (animations.length === 0) {
-    throw new Error('Source GLB carries no animations; cannot retarget Waddle.');
-  }
-  const animation = animations[0];
+/** Read one glTF animation into the channel shape the bakes consume. */
+function readAnimation(json, bin, animation) {
   let durationSeconds = 0;
-  const channels = animation.channels.map((channel) => {
-    const sampler = animation.samplers[channel.sampler];
+  const channels = (animation.channels ?? []).map((channel) => {
+    const sampler = animation.samplers?.[channel.sampler];
+    if (sampler === undefined) {
+      throw new Error(`Clip "${animation.name ?? ''}" references a missing sampler.`);
+    }
     const input = readFloatAccessor(json, bin, sampler.input);
     const output = readFloatAccessor(json, bin, sampler.output);
     for (const t of input.values) {
@@ -209,6 +203,35 @@ export function extractAnimationTracks(bytes) {
       itemSize: output.itemSize,
     };
   });
+  return { name: animation.name ?? '', durationSeconds, channels };
+}
+
+/**
+ * Every animation in raw GLB bytes, in file order. Polyfork ships its authored
+ * `Idle`/`Walk`/`Run` set only inside the published GLB, so the Stego and
+ * Brachio bakes read the clips from here. Animation samplers are never
+ * Draco-compressed, so this works on the published file and on a shipped one.
+ */
+export function extractAnimationClips(bytes) {
+  const { json, bin } = parseGlb(bytes);
+  const animations = json.animations ?? [];
+  if (animations.length === 0) {
+    throw new Error('Source GLB carries no animations; nothing to graft.');
+  }
+  return animations.map((animation) => readAnimation(json, bin, animation));
+}
+
+/**
+ * Extract the first animation's channels from raw GLB bytes, plus the uniform
+ * root scale the Trike retarget validates.
+ */
+export function extractAnimationTracks(bytes) {
+  const { json, bin } = parseGlb(bytes);
+  const animations = json.animations ?? [];
+  if (animations.length === 0) {
+    throw new Error('Source GLB carries no animations; cannot retarget Waddle.');
+  }
+  const animation = readAnimation(json, bin, animations[0]);
   let rootScale = null;
   for (const node of json.nodes ?? []) {
     const scale = node?.scale;
@@ -219,7 +242,12 @@ export function extractAnimationTracks(bytes) {
       }
     }
   }
-  return { name: animation.name ?? '', durationSeconds, rootScale, channels };
+  return {
+    name: animation.name,
+    durationSeconds: animation.durationSeconds,
+    rootScale,
+    channels: animation.channels,
+  };
 }
 
 /**
@@ -276,6 +304,291 @@ export function buildRetargetedClip(skeletonRoot, animation) {
     throw new Error(`Waddle retarget: ${missing.length} channels target missing bones: ${names}.`);
   }
   return new THREE.AnimationClip(EXPECTED_CLIP_NAME, animation.durationSeconds, tracks);
+}
+
+/**
+ * The published GLB must carry exactly the authored clip set this game ships —
+ * no missing clip (nothing to graft) and no extra one (a clip nobody plays is
+ * bytes we would carry and never use).
+ */
+function assertAuthoredClipSet(animations, requiredClipNames) {
+  const found = animations.map((animation) => animation.name);
+  const missingClips = requiredClipNames.filter((name) => !found.includes(name));
+  if (missingClips.length > 0) {
+    throw new Error(
+      `Authored GLB is missing clip(s) ${missingClips.join(', ')}; it carries ${found.join(', ') || 'none'}.`,
+    );
+  }
+  const unexpectedClips = found.filter((name) => !requiredClipNames.includes(name));
+  if (unexpectedClips.length > 0) {
+    throw new Error(
+      `Authored GLB carries clip(s) ${unexpectedClips.join(', ')} that this game does not ship; ` +
+        'decide what to do with them rather than dropping them silently.',
+    );
+  }
+}
+
+/**
+ * glTF sampler interpolation → three's track interpolation. `CUBICSPLINE` is
+ * deliberately absent: its sampler values are in-tangent / point / out-tangent
+ * triplets, so copying them into a linear track would misread every key.
+ */
+const TRACK_INTERPOLATION = {
+  LINEAR: THREE.InterpolateLinear,
+  STEP: THREE.InterpolateDiscrete,
+};
+
+/**
+ * Graft authored clips from a Polyfork GLB onto a freshly baked skeleton.
+ * Shared by the Stego and Brachio bakes.
+ *
+ * Copies `translation` and `rotation` channels only — the authored clips carry
+ * no other path — and keeps each clip's name, order, duration, keyframe times
+ * and values exactly as published: no rescale, no retime, no synthesised scale
+ * track. A glTF translation channel is an ABSOLUTE local translation, so
+ * rescaling one drags the bone off its rest offset rather than adjusting a
+ * step: that was the donor transfer's bug, and this function exists to make it
+ * impossible.
+ *
+ * Throws — before the caller writes anything — when a clip names a bone the
+ * baked rig lacks (every missing bone is listed), when a channel targets
+ * another path, when a sampler is not LINEAR or STEP, or when the GLB's clip
+ * set is not exactly `requiredClipNames`.
+ */
+export function graftAuthoredClips(skeletonRoot, animations, options = {}) {
+  assertAuthoredClipSet(animations, options.requiredClipNames ?? ['Idle', 'Walk', 'Run']);
+  const missingBones = new Set();
+  const clips = [];
+  for (const animation of animations) {
+    const tracks = [];
+    for (const channel of animation.channels) {
+      if (skeletonRoot.getObjectByName(channel.nodeName) == null) {
+        missingBones.add(channel.nodeName);
+        continue;
+      }
+      const interpolation = TRACK_INTERPOLATION[channel.interpolation];
+      if (interpolation === undefined) {
+        throw new Error(
+          `Clip "${animation.name}" samples "${channel.nodeName}" with ${channel.interpolation} ` +
+            'interpolation; the graft copies keys verbatim, so only LINEAR and STEP survive it.',
+        );
+      }
+      const trackName = `${channel.nodeName}.${channel.path === 'translation' ? 'position' : 'quaternion'}`;
+      if (channel.path === 'translation') {
+        if (channel.itemSize !== 3) {
+          throw new Error(`Translation channel on "${channel.nodeName}" carries ${channel.itemSize} values, expected 3.`);
+        }
+        const track = new THREE.VectorKeyframeTrack(trackName, channel.times.slice(), channel.values.slice());
+        track.setInterpolation(interpolation);
+        tracks.push(track);
+      } else if (channel.path === 'rotation') {
+        if (channel.itemSize !== 4) {
+          throw new Error(`Rotation channel on "${channel.nodeName}" carries ${channel.itemSize} values, expected 4.`);
+        }
+        const track = new THREE.QuaternionKeyframeTrack(trackName, channel.times.slice(), channel.values.slice());
+        track.setInterpolation(interpolation);
+        tracks.push(track);
+      } else {
+        throw new Error(
+          `Clip "${animation.name}" channels "${channel.path}" on "${channel.nodeName}"; ` +
+            'only translation and rotation are grafted, and neither is synthesised.',
+        );
+      }
+    }
+    clips.push(new THREE.AnimationClip(animation.name, animation.durationSeconds, tracks));
+  }
+  if (missingBones.size > 0) {
+    throw new Error(
+      `Grafted clips name ${missingBones.size} bone(s) the baked rig lacks: ${[...missingBones].sort().join(', ')}. ` +
+        'The vendored module no longer builds the skeleton the clips were authored on.',
+    );
+  }
+  return clips;
+}
+
+/**
+ * Serialise a glTF JSON document and its BIN chunk into a GLB (version 2).
+ *
+ * The JSON chunk is padded with spaces and the BIN chunk with zeros, as the
+ * container requires. Nothing here writes a timestamp or a producer string, so
+ * the same document always serialises to the same bytes.
+ */
+export function writeGlb(json, bin) {
+  let jsonBytes = new TextEncoder().encode(JSON.stringify(json));
+  const jsonPad = (4 - (jsonBytes.length % 4)) % 4;
+  if (jsonPad > 0) {
+    const padded = new Uint8Array(jsonBytes.length + jsonPad).fill(0x20);
+    padded.set(jsonBytes);
+    jsonBytes = padded;
+  }
+  let binBytes = bin;
+  const binPad = (4 - (binBytes.length % 4)) % 4;
+  if (binPad > 0) {
+    const padded = new Uint8Array(binBytes.length + binPad);
+    padded.set(binBytes);
+    binBytes = padded;
+  }
+  const total = 12 + 8 + jsonBytes.length + 8 + binBytes.length;
+  const out = new Uint8Array(total);
+  const view = new DataView(out.buffer);
+  view.setUint32(0, GLB_MAGIC, true);
+  view.setUint32(4, GLB_VERSION, true);
+  view.setUint32(8, total, true);
+  view.setUint32(12, jsonBytes.length, true);
+  view.setUint32(16, JSON_CHUNK_TYPE, true);
+  out.set(jsonBytes, 20);
+  view.setUint32(20 + jsonBytes.length, binBytes.length, true);
+  view.setUint32(24 + jsonBytes.length, BIN_CHUNK_TYPE, true);
+  out.set(binBytes, 28 + jsonBytes.length);
+  return out;
+}
+
+/**
+ * Inject the authored animations into an exported GLB by editing its JSON chunk.
+ *
+ * The clips are deliberately NOT routed through `GLTFExporter`: it re-times
+ * keyframes to its 24 fps default — a 2.4 s authored cycle shipped as 2.375 s
+ * (57 frames) with 289 keys collapsed to 58 — and it emits TRS for every
+ * animated node even when only two paths were supplied, which is how a 48
+ * channel clip became 72. Here every authored channel keeps its sampler's key
+ * times, values and interpolation byte for byte; only `target.node` is remapped,
+ * by joint NAME, from the authored node indices to the exported ones. Channels
+ * are copied for `translation` and `rotation` only — no scale track is
+ * synthesised.
+ *
+ * Throws, before the caller writes anything, when the exported GLB lacks an
+ * animated bone (every missing name is listed), when two exported nodes share a
+ * name a clip targets, or when the authored clip set is not exactly
+ * `requiredClipNames`.
+ */
+export function injectGlbAnimations(glbBytes, authored, options = {}) {
+  const { json, bin } = parseGlb(glbBytes);
+  assertAuthoredClipSet(authored, options.requiredClipNames ?? ['Idle', 'Walk', 'Run']);
+  const nodeIndexByName = new Map();
+  const nodes = json.nodes ?? [];
+  for (let index = 0; index < nodes.length; index += 1) {
+    const name = nodes[index]?.name;
+    if (name === undefined) {
+      continue;
+    }
+    if (nodeIndexByName.has(name)) {
+      throw new Error(`Exported GLB has two nodes named "${name}"; refusing to guess which one a clip targets.`);
+    }
+    nodeIndexByName.set(name, index);
+  }
+  const bufferViews = json.bufferViews ?? (json.bufferViews = []);
+  const accessors = json.accessors ?? (json.accessors = []);
+  const pieces = [];
+  let cursor = Math.ceil(bin.byteLength / 4) * 4;
+  const appendAccessor = (values, type) => {
+    const itemSize = ACCESSOR_ITEM_SIZE[type];
+    const byteOffset = cursor;
+    pieces.push(new Uint8Array(values.buffer, values.byteOffset, values.byteLength));
+    cursor += values.byteLength;
+    bufferViews.push({ buffer: 0, byteOffset, byteLength: values.byteLength });
+    const accessor = {
+      bufferView: bufferViews.length - 1,
+      componentType: FLOAT_COMPONENT,
+      count: values.length / itemSize,
+      type,
+    };
+    if (type === 'SCALAR') {
+      accessor.min = [Math.min(...values)];
+      accessor.max = [Math.max(...values)];
+    }
+    accessors.push(accessor);
+    return accessors.length - 1;
+  };
+  const missingBones = new Set();
+  const animations = [];
+  for (const animation of authored) {
+    const samplers = [];
+    const channels = [];
+    for (const channel of animation.channels) {
+      if (channel.path !== 'translation' && channel.path !== 'rotation') {
+        throw new Error(
+          `Authored clip "${animation.name}" channels "${channel.path}" on "${channel.nodeName}"; ` +
+            'only translation and rotation are carried, and neither is synthesised.',
+        );
+      }
+      if (channel.interpolation !== 'LINEAR' && channel.interpolation !== 'STEP') {
+        throw new Error(
+          `Authored clip "${animation.name}" samples "${channel.nodeName}" with ${channel.interpolation} ` +
+            'interpolation; the keys are copied verbatim, so only LINEAR and STEP survive it.',
+        );
+      }
+      const node = nodeIndexByName.get(channel.nodeName);
+      if (node === undefined) {
+        missingBones.add(channel.nodeName);
+        continue;
+      }
+      const input = appendAccessor(channel.times, 'SCALAR');
+      const output = appendAccessor(channel.values, channel.path === 'translation' ? 'VEC3' : 'VEC4');
+      channels.push({ sampler: samplers.length, target: { node, path: channel.path } });
+      samplers.push({ input, output, interpolation: channel.interpolation });
+    }
+    animations.push({ name: animation.name, channels, samplers });
+  }
+  if (missingBones.size > 0) {
+    throw new Error(
+      `Injected clips name ${missingBones.size} bone(s) the exported rig lacks: ${[...missingBones].sort().join(', ')}. ` +
+        'The exported skeleton is not the one the clips were authored on.',
+    );
+  }
+  const injected = new Uint8Array(Math.ceil(cursor / 4) * 4);
+  injected.set(bin, 0);
+  let offset = Math.ceil(bin.byteLength / 4) * 4;
+  for (const piece of pieces) {
+    injected.set(piece, offset);
+    offset += piece.byteLength;
+  }
+  json.animations = animations;
+  json.buffers = [{ byteLength: injected.length }];
+  return writeGlb(json, injected);
+}
+
+/**
+ * Read a written GLB back and prove the authored clips survived: same names in
+ * the same order, same channel count, same total keyframe count, the same
+ * duration to the microsecond, and no path besides translation and rotation.
+ */
+export function assertAuthoredClipsPreserved(glbBytes, authored) {
+  const shipped = extractAnimationClips(glbBytes);
+  assertAuthoredClipSet(
+    shipped,
+    authored.map((animation) => animation.name),
+  );
+  const countKeys = (channels) => channels.reduce((total, channel) => total + channel.times.length, 0);
+  for (let index = 0; index < authored.length; index += 1) {
+    const want = authored[index];
+    const got = shipped[index];
+    if (got.name !== want.name) {
+      throw new Error(`Clip ${index} is "${got.name}" in the written GLB, expected "${want.name}".`);
+    }
+    if (got.channels.length !== want.channels.length) {
+      throw new Error(
+        `Clip "${want.name}" has ${got.channels.length} channels, expected ${want.channels.length}.`,
+      );
+    }
+    if (countKeys(got.channels) !== countKeys(want.channels)) {
+      throw new Error(
+        `Clip "${want.name}" carries ${countKeys(got.channels)} keyframes, expected ${countKeys(want.channels)}; ` +
+          'something resampled the authored timing.',
+      );
+    }
+    if (Math.abs(got.durationSeconds - want.durationSeconds) > 1e-6) {
+      throw new Error(
+        `Clip "${want.name}" is ${got.durationSeconds} s, expected ${want.durationSeconds} s; ` +
+          'something resampled the authored timing.',
+      );
+    }
+    for (const channel of got.channels) {
+      if (channel.path !== 'translation' && channel.path !== 'rotation') {
+        throw new Error(`Clip "${want.name}" carries a "${channel.path}" channel; only translation and rotation ship.`);
+      }
+    }
+  }
+  return shipped;
 }
 
 /** Find the script-relative Blender Draco pass (scripts/bake-trike-variant.py). */

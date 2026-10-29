@@ -1,12 +1,13 @@
 import type * as THREE from 'three';
-import type { GlbAnimationData } from '../bake-trike-variant.js';
 
-/** Pinned Polyfork params for the pastel baby Brachio variant (see bake-brachio-variant.js). */
+/**
+ * Pinned Polyfork params for the pastel Brachio variant (see
+ * bake-brachio-variant.js): the colourway plus the authored size. Geometry knobs
+ * are absent on purpose — they rebuild bones, and the authored clips apply
+ * verbatim only to the module's default skeleton at size 1.0.
+ */
 export interface BrachioVariantParams {
   size: number;
-  neck: number;
-  head: number;
-  tail: number;
   colorway: string;
   coat: string;
   flank: string;
@@ -19,15 +20,6 @@ export interface BrachioVariantParams {
 
 export declare const BRACHIO_VARIANT_PARAMS: BrachioVariantParams;
 
-/** Extra uniform scale applied to the variant group (knob floor 0.6 cannot reach the cap alone). */
-export declare const BRACHIO_EXTRA_SCALE: number;
-
-/** Position-track scale applied when rebuilding Waddle onto the Brachio skeleton. */
-export declare const BRACHIO_POSITION_TRACK_SCALE: number;
-
-/** Retime target: the rebuilt Waddle loop length in seconds (matches BRACHIO_GAIT). */
-export declare const BRACHIO_LOOP_SECONDS: number;
-
 /** Procedural variant group: the exact geometry the bake exports. */
 export declare function createBrachioVariantGroup(): THREE.Group;
 
@@ -35,18 +27,24 @@ export declare function createBrachioVariantGroup(): THREE.Group;
 export declare function createBrachioDefaultGroup(): THREE.Group;
 
 /**
- * Rebuild the Trike donor Waddle clip on the Brachio skeleton (retimed to
- * 1.0 s, positions scaled, quaternions verbatim). Donor channels with no
- * Brachio counterpart (ear bones) are dropped and recorded on the clip's
- * userData.dropped.
+ * Graft the official GLB's authored Idle/Walk/Run onto the baked skeleton.
+ * Translation and rotation only, times and values verbatim; throws before the
+ * bake writes anything when a clip names a bone the rig lacks.
  */
-export declare function buildBrachioWaddleClip(
+export declare function buildBrachioClips(
   skeletonRoot: THREE.Object3D,
-  animation: GlbAnimationData,
-): THREE.AnimationClip;
+  officialBytes: Uint8Array,
+): THREE.AnimationClip[];
+
+/** One grafted clip, as reported by the bake. */
+export interface BakedClipSummary {
+  name: string;
+  durationSeconds: number;
+  trackCount: number;
+}
 
 export interface BakeBrachioVariantOptions {
-  donorGlbPath?: string;
+  officialGlbPath?: string;
   outPath?: string;
   blenderBin?: string;
   keepTemp?: boolean;
@@ -54,11 +52,10 @@ export interface BakeBrachioVariantOptions {
 
 export interface BakeBrachioVariantSummary {
   outPath: string;
-  durationSeconds: number;
-  trackCount: number;
+  clips: BakedClipSummary[];
 }
 
-/** Run the full bake (procedural variant + rebuilt Waddle + Blender Draco pass). */
+/** Run the full bake (procedural variant + grafted authored clips + Blender Draco pass). */
 export declare function bakeBrachioVariant(
   options?: BakeBrachioVariantOptions,
 ): Promise<BakeBrachioVariantSummary>;

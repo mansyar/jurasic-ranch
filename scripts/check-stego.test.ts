@@ -1,16 +1,26 @@
 import { readFile, stat } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
-/** Budget from NFR-2: the baked Stego must stay small enough for offline cache. */
-const MAX_BYTES = 150 * 1024;
-/** Baked waddle cycle length in seconds; matches the viewer loop constant. */
-const WADDLE_MIN_SECONDS = 0.79;
-const WADDLE_MAX_SECONDS = 0.81;
-/** Baked pastel baby variant: the Polyfork size-0.6 rebuild (~3.9 m pen-mate of the Trike). */
-const MIN_LENGTH_METRES = 3.3;
-const MAX_LENGTH_METRES = 4.2;
-/** Tallest plate top sits at ~0.6x of the 3.82 m adult reference. */
-const MAX_HEIGHT_METRES = 2.6;
+/**
+ * Budget: the baked Stego carries Polyfork's authored clips, which are dense
+ * uncompressed glTF float data (71k keys across the three). NFR-2 sets the
+ * app-wide offline precache budget; Phase 6 audits the total, this caps the one
+ * file against a runaway bake.
+ */
+const MAX_BYTES = 2 * 1024 * 1024;
+/** Authored clip lengths in seconds, as published (AC-1). */
+const CLIP_SECONDS = [
+  ['Idle', 9],
+  ['Walk', 2.4],
+  ['Run', 1],
+] as const;
+/** 24 bones x translation + rotation: the authored channel count. */
+const CHANNELS_PER_CLIP = 48;
+/** Authored proportions: the Polyfork reference is ~6.49 m tip-to-tail. */
+const MIN_LENGTH_METRES = 6.3;
+const MAX_LENGTH_METRES = 6.8;
+/** Adult plate crest sits at ~3.82 m. */
+const MAX_HEIGHT_METRES = 4.2;
 
 const STEGO_URL = new URL('../public/models/stego.glb', import.meta.url);
 
@@ -42,9 +52,13 @@ interface GlbSampler {
   input: number;
 }
 
+interface GlbChannel {
+  target: { node: number; path: string };
+}
+
 interface GlbAnimation {
   name?: string;
-  channels: unknown[];
+  channels: GlbChannel[];
   samplers: GlbSampler[];
 }
 
@@ -114,7 +128,7 @@ function animationDuration(parsed: ParsedGlb, animation: GlbAnimation): number {
 }
 
 describe('stego glb', () => {
-  it('ships under the 150 kb offline-cache budget', async () => {
+  it('ships under the authored-clip cache budget', async () => {
     const info = await stat(STEGO_URL);
     expect(info.size).toBeLessThan(MAX_BYTES);
   });
@@ -125,20 +139,28 @@ describe('stego glb', () => {
     expect(parsed.json.meshes.length).toBeGreaterThan(0);
   });
 
-  it('carries exactly one seamless waddle clip of 0.8 s', async () => {
+  it('carries the authored Idle, Walk and Run clips at their published lengths', async () => {
     const parsed = await parseGlb();
-    expect(parsed.json.animations?.length).toBe(1);
-    const waddle = (parsed.json.animations ?? [])[0];
-    expect(waddle.name).toBe('Waddle');
-    expect(waddle.channels.length).toBeGreaterThan(0);
-    const duration = animationDuration(parsed, waddle);
-    expect(duration).toBeGreaterThanOrEqual(WADDLE_MIN_SECONDS);
-    expect(duration).toBeLessThanOrEqual(WADDLE_MAX_SECONDS);
+    const animations = parsed.json.animations ?? [];
+    // AC-1: the authored set, and no donor "Waddle" anywhere.
+    expect(animations.map((animation) => animation.name).sort()).toEqual(
+      CLIP_SECONDS.map(([name]) => name).sort(),
+    );
+    expect(animations.some((animation) => animation.name === 'Waddle')).toBe(false);
+    for (const animation of animations) {
+      const expected = CLIP_SECONDS.find(([name]) => name === animation.name)?.[1];
+      expect(expected).toBeDefined();
+      expect(animationDuration(parsed, animation)).toBeCloseTo(expected ?? 0, 3);
+      // 24 bones x translation + rotation: no synthesised scale channel.
+      expect(animation.channels.length).toBe(CHANNELS_PER_CLIP);
+      for (const channel of animation.channels) {
+        expect(['translation', 'rotation']).toContain(channel.target.path);
+      }
+    }
   });
 
   it('meets the NFR-2 offline contract: draco, one flat-shaded material', async () => {
     const parsed = await parseGlb();
-    // Draco keeps the baked GLB far under the 150 KB cache budget.
     const declared = [
       ...(parsed.json.extensionsUsed ?? []),
       ...(parsed.json.extensionsRequired ?? []),
@@ -152,7 +174,7 @@ describe('stego glb', () => {
     // 1 material) and the viewer keeps it faceted under NoToneMapping daylight.
   });
 
-  it('stands on the ground plane at baby scale, y-up', async () => {
+  it('stands on the ground plane at authored proportions, y-up', async () => {
     const parsed = await parseGlb();
     const primitive = parsed.json.meshes[0].primitives[0];
     const accessor = parsed.json.accessors[primitive.attributes['POSITION']];
@@ -163,7 +185,7 @@ describe('stego glb', () => {
     // only the min bound is asserted here; the max bound caps the crest.)
     expect(Math.abs(min[1] ?? 1)).toBeLessThan(0.01);
     expect((max[1] ?? 0) - (min[1] ?? 0)).toBeLessThan(MAX_HEIGHT_METRES);
-    // Size-0.6 rebuild of the 6.49 m reference: about 3.9 m tip-to-tail.
+    // Authored size 1.0: ~6.49 m tip-to-tail, the module's own reference.
     const length = (max[2] ?? 0) - (min[2] ?? 0);
     expect(length).toBeGreaterThanOrEqual(MIN_LENGTH_METRES);
     expect(length).toBeLessThanOrEqual(MAX_LENGTH_METRES);

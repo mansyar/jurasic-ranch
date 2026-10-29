@@ -14,6 +14,12 @@ export default defineConfig({
         // Precache the app shell plus future dino GLBs for airplane-mode boot.
         // `wasm` covers the Draco decoder Vite emits under `assets/`.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,glb,wasm,webmanifest}'],
+        // The authored clips ride inside the GLBs as float accessors, so Stego
+        // and Brachio are 1.4 MB and 2.3 MB. Workbox's 2 MiB default silently
+        // drops the larger one from the precache and fails the build; the ranch
+        // still fits its 15 MB cache budget with both. Track
+        // 20261029-authored-dino-walk-clips owns shrinking them.
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
       },

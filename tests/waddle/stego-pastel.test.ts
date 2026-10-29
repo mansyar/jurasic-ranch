@@ -1,22 +1,21 @@
 import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { extractAnimationTracks } from '../../scripts/bake-trike-variant.js';
+import { extractAnimationClips } from '../../scripts/bake-trike-variant.js';
 import {
-  buildStegoWaddleClip,
+  buildStegoClips,
   createStegoDefaultGroup,
   createStegoVariantGroup,
-  STEGO_POSITION_TRACK_SCALE,
   STEGO_VARIANT_PARAMS,
 } from '../../scripts/vendor/bake-stego-variant.js';
 
 /**
- * Baked pastel baby Stego variant (FR-3 / FR-4): asserts the pinned bake
- * params, the procedural variant geometry they produce (dusty-teal pastel
- * COLOR_0, single material, size-0.6 baby proportions), and the Waddle
- * retarget the bake applies from the Trike donor clip. The GLB-level checks
- * (Draco, single material, Waddle 0.8 s, bounds) live in
- * scripts/check-stego.test.ts, which cannot read colors out of Draco bytes.
+ * Baked pastel Stego (FR-1 / FR-2 / FR-3): the pinned bake params, the
+ * procedural geometry they produce (pastel COLOR_0, one material, authored
+ * proportions), and the authored clips the bake carries — Polyfork's own
+ * `Idle`/`Walk`/`Run`, copied verbatim. The GLB-level checks (Draco, single
+ * material, clip durations, bounds) live in scripts/check-stego.test.ts, which
+ * cannot read colours out of Draco bytes.
  */
 
 const PASTEL_HEXES = [
@@ -29,19 +28,12 @@ const PASTEL_HEXES = [
   '#b26a4d',
   '#fff3dd',
 ] as const;
-const RETIRED_HEXES = [
-  '#ab814f',
-  '#9c7242',
-  '#63503f',
-  '#684a2d',
-  '#f4ddb4',
-  '#cfaf82',
-  '#a67c4b',
-  '#ffebc8',
-] as const;
 
 const COLOR_TOLERANCE = 1e-4;
 const MIN_VERTS_PER_ZONE = 50;
+const SHIPPED_GLB = new URL('../../public/models/stego.glb', import.meta.url);
+/** Authored cycle lengths, as published (AC-1). */
+const CLIP_SECONDS = { Idle: 9, Walk: 2.4, Run: 1 } as const;
 
 /** Count verts whose linear-space color matches the hex within tolerance. */
 function countMatchingVerts(geometry: THREE.BufferGeometry, hex: string): number {
@@ -60,6 +52,30 @@ function countMatchingVerts(geometry: THREE.BufferGeometry, hex: string): number
   return count;
 }
 
+/** Distinct linear-space colors baked into a geometry's COLOR_0. */
+function distinctColors(geometry: THREE.BufferGeometry): Array<[number, number, number]> {
+  const colors = geometry.getAttribute('color') as THREE.BufferAttribute;
+  const seen = new Map<string, [number, number, number]>();
+  for (let i = 0; i < colors.count; i += 1) {
+    const key = `${colors.getX(i).toFixed(6)},${colors.getY(i).toFixed(6)},${colors.getZ(i).toFixed(6)}`;
+    if (!seen.has(key)) {
+      seen.set(key, [colors.getX(i), colors.getY(i), colors.getZ(i)]);
+    }
+  }
+  return [...seen.values()];
+}
+
+function isPastel(color: [number, number, number]): boolean {
+  return PASTEL_HEXES.some((hex) => {
+    const c = new THREE.Color(hex);
+    return (
+      Math.abs(color[0] - c.r) < COLOR_TOLERANCE &&
+      Math.abs(color[1] - c.g) < COLOR_TOLERANCE &&
+      Math.abs(color[2] - c.b) < COLOR_TOLERANCE
+    );
+  });
+}
+
 function singleMesh(group: THREE.Group): THREE.SkinnedMesh {
   const meshes: THREE.SkinnedMesh[] = [];
   group.traverse((child) => {
@@ -71,18 +87,15 @@ function singleMesh(group: THREE.Group): THREE.SkinnedMesh {
   return meshes[0] as THREE.SkinnedMesh;
 }
 
-function zLengthMetres(group: THREE.Group): number {
-  const box = new THREE.Box3().setFromObject(group);
-  return box.max.z - box.min.z;
+function worldBox(group: THREE.Group): THREE.Box3 {
+  group.updateMatrixWorld(true);
+  return new THREE.Box3().setFromObject(group);
 }
 
-describe('baked pastel baby stego variant params', () => {
-  it('pins the exact Polyfork call from the spec', () => {
+describe('baked pastel stego variant params', () => {
+  it('pins the exact Polyfork call: authored size, colour only', () => {
     expect(STEGO_VARIANT_PARAMS).toEqual({
-      size: 0.6,
-      plates: 24,
-      plateSize: 1,
-      tail: 1,
+      size: 1,
       plateColour: 'umber',
       hide: '#7fb5a3',
       belly: '#f6ead0',
@@ -93,11 +106,13 @@ describe('baked pastel baby stego variant params', () => {
       plateTrim: '#b26a4d',
       spike: '#fff3dd',
     });
-    expect(STEGO_POSITION_TRACK_SCALE).toBe(0.6);
+    // No geometry knob and no second scale: `plates`/`plateSize`/`tail` rebuild
+    // bones, and the authored clips only fit the module's default skeleton —
+    // Phase 1 measured official rest pose == module defaults at size 1.0.
   });
 });
 
-describe('baked pastel baby stego variant geometry', () => {
+describe('baked pastel stego variant geometry', () => {
   it('ships one flat-shaded vertex-colored mesh on a single material', () => {
     const mesh = singleMesh(createStegoVariantGroup());
     const material = mesh.material as THREE.MeshStandardMaterial;
@@ -106,88 +121,109 @@ describe('baked pastel baby stego variant geometry', () => {
     expect(material.flatShading).toBe(true);
   });
 
-  it('bakes every pastel zone into COLOR_0 and drops every retired brown', () => {
+  it('bakes every pastel zone into COLOR_0 and keeps the retired brown hide out', () => {
     const mesh = singleMesh(createStegoVariantGroup());
     for (const hex of PASTEL_HEXES) {
       expect(countMatchingVerts(mesh.geometry, hex)).toBeGreaterThan(MIN_VERTS_PER_ZONE);
     }
-    for (const hex of RETIRED_HEXES) {
-      expect(countMatchingVerts(mesh.geometry, hex)).toBe(0);
-    }
+    // The plate *palette* stays the default 'umber' (a separate knob from the
+    // pastel `plate`/`plateTrim` faces), so a few plate-shade browns are by
+    // design. What must not survive is the brown hide: the pastel zones have to
+    // own the majority of the vertices.
+    const colorAttribute = mesh.geometry.getAttribute('color') as THREE.BufferAttribute;
+    const pastelVerts = PASTEL_HEXES.reduce(
+      (sum, hex) => sum + countMatchingVerts(mesh.geometry, hex),
+      0,
+    );
+    expect(pastelVerts / colorAttribute.count).toBeGreaterThan(0.6);
+    // The adult build's own hide is not one of the pastel zones: recolouring
+    // actually replaced it rather than adding on top of it.
+    expect(distinctColors(mesh.geometry).some((color) => isPastel(color))).toBe(true);
   });
 
-  it('reads as a size-0.6 baby next to the adult default', () => {
-    const variantLength = zLengthMetres(createStegoVariantGroup());
-    const adultLength = zLengthMetres(createStegoDefaultGroup());
+  it('keeps the authored proportions instead of a size-0.6 baby scale', () => {
+    const variantBox = worldBox(createStegoVariantGroup());
+    const adultBox = worldBox(createStegoDefaultGroup());
+    const variantLength = variantBox.max.z - variantBox.min.z;
+    const adultLength = adultBox.max.z - adultBox.min.z;
+    // Adult reference as built: ~6.5 m long, 3.8 m at the plates.
     expect(adultLength).toBeGreaterThan(6.3);
     expect(adultLength).toBeLessThan(6.6);
-    expect(variantLength).toBeGreaterThan(3.3);
-    expect(variantLength).toBeLessThan(4.2);
-    const ratio = variantLength / adultLength;
-    expect(ratio).toBeGreaterThan(0.55);
-    expect(ratio).toBeLessThan(0.65);
+    // The pinned call is the module's own default skeleton at size 1.0, so the
+    // variant IS the adult build: gameplay size is a viewer group scale (FR-4),
+    // never a bake knob.
+    expect(variantLength / adultLength).toBeGreaterThan(0.99);
+    expect(variantLength / adultLength).toBeLessThan(1.01);
+    expect(variantBox.max.y).toBeGreaterThan(3.4);
+    expect(variantBox.max.y).toBeLessThan(4.2);
   });
 
   it('keeps the Head bone the runtime blush pin targets, feet on y = 0', () => {
     const group = createStegoVariantGroup();
     expect(group.getObjectByName('Head')).not.toBeNull();
-    const box = new THREE.Box3().setFromObject(group);
-    expect(Math.abs(box.min.y)).toBeLessThan(0.01);
+    expect(Math.abs(worldBox(group).min.y)).toBeLessThan(0.01);
   });
 });
 
-describe('Stego Waddle retarget from the Trike donor', () => {
-  /** Shipped Trike baby GLB: the 0.8 s Waddle donor for the Stego bake. */
-  const DONOR_GLB = new URL('../../public/models/trike.glb', import.meta.url);
-
-  it('rebuilds the clip on the stego skeleton with positions scaled and quats intact', async () => {
-    const bytes = await readFile(DONOR_GLB);
-    const animation = extractAnimationTracks(bytes);
-    expect(animation.name).toBe('Waddle');
+describe('authored clips on the stego rig', () => {
+  it('rebuilds Idle, Walk and Run with the published timing', async () => {
     const group = createStegoVariantGroup();
-    const clip = buildStegoWaddleClip(group, animation);
-    expect(clip.name).toBe('Waddle');
-    // 24 mapped nodes x (position + quaternion + scale): the donor Waddle
-    // carries all three paths and the retarget passes them through — the
-    // Stego rig shares the Trike's 24-bone skeleton, so nothing drops.
-    expect(clip.tracks.length).toBe(72);
-    expect(clip.duration).toBeGreaterThan(0.79);
-    expect(clip.duration).toBeLessThan(0.81);
-    const sourceTranslation = animation.channels.find((channel) => channel.path === 'translation');
-    const rebuiltTranslation = clip.tracks.find((track) => track.name.endsWith('.position'));
-    expect(sourceTranslation).toBeDefined();
-    expect(rebuiltTranslation).toBeDefined();
-    const sourceValues = (sourceTranslation as { values: Float32Array }).values;
-    const rebuiltValues = (rebuiltTranslation as THREE.KeyframeTrack).values;
-    expect(rebuiltValues.length).toBe(sourceValues.length);
-    for (let i = 0; i < rebuiltValues.length; i += 1) {
-      expect(rebuiltValues[i]).toBeCloseTo(sourceValues[i] * STEGO_POSITION_TRACK_SCALE, 5);
+    const clips = buildStegoClips(group, await readFile(SHIPPED_GLB));
+    expect(clips.map((clip) => clip.name)).toEqual(['Idle', 'Walk', 'Run']);
+    for (const clip of clips) {
+      expect(clip.duration).toBeCloseTo(CLIP_SECONDS[clip.name as keyof typeof CLIP_SECONDS], 3);
+      expect(clip.tracks.length).toBe(48);
     }
-    const sourceRotation = animation.channels.find((channel) => channel.path === 'rotation');
-    const rebuiltRotation = clip.tracks.find((track) => track.name.endsWith('.quaternion'));
-    expect(Array.from((rebuiltRotation as THREE.KeyframeTrack).values)).toEqual(
-      Array.from((sourceRotation as { values: Float32Array }).values),
+  });
+
+  it('carries translation and rotation only, no synthesised scale track', async () => {
+    const group = createStegoVariantGroup();
+    const clips = buildStegoClips(group, await readFile(SHIPPED_GLB));
+    for (const clip of clips) {
+      for (const track of clip.tracks) {
+        expect(track.name.endsWith('.position') || track.name.endsWith('.quaternion')).toBe(true);
+        expect((track as THREE.KeyframeTrack).getInterpolation()).toBe(THREE.InterpolateLinear);
+      }
+    }
+  });
+
+  it('copies the published key values verbatim — no position rescale', async () => {
+    const bytes = await readFile(SHIPPED_GLB);
+    const source = extractAnimationClips(bytes).find((animation) => animation.name === 'Walk');
+    expect(source).toBeDefined();
+    const group = createStegoVariantGroup();
+    const walk = buildStegoClips(group, bytes).find((clip) => clip.name === 'Walk');
+    expect(walk).toBeDefined();
+    const tracks = new Map(
+      (walk as THREE.AnimationClip).tracks.map((track) => [track.name, track]),
     );
-    for (const track of clip.tracks) {
-      expect((track as THREE.KeyframeTrack).getInterpolation()).toBe(THREE.InterpolateLinear);
+    for (const channel of source?.channels ?? []) {
+      const track = tracks.get(
+        `${channel.nodeName}.${channel.path === 'translation' ? 'position' : 'quaternion'}`,
+      );
+      expect(track, `${channel.nodeName}.${channel.path}`).toBeDefined();
+      // Exactly the published floats: this is the regression guard for the
+      // retired donor bake, which multiplied every translation by 0.6 and
+      // pulled each bone off its rest offset.
+      expect(Array.from((track as THREE.KeyframeTrack).values)).toEqual(Array.from(channel.values));
+      expect(Array.from((track as THREE.KeyframeTrack).times)).toEqual(Array.from(channel.times));
     }
-    // Loop closure is the donor's own: the retarget copies every key verbatim
-    // (positions only change by the uniform STEGO_POSITION_TRACK_SCALE), so
-    // the shipped endpoints match the donor Waddle exactly.
-    let maxSeamGap = 0;
-    for (const track of clip.tracks) {
+  });
+
+  it('loops cleanly: first and last Walk keys agree', async () => {
+    const group = createStegoVariantGroup();
+    const walk = buildStegoClips(group, await readFile(SHIPPED_GLB)).find(
+      (clip) => clip.name === 'Walk',
+    ) as THREE.AnimationClip;
+    for (const track of walk.tracks) {
       const keyTrack = track as THREE.KeyframeTrack;
       const itemSize = keyTrack.getValueSize();
       const keyCount = keyTrack.values.length / itemSize;
-      let trackGap = 0;
       for (let k = 0; k < itemSize; k += 1) {
-        trackGap = Math.max(
-          trackGap,
+        expect(
           Math.abs(keyTrack.values[k] - keyTrack.values[(keyCount - 1) * itemSize + k]),
-        );
+        ).toBeLessThan(0.05);
       }
-      maxSeamGap = Math.max(maxSeamGap, trackGap);
     }
-    expect(maxSeamGap).toBeLessThan(0.05);
   });
 });
