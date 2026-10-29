@@ -60,7 +60,7 @@ The primary appends after acceptance:
 - **Covers:** FR-5, FR-6, FR-7, FR-8, FR-9, AC-3, AC-4, AC-5, AC-6, AC-8
 - **Touches:** `src/viewer/main.ts`, `src/viewer/*.ts`, `src/ranch/*.ts`, `index.html`, `vite.config.ts`, `tests/**/trio-*.ts`, `tests/**/viewer-*.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P3.T1: Trio wander + pairwise avoidance integration** — covers: FR-5, FR-6
   - [ ] **P3.T1.1: Load three DinoPlayers triangle spawn, pairwise steer each frame** — stay in-frame 30 s, min sep >0.25 m
