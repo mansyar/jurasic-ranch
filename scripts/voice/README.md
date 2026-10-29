@@ -18,8 +18,8 @@ python -m venv .conductor/kokoro-venv
 ffmpeg -version
 ```
 
-Both `ffmpeg` and `ffprobe` must be on `PATH` (the pipeline uses `loudnorm`,
-`apad`, `ebur128`, and `libmp3lame`).
+Both `ffmpeg` and `ffprobe` must be on `PATH` (the pipeline uses `ebur128`,
+`volume`, `alimiter`, `apad`, and `libmp3lame`).
 
 Download the model files into `.conductor/kokoro-models/` (gitignored, roughly
 325 MB, never committed):
@@ -37,10 +37,14 @@ curl.exe -L --fail --output .conductor/kokoro-models/voices-v1.0.bin \
 .conductor/kokoro-venv/Scripts/python.exe scripts/voice/generate.py
 ```
 
-The script synthesizes one line at a time, trims silence, applies two-pass
-`loudnorm`, pads the tail, encodes the mp3, and fails if any line exceeds the
-2 s budget. It writes a measurement report to
-`.conductor/evidence/voice-report.json` and leaves no wav intermediates behind.
+The script synthesizes one line at a time, trims silence, measures the trimmed
+wav with `ebur128`, applies a fixed gain plus a −1.5 dBFS limiter, pads the tail,
+and encodes the mp3. It then re-measures the file and repeats the gain step once
+if the result is more than 0.5 dB off −16 LUFS, failing loudly if the second
+attempt misses or if any line exceeds the 2 s budget. The measured gain keeps
+sub-second lines on target, where `loudnorm`'s dynamic mode undershoots. It
+writes a measurement report to `.conductor/evidence/voice-report.json` and
+leaves no wav intermediates behind.
 
 Useful flags: `--manifest`, `--model-dir`, `--out-dir`, `--keep-intermediates`.
 

@@ -5,9 +5,15 @@ Pipeline per line (FR-5, NFR-3):
 
 1. Kokoro `af_bella` at the manifest speed produces mono float samples.
 2. Leading/trailing silence is trimmed in numpy (no ffmpeg guessing).
-3. ffmpeg `loudnorm` in linear mode normalises the speech to -16 LUFS.
-4. ffmpeg `apad` appends the manifest tail (0.3 s), then the result is encoded
-   as mono 44.1 kHz 128 kbps mp3 under `public/audio/voice/`.
+3. The trimmed wav is measured with `ebur128`, then one encode applies a fixed
+   `volume=<target - measured>dB` gain and a -1.5 dBFS `alimiter`. A measured
+   gain is deterministic for sub-second lines, where `loudnorm`'s dynamic mode
+   undershoots.
+4. `apad` appends the manifest tail (0.3 s) and the result is encoded as mono
+   44.1 kHz 128 kbps mp3 under `public/audio/voice/`.
+5. The finished mp3 is measured again; if it missed -16 LUFS by more than 0.5 dB
+   the gain step repeats once, always from the trimmed wav, never from the mp3.
+   A second miss is a hard failure.
 
 Intermediates live under `.conductor/evidence/voice-work/` (gitignored) and are
 deleted on success. Model files live under `.conductor/kokoro-models/` and are
@@ -18,7 +24,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import re
 import shutil
 import subprocess
@@ -37,8 +42,10 @@ SAMPLE_RATE = 44_100
 CHANNELS = 1
 BITRATE = '128k'
 LOUDNESS_TARGET = -16.0
-TRUE_PEAK = -1.5
-LOUDNESS_RANGE = 11.0
+LOUDNESS_TOLERANCE = 0.5
+MAX_ENCODE_ATTEMPTS = 2
+# Linear sample ceiling for -1.5 dBFS, about -1.5 dBTP through the limiter.
+LIMITER_CEILING = 0.841
 TRIM_FLOOR_DB = -40.0
 LEAD_GUARD_SECONDS = 0.02
 TAIL_GUARD_SECONDS = 0.05
@@ -88,100 +95,74 @@ def trim_silence(samples: 'np.ndarray', sample_rate: int) -> 'np.ndarray':  # no
     return samples[start:end]
 
 
-def last_json_object(text: str) -> dict[str, str]:
-    """Return the trailing JSON object loudnorm prints to stderr."""
-    start = text.rfind('{')
-    end = text.rfind('}')
-    if start < 0 or end <= start:
-        raise ValueError('loudnorm printed no JSON measurement')
-    return json.loads(text[start : end + 1])
-
-
-def measure_loudness(path: Path) -> dict[str, float] | None:
-    """Two-pass loudnorm measurement, or None when the clip is too short."""
+def measure_integrated_loudness(path: Path) -> float | None:
+    """Integrated loudness in LUFS, or None when ebur128 reports nothing."""
     result = subprocess.run(
-        [
-            FFMPEG,
-            '-hide_banner',
-            '-nostats',
-            '-i',
-            str(path),
-            '-af',
-            f'loudnorm=I={LOUDNESS_TARGET}:TP={TRUE_PEAK}:LRA={LOUDNESS_RANGE}:print_format=json',
-            '-f',
-            'null',
-            '-',
-        ],
+        [FFMPEG, '-hide_banner', '-nostats', '-i', str(path), '-af', 'ebur128', '-f', 'null', '-'],
         capture_output=True,
         text=True,
         check=False,
     )
     if result.returncode != 0:
         return None
-    try:
-        payload = last_json_object(result.stderr)
-        measured = {
-            'input_i': float(payload['input_i']),
-            'input_tp': float(payload['input_tp']),
-            'input_lra': float(payload['input_lra']),
-            'input_thresh': float(payload['input_thresh']),
-            'target_offset': float(payload['target_offset']),
-        }
-    except (KeyError, TypeError, ValueError):
-        return None
-    if not all(math.isfinite(value) for value in measured.values()):
-        return None
-    return measured
+    matches = re.findall(r'I:\s*(-?\d+(?:\.\d+)?)\s*LUFS', result.stderr)
+    return float(matches[-1]) if matches else None
 
 
-def encode(path_in: Path, path_out: Path, tail_seconds: float) -> None:
-    """Normalise, pad, and encode one line to mono 44.1 kHz 128 kbps mp3."""
-    measured = measure_loudness(path_in)
-    chains: list[str] = []
-    if measured is not None:
-        chains.append(
-            f'loudnorm=I={LOUDNESS_TARGET}:TP={TRUE_PEAK}:LRA={LOUDNESS_RANGE}'
-            f':measured_I={measured["input_i"]}'
-            f':measured_TP={measured["input_tp"]}'
-            f':measured_LRA={measured["input_lra"]}'
-            f':measured_thresh={measured["input_thresh"]}'
-            f':offset={measured["target_offset"]}'
-            ':linear=true'
-        )
-    # Dynamic mode is the fallback: linear mode refuses some very short clips.
-    chains.append(f'loudnorm=I={LOUDNESS_TARGET}:TP={TRUE_PEAK}:LRA={LOUDNESS_RANGE}')
+def encode_once(path_in: Path, path_out: Path, gain_db: float, tail_seconds: float) -> None:
+    """Apply a fixed gain and limiter, pad the tail, and write a 128 kbps mono mp3."""
+    filters = (
+        f'volume={gain_db:.3f}dB,'
+        f'alimiter=limit={LIMITER_CEILING}:level=false:latency=true,'
+        f'apad=pad_dur={tail_seconds},aresample={SAMPLE_RATE}'
+    )
+    run(
+        [
+            FFMPEG,
+            '-y',
+            '-hide_banner',
+            '-loglevel',
+            'error',
+            '-i',
+            str(path_in),
+            '-af',
+            filters,
+            '-ac',
+            str(CHANNELS),
+            '-ar',
+            str(SAMPLE_RATE),
+            '-c:a',
+            'libmp3lame',
+            '-b:a',
+            BITRATE,
+            str(path_out),
+        ]
+    )
 
-    last_error = ''
-    for chain in chains:
-        result = subprocess.run(
-            [
-                FFMPEG,
-                '-y',
-                '-hide_banner',
-                '-loglevel',
-                'error',
-                '-i',
-                str(path_in),
-                '-af',
-                f'{chain},apad=pad_dur={tail_seconds},aresample={SAMPLE_RATE}',
-                '-ac',
-                str(CHANNELS),
-                '-ar',
-                str(SAMPLE_RATE),
-                '-c:a',
-                'libmp3lame',
-                '-b:a',
-                BITRATE,
-                str(path_out),
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0:
-            return
-        last_error = (result.stderr or '').strip()
-    fail(f'cannot encode {path_out.name}: {last_error}')
+
+def encode(path_in: Path, path_out: Path, tail_seconds: float) -> int:
+    """Reach -16 LUFS +/-0.5 dB from the trimmed wav, returning the attempts used."""
+    measured = measure_integrated_loudness(path_in)
+    if measured is None:
+        fail(f'cannot measure {path_in.name}: ebur128 reported no loudness')
+    gain_db = LOUDNESS_TARGET - measured
+    last_achieved = measured
+    for attempt in range(1, MAX_ENCODE_ATTEMPTS + 1):
+        encode_once(path_in, path_out, gain_db, tail_seconds)
+        achieved = measure_integrated_loudness(path_out)
+        if achieved is None:
+            fail(f'{path_out.name}: cannot verify loudness after encoding')
+        last_achieved = achieved
+        delta = LOUDNESS_TARGET - achieved
+        if abs(delta) <= LOUDNESS_TOLERANCE:
+            return attempt
+        # Correct on the original wav; never re-encode a lossy generation.
+        gain_db += delta
+    fail(
+        f'{path_out.name} missed {LOUDNESS_TARGET:.1f} LUFS '
+        f'+/-{LOUDNESS_TOLERANCE:.1f} (measured {last_achieved:.1f} LUFS after '
+        f'{MAX_ENCODE_ATTEMPTS} attempts)'
+    )
 
 
 def probe_duration(path: Path) -> float:
@@ -198,20 +179,6 @@ def probe_duration(path: Path) -> float:
         ]
     )
     return float(result.stdout.strip())
-
-
-def measure_integrated_loudness(path: Path) -> float | None:
-    """Read the integrated loudness ffmpeg reports for the finished mp3."""
-    result = subprocess.run(
-        [FFMPEG, '-hide_banner', '-nostats', '-i', str(path), '-af', 'ebur128', '-f', 'null', '-'],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        return None
-    matches = re.findall(r'I:\s*(-?\d+(?:\.\d+)?)\s*LUFS', result.stderr)
-    return float(matches[-1]) if matches else None
 
 
 def load_manifest(path: Path) -> dict:
@@ -266,7 +233,7 @@ def synthesize(manifest: dict, model_dir: Path, out_dir: Path, work_dir: Path) -
         write_wav(raw_path, trimmed, int(sample_rate))
 
         out_path = out_dir / f'{line_id}.mp3'
-        encode(raw_path, out_path, tail)
+        attempts = encode(raw_path, out_path, tail)
         raw_path.unlink(missing_ok=True)
 
         duration = probe_duration(out_path)
@@ -281,12 +248,16 @@ def synthesize(manifest: dict, model_dir: Path, out_dir: Path, work_dir: Path) -
                 'bytes': out_path.stat().st_size,
                 'durationSeconds': round(duration, 3),
                 'loudnessLufs': round(loudness, 1) if loudness is not None else None,
+                'encodeAttempts': attempts,
                 'voice': manifest['voice'],
                 'speed': manifest['speed'],
                 'tailSeconds': tail,
             }
         )
-        sys.stdout.write(f'{line_id}: {duration:.2f}s  {rows[-1]["bytes"]} bytes\n')
+        level = f'{loudness:.1f} LUFS' if loudness is not None else 'unmeasured'
+        sys.stdout.write(
+            f'{line_id}: {duration:.2f}s  {level}  {rows[-1]["bytes"]} bytes\n'
+        )
     return rows
 
 
