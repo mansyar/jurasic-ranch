@@ -160,9 +160,9 @@ subagent's shell could not drive a browser), and AC-7 needed one more fix.
 - **Goal:** the conductor docs, the credits and the budget evidence describe the shipped pipeline; the Brachio scale cap is retired.
 - **Depends on:** Phase 5
 - **Covers:** FR-9, NFR-2, NFR-5, AC-8, AC-9
-- **Touches:** `conductor/product.md`, `conductor/tech-stack.md`, `CREDITS.md`, `conductor/tracks/20261029-authored-dino-walk-clips/verification/`
+- **Touches:** `conductor/product.md`, `conductor/tech-stack.md`, `CREDITS.md`, `src/viewer/loaders.ts`, `scripts/**`, `conductor/tracks/20261029-authored-dino-walk-clips/`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 - **Tasks:**
   - [ ] **P6.T1: Retire the stale cap and document the pipeline** - covers: FR-9
     - [ ] **P6.T1.1: Replace the 1.2 m Brachio cap in `product.md` with the real proportion rule**
