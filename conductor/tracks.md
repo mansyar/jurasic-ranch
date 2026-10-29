@@ -8,5 +8,5 @@
 - [x] **Track: Brachio Joins the Ranch** — [20261029-brachio-joins-ranch](./archive/20261029-brachio-joins-ranch/index.md) — feature — high
 - [x] **Track: Ranch Warmth UI** - [20261029-ranch-warmth-ui](./archive/20261029-ranch-warmth-ui/index.md) - feature - high
 - [x] **Track: Ranch Housekeeping** - [20261029-ranch-housekeeping](./archive/20261029-ranch-housekeeping/index.md) - refactor - medium
-- [ ] **Track: Stego and Brachio Walk on Their Own Bones** - [20261029-authored-dino-walk-clips](./tracks/20261029-authored-dino-walk-clips/index.md) - bug - high
+- [~] **Track: Stego and Brachio Walk on Their Own Bones** - [20261029-authored-dino-walk-clips](./tracks/20261029-authored-dino-walk-clips/index.md) - bug - high
 - [x] **Track: Dev Harness for Debugging & Verification** - [20261029-dev-harness](./archive/20261029-dev-harness/index.md) - chore - medium
