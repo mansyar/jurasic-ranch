@@ -107,35 +107,39 @@
 - **Covers:** FR-7, FR-8, FR-9, FR-10, FR-19, AC-1, AC-2, AC-3, AC-4
 - **Touches:** `src/viewer/pov.ts`, `src/viewer/hud.ts`, `src/viewer/scene.ts`, `src/dev/snapshot.ts`, `index.html`, `src/ranch/dressing.ts` (placement nudges only), `tests/viewer/pov.test.ts`, `tests/dev/snapshot.test.ts`, `tests/dev/harness-panel.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P4.T1: Preset model** - covers: FR-10
-  - [ ] **P4.T1.1:** `PovPreset` gains `kind: 'ground' | 'overhead'`, `fov`, and `anchor` (corner or centre)
-  - [ ] **P4.T1.2:** `applyPovPreset` applies fov and `updateProjectionMatrix`
-- [ ] **P4.T2: Ground optics** - covers: FR-7
-  - [ ] **P4.T2.1:** lens 10.6–11.4 m, eye 3.0–3.4 m, fov 48–52°, `lookAt` at 55–60 % of body height, bearings unchanged
-- [ ] **P4.T3: Sky preset** - covers: FR-8
-  - [ ] **P4.T3.1:** 75° tilt sized from the projected disc so any aspect shows the whole ranch
-- [ ] **P4.T4: Fourth nav button** - covers: FR-9
-  - [ ] **P4.T4.1:** `#pov-sky` at 72 px with icon and word, portrait lift preserved, `aria-pressed` synced
-- [ ] **P4.T5: Preset lookup** - covers: FR-9
-  - [ ] **P4.T5.1:** `hud.ts` guard replaced by a `POV_PRESETS` key check
-  - [ ] **P4.T5.2:** dev harness buttons derive from `POV_ORDER`; `DevSnapshot['pov']` widens
-- [ ] **P4.T6: Occlusion kit** - covers: FR-19
-  - [ ] **P4.T6.1:** screen-space projection test: no nearer prop overlaps the subject box; subject inside the HUD-safe area
-  - [ ] **P4.T6.2:** sky coverage test: no background colour in frame, disc inside with margin, dinos at least 72 px
-  - [ ] **P4.T6.3:** overhead presets are handled by kind so the sightline maths never divides by zero
-- [ ] **P4.T7: Resolve occlusion findings** - covers: AC-1
-  - [ ] **P4.T7.1:** nudge placements that the new test rejects, keeping every band rule intact
-- [ ] **P4.T8: Frame captures** - covers: AC-1, AC-3
-  - [ ] **P4.T8.1:** capture all four presets at 1280x800 into `.conductor/evidence/ranch-vista/after/`
+**Result:** verified (P4.T8 captures completed by the primary — see evidence)
+**Checkpoint:** 7c539ce
+**Evidence:** conductor/tracks/20261030-ranch-vista/verification/phase-4.md
+
+- [x] **P4.T1: Preset model** - covers: FR-10
+  - [x] **P4.T1.1:** `PovPreset` gains `kind: 'ground' | 'overhead'`, `fov`, and `anchor` (corner or centre)
+  - [x] **P4.T1.2:** `applyPovPreset` applies fov and `updateProjectionMatrix`
+- [x] **P4.T2: Ground optics** - covers: FR-7
+  - [x] **P4.T2.1:** lens 10.6–11.4 m, eye 3.0–3.4 m, fov 48–52°, `lookAt` at 55–60 % of body height, bearings unchanged
+- [x] **P4.T3: Sky preset** - covers: FR-8
+  - [x] **P4.T3.1:** 75° tilt sized from the projected disc so any aspect shows the whole ranch
+- [x] **P4.T4: Fourth nav button** - covers: FR-9
+  - [x] **P4.T4.1:** `#pov-sky` at 72 px with icon and word, portrait lift preserved, `aria-pressed` synced
+- [x] **P4.T5: Preset lookup** - covers: FR-9
+  - [x] **P4.T5.1:** `hud.ts` guard replaced by a `POV_PRESETS` key check
+  - [x] **P4.T5.2:** dev harness buttons derive from `POV_ORDER`; `DevSnapshot['pov']` widens
+- [x] **P4.T6: Occlusion kit** - covers: FR-19
+  - [x] **P4.T6.1:** screen-space projection test: no nearer prop overlaps the subject box; subject inside the HUD-safe area
+  - [x] **P4.T6.2:** sky coverage test: no background colour in frame, disc inside with margin, dinos at least 72 px
+  - [x] **P4.T6.3:** overhead presets are handled by kind so the sightline maths never divides by zero
+- [x] **P4.T7: Resolve occlusion findings** - covers: AC-1
+  - [x] **P4.T7.1:** nudge placements that the new test rejects, keeping every band rule intact
+- [x] **P4.T8: Frame captures** - covers: AC-1, AC-3
+  - [x] **P4.T8.1:** capture all four presets at 1280x800 into `.conductor/evidence/ranch-vista/after/`
 
 ## Phase 5: Aliveness
 
-- **Goal:** corn, reeds and litter sway quietly, and any prop answers a tap with one sparkle.
+- **Goal:** corn, reeds and litter sway quietly, any prop answers a tap with one sparkle, and the first four captures' composition defects are closed — subject heads in frame, the magnolia out of the Nest sightline, and a meadow dense enough to stop reading as a lawn.
 - **Depends on:** Phase 4
-- **Covers:** FR-11, FR-12, AC-9, AC-10
-- **Touches:** `src/ranch/ambient.ts`, `src/viewer/main.ts`, `tests/ranch/ambient.test.ts`
+- **Covers:** FR-11, FR-12, AC-1, AC-9, AC-10
+- **Touches:** `src/ranch/ambient.ts`, `src/viewer/main.ts`, `src/ranch/layout.ts`, `src/ranch/dressing.ts`, `src/ranch/ground.ts`, `src/viewer/pov.ts`, `tests/ranch/ambient.test.ts`, `tests/ranch/layout.test.ts`, `tests/ranch/dressing.test.ts`, `tests/ranch/ground.test.ts`, `tests/viewer/pov.test.ts`
 - **Verification:** `pnpm verify`
 - **Status:** pending
 
@@ -151,6 +155,16 @@
 - [ ] **P5.T5: Guards** - covers: AC-9
   - [ ] **P5.T5.1:** inert during the sleepy overlay and while the HUD owns the pointer; first tap unlocks audio then sparkles
   - [ ] **P5.T5.2:** test that walk, POV, sleepy and mute state are untouched by a prop tap
+- [ ] **P5.T6: Subject framing** - covers: AC-1
+  - [ ] **P5.T6.1:** assert the subject's projected box, head included, sits inside the frame with margin in `ranch` and `nest`
+  - [ ] **P5.T6.2:** fix by aim and fov inside the FR-7 ranges, and record the numbers
+- [ ] **P5.T7: True footprints** - covers: AC-1
+  - [ ] **P5.T7.1:** measure the shipped twelve and put measured canopy footprints in the catalogue
+  - [ ] **P5.T7.2:** nudge the magnolia and anything the honest footprints reject out of the Nest sightline, updating the Phase 1 snapshot deliberately
+- [ ] **P5.T8: Meadow density** - covers: FR-6
+  - [ ] **P5.T8.1:** scatter the already-vendored treeline and understory GLBs across the apron, two to three times the current treeline count, with every band and lens corridor intact
+- [ ] **P5.T9: Soft decal edges** - covers: FR-4
+  - [ ] **P5.T9.1:** radial falloff on the worn discs, the path stub and the trackways so they stop reading as flat cardboard, with no texture above 256 px
 
 ## Phase 6: Evidence, docs and PR
 

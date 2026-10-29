@@ -265,3 +265,25 @@ overlaps it in any of the four.
   `tests/ranch/dressing.test.ts` — the band, cone and sightline rules, scoped to
   the ground lenses, plus the far-plane and seam bounds that still hold the sky
   camera.
+
+## Primary verification
+
+Run by the orchestrator after squashing the phase.
+
+| Step | Command | Exit | Result |
+| --- | --- | --- | --- |
+| Full gate | `pnpm verify` | 0 | lint, oxfmt check, typecheck, tests, coverage, audio pack, build, precache 63 entries / 6,693.19 KiB, `dist clean` |
+| Touches | `git diff --name-only dd5c732..HEAD` | - | the five source files named in the phase, six test files and this evidence file. Three test deviations, all scoped to `GROUND_POV_ORDER` so the overhead lens is judged by its own rule instead of failing a ground rule by design |
+| Captures | `node .conductor/tools/capture-povs.mjs` over CDP | 0 | **done, four shots at 1280x800** in `.conductor/evidence/ranch-vista/after/` (`ranch.png`, `nest.png`, `garden.png`, `sky.png`). Headless Chrome driven over the DevTools protocol with `window.__ranch.setPov`, dev panel hidden, `?dev=1&seed=42&pause=1` |
+
+### What the four shots say
+
+The camera work lands: the ground lenses are wide and the herd reads at a glance, the Sky view holds the whole ranch with the worn trefoil, the water line and the gate path legible from above, and four nav buttons sit correctly at 72 px.
+
+Three composition defects are now visible that the test kit did not catch, and they are carried into Phase 5 as its polish tasks rather than waved through:
+
+1. **Brachio's head is cropped by the frame top in `ranch`** (and its neck crosses the `nest` frame). The subject box the occlusion kit projects is the body, not the head, so a crop the eye sees passes the test.
+2. **The magnolia still crowds the right third of `nest`.** The occlusion kit measures the shipped twelve by their Phase 1 *catalogue* footprints, which understate the canopies — the magnolia's catalogue footprint is 3.6 m against a measured 6.1 m canopy, so the one prop that most needs to be judged cannot fail.
+3. **The meadow is sparse.** From the Sky view the ranch reads as a cluster of props on a lawn: the treeline is a thin ring of three species, and the frame is mostly flat green. The beauty gap the track was opened for is density, not more geometry types — the assets are already vendored.
+
+One documented limit, unchanged: at 2.4:1 the sky frame's top corners reach past the meadow edge. 16:10, 3:4 and 1:1 are clean.
