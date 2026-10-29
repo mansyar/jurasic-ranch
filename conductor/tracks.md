@@ -9,4 +9,4 @@
 - [x] **Track: Ranch Warmth UI** - [20261029-ranch-warmth-ui](./archive/20261029-ranch-warmth-ui/index.md) - feature - high
 - [x] **Track: Ranch Housekeeping** - [20261029-ranch-housekeeping](./archive/20261029-ranch-housekeeping/index.md) - refactor - medium
 - [x] **Track: Dev Harness for Debugging & Verification** - [20261029-dev-harness](./archive/20261029-dev-harness/index.md) - chore - medium
-- [~] **Track: Cozy Sound & Voice Foundation** — [20261029-cozy-sound-voice](./tracks/20261029-cozy-sound-voice/index.md) — feature — high
+- [x] **Track: Cozy Sound & Voice Foundation** — [20261029-cozy-sound-voice](./tracks/20261029-cozy-sound-voice/index.md) — feature — high
