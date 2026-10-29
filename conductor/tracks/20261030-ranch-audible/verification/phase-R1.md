@@ -6,9 +6,9 @@
 - **Branch:** `feat/20261030-ranch-audible`
 - **Phase base:** `4094096`
 - **Head at verification:** `368a167`
-- **Result:** partial — F1, F4, F5 and F6 closed; F3's `spec.md` edit was
-  permission-denied for this executor and is handed to the primary (see
-  Blockers). `pnpm verify` is green on the code and records shipped here.
+- **Result:** complete — F1, F3, F4, F5 and F6 closed (F3's `spec.md` edit was
+  applied by the primary in `15c80c9`; see Primary verification), F2 accepted.
+  `pnpm verify` green on the code and records shipped here.
 
 ## Commands
 
@@ -27,7 +27,7 @@ Coverage on the touched modules: `src/audio/feedback.ts` 100 % lines,
 | --- | --- | --- | --- |
 | F1 | High (blocking) | `UnlockSource` added; `afterUnlock(source?)` ORs `source?.viaMuteControl === true` into `firstGestureWasMute` and no longer reads `audioEngine().muted` for provenance. The mute-control `onUnlock` in `main.ts` passes `{ viaMuteControl: true }`; the gesture `onUnlock` stays provenance-less. Fire-time `muted` and `shouldGreet` are unchanged. | `tests/viewer/audio-routing.test.ts` → `greeting provenance (FR-6, AC-5)`: unmuted engine + `{ viaMuteControl: true }` greets nothing (held press still flushes once, no held id left, a later provenance-less call does not clear the flag); a muted Walk unlock that is unmuted inside the fade delivers `hello`. The mute-first case in `tests/viewer/audio-controls-feedback.test.ts` now supplies the same provenance. |
 | F2 | Low (accepted) | No behaviour change. One comment in `toggleMute` records that a muting press while locked dispatches and is then refused by the muted engine by design (FR-9), and that deferring the mute would blip the music. | Comment only: `src/viewer/audio-controls.ts` `toggleMute`. |
-| F3 | Medium | **Not applied — permission denied.** Intended `spec.md` NFR-2 replacement is in Blockers. | Blocked; verify is unaffected. |
+| F3 | Medium | **Applied by the primary** in `15c80c9`: `spec.md` NFR-2 now scopes the ban to the tap path and names the one-shot greeting scheduler as allowed. The executor's denied edit is retained under Blockers for provenance. | `conductor/tracks/20261030-ranch-audible/spec.md` NFR-2 row. |
 | F4 | Low | Both mute branches take the id from the pure table: `onSfx?.(sfxForSurface('mute'))`, imported from `../audio/feedback.js`; the literal `'tap'` is gone. `sfxForSurface('mute')` returns `AudioAssetId`, so no null guard is needed. | Existing `tests/viewer/audio-controls*.test.ts` still assert one `onSfx` per press and the call order. |
 | F5 | Low | Deleted the vacuous `silent surfaces (FR-8)` block from `tests/viewer/hud-audio.test.ts`; AC-7 stays with `tests/viewer/audio-controls.test.ts`, which wires real listeners. | `pnpm verify` green; the removed block could not fail. |
 | F6 | Low | `verification/phase-4.md`: the AC-5 row now records that once-per-session and the fade were proven while the mute-control direction was not, and a `## Round R1 correction` section records P4.T3.1 as "manual exception: pending" and the F1 gap. The plan line itself is the primary's file. | `conductor/tracks/20261030-ranch-audible/verification/phase-4.md` |
@@ -41,12 +41,12 @@ Coverage on the touched modules: `src/audio/feedback.ts` 100 % lines,
 
 ## Blockers
 
-`edit` on `conductor/tracks/20261030-ranch-audible/spec.md` was denied
-(`Permission denied: edit`). The intended R1.T4.1 change, keeping the id and the
-rest of the row:
+Resolved: `edit` on `conductor/tracks/20261030-ranch-audible/spec.md` was denied
+for this executor (`Permission denied: edit`), and the primary applied it in
+`15c80c9`. The intended change, kept here for provenance:
 
-- Current: `| NFR-2 | Dispatch-to-Howler latency ≤ 100 ms, measured through the existing dev-harness latency field; no new timers, intervals or rAF loops are added. |`
-- Replace the second clause with: `dispatch stays synchronous — no timer, interval or rAF loop is added to the tap path — and the single one-shot greeting scheduler plus the existing HUD interval are the only timers, neither of which repeats per press.`
+- Before: `| NFR-2 | Dispatch-to-Howler latency ≤ 100 ms, measured through the existing dev-harness latency field; no new timers, intervals or rAF loops are added. |`
+- After: the second clause scopes the ban to the tap path and names the one-shot greeting scheduler plus the existing HUD interval as the only timers.
 
 ## Notes
 

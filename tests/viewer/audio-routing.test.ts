@@ -224,4 +224,22 @@ describe('greeting provenance (FR-6, AC-5)', () => {
     expect(playSfx).not.toHaveBeenCalled();
     feedback.dispose();
   });
+
+  it('greets after a Walk unlock when a mute press lands inside the fade', () => {
+    audioEngine();
+    const clock = new ManualGreetingClock();
+    const feedback = createUnlockFeedback({ clock });
+    engineState.unlocked = true;
+
+    feedback.afterUnlock();
+    // The child mutes then unmutes before the greeting fires: those presses are
+    // not the unlocking gesture, so they must not rewrite the provenance.
+    feedback.afterUnlock({ viaMuteControl: true });
+    feedback.afterUnlock({ viaMuteControl: true });
+    engineState.muted = false;
+    clock.advanceTo(GREETING_DELAY_MS);
+
+    expect(playVoice.mock.calls).toEqual([['hello']]);
+    feedback.dispose();
+  });
 });

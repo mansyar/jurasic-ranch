@@ -140,14 +140,15 @@ export function createUnlockFeedback(options?: UnlockFeedbackOptions): UnlockFee
   return {
     afterUnlock(source?: UnlockSource): void {
       flushFeedback();
-      // Provenance, never inferred from the mute state: unmuting runs before
-      // unlock, so `muted` is already false on an unmute-first session. The OR
-      // keeps the first `true`, whichever call carried it.
-      firstGestureWasMute ||= source?.viaMuteControl === true;
       if (scheduled) {
         return;
       }
       scheduled = true;
+      // Provenance from the call that resolved the unlock, never inferred from
+      // the mute state: unmuting runs before unlock, so `muted` is already false
+      // on an unmute-first session. Later calls must not rewrite it - a mute
+      // press inside the fade does not make a Walk unlock a mute-first one.
+      firstGestureWasMute = source?.viaMuteControl === true;
       unlockedAtMs = clock.now();
       timer = clock.setTimer(() => {
         timer = null;
