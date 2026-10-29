@@ -77,18 +77,18 @@
 - **Covers:** FR-6, FR-7, FR-8, FR-12, NFR-4
 - **Touches:** `index.html`, `src/audio/gate.ts`, `src/audio/settings.ts`, `src/viewer/audio-controls.ts`, `src/viewer/hud.ts`, `src/viewer/main.ts`, `tests/audio/gate.test.ts`, `tests/audio/settings.test.ts`, `tests/viewer/audio-controls.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P4.T1: Implement the hold-gate state machine** — covers: FR-8
-  - [ ] **P4.T1.1:** Add a pure `HoldGate` with 2000 ms duration, progress `0..1`, start/tick/cancel/complete, and keyboard parity.
-  - [ ] **P4.T1.2:** Test completion at 2 s, cancel at 1.9 s, pointer cancel/blur, repeated starts, and progress clamping.
-- [ ] **P4.T2: Persist mute and master volume safely** — covers: FR-6, FR-7, FR-12
-  - [ ] **P4.T2.1:** Add `audio-muted` and `audio-volume` keys, default volume `0.8`, clamping, and live application to the engine.
-  - [ ] **P4.T2.2:** Fall back to in-memory defaults when `idb-keyval` fails; test read, write, and failure paths.
-- [ ] **P4.T3: Build the controls and parent panel** — covers: FR-6, FR-7, FR-8, NFR-4
-  - [ ] **P4.T3.1:** Add the bottom-right 72 px mute and gear buttons with icon + word, `aria-pressed`, and a visible non-motion hold ring.
-  - [ ] **P4.T3.2:** Add the parent panel with master slider, mute state, 72 px close, `Escape`, focus return, and no external links.
-  - [ ] **P4.T3.3:** Wire through `hud.ts`, add fake-DOM tests, and check landscape and portrait placement.
+- [x] **P4.T1: Implement the hold-gate state machine** — covers: FR-8
+  - [x] **P4.T1.1:** Add a pure `HoldGate` with 2000 ms duration, progress `0..1`, start/tick/cancel/complete, and keyboard parity.
+  - [x] **P4.T1.2:** Test completion at 2 s, cancel at 1.9 s, pointer cancel/blur, repeated starts, and progress clamping.
+- [x] **P4.T2: Persist mute and master volume safely** — covers: FR-6, FR-7, FR-12
+  - [x] **P4.T2.1:** Add `audio-muted` and `audio-volume` keys, default volume `0.8`, clamping, and live application to the engine.
+  - [x] **P4.T2.2:** Fall back to in-memory defaults when `idb-keyval` fails; test read, write, and failure paths.
+- [x] **P4.T3: Build the controls and parent panel** — covers: FR-6, FR-7, FR-8, NFR-4
+  - [x] **P4.T3.1:** Add the bottom-right 72 px mute and gear buttons with icon + word, `aria-pressed`, and a visible non-motion hold ring.
+  - [x] **P4.T3.2:** Add the parent panel with master slider, mute state, 72 px close, `Escape`, focus return, and no external links.
+  - [x] **P4.T3.3:** Wire through `hud.ts`, add fake-DOM tests, and check landscape and portrait placement.
 
 ## Phase 5: Dev Bridge, Offline Smoke & Docs
 

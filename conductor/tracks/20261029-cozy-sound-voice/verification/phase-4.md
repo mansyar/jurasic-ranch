@@ -5,7 +5,7 @@
 - Date: 2026-10-29
 - Branch: `feat/20261029-cozy-sound-voice`
 - Base: `478704d` (phase base)
-- Head: `4da0d17` (code and tests; this evidence file is committed after it)
+- Head: `3b0f549` (code, tests, and this evidence file)
 - Result: **verified**
 
 ## Commands
