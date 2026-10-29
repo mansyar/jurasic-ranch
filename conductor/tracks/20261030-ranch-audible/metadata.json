@@ -1,0 +1,32 @@
+{
+  "id": "20261030-ranch-audible",
+  "title": "The Ranch Answers Back",
+  "type": "feature",
+  "status": "new",
+  "priority": "medium",
+  "depends_on": [],
+  "created_at": "2026-10-30T05:14:09+11:00",
+  "updated_at": "2026-10-30T05:14:09+11:00",
+  "spec": "spec.md",
+  "plan": "plan.md",
+  "branch": "feat/20261030-ranch-audible",
+  "base_branch": "main",
+  "base_sha": "94178c427a47c0d5b47e66c9b9d9a03a5e392b2c",
+  "progress": {
+    "phases_total": 4,
+    "phases_verified": 0,
+    "tasks_total": 16,
+    "tasks_done": 0
+  },
+  "last_checkpoint": null,
+  "review_verdict": null,
+  "review_rounds": 0,
+  "doc_sync": "pending",
+  "pr_url": null,
+  "pr_state": null,
+  "reverted_at": null,
+  "revert_commit": null,
+  "revert_pr_url": null,
+  "archived_at": null,
+  "archive_path": null
+}
