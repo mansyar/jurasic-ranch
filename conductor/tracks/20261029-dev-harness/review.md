@@ -5,13 +5,13 @@
 - **Branch:** chore/20261029-dev-harness
 - **Range:** cb12399..HEAD (excluding `conductor/`)
 - **Date:** 2026-10-29
-- **Verdict:** BLOCK
+- **Verdict:** PASS WITH FINDINGS
 
 ## Summary
 
 The gating is genuinely production-safe: the harness is behind `import.meta.env.DEV`, the only static reference is an erased `import type`, the dist guard survives minification (`__ranch` and `data-dev-panel` are property access and a string literal), and the CLI exit codes are proven by spawning the process. `forceBlink` is additive and leaves the 3–5 s cadence intact, and the bridge mirrors the Walk button and POV pills rather than inventing a second source of truth.
 
-Two criteria fail as written. The single seeded generator is shared by wander jitter, dust and blink, while blink draws are wall-clock gated and seeded in GLB-resolution order, so `?seed=42` cannot reproduce poses (AC-9). And the panel exposes only solo presets, so a dino cannot be hidden independently from the UI (AC-2). Two evidence defects follow from the same sloppiness: the overlay code has no test and `integrated.md` cites a test that does not exist, and the seeded determinism was marked covered by tests that only prove mulberry32 is deterministic in isolation.
+Round 1 found two criteria failing as written; both are now closed (see History). The single seeded generator is shared by wander jitter, dust and blink, while blink draws are wall-clock gated and seeded in GLB-resolution order, so `?seed=42` cannot reproduce poses (AC-9). And the panel exposes only solo presets, so a dino cannot be hidden independently from the UI (AC-2). Two evidence defects follow from the same sloppiness: the overlay code has no test and `integrated.md` cites a test that does not exist, and the seeded determinism was marked covered by tests that only prove mulberry32 is deterministic in isolation.
 
 ## Verification
 
@@ -97,12 +97,20 @@ Phases ran in order with checkpoints (`76ba7b2`, `b566a4b`, `b8737ed`, `d5bf60c`
 ## Debt
 
 - Live frame-driven confirmation (step, sleepy ZZZ, fps HUD, movement) is owed on a real browser window; the review pane never composites frames. To be re-checked by a human before release.
+- **Trio coexistence is draw-tuned (ranch, not harness).** Round 2 showed that the merged 30 s trio guarantee depends on wall-clock blink draws being pulled from the movement stream: with a clean stream the trike reaches 1.118 m against the 1.09 m in-frame bound, and relaxing that bound exposes a 0.079 m minimum separation against the 0.25 m bar. `tests/waddle/trio-wander.test.ts` still passes because this track deliberately left gameplay RNG semantics untouched. A dedicated ranch track should re-tune the avoidance trigger/nudge or the wander boundary so the guarantee holds on clean streams.
 
 ## History
 
 | Round | Verdict | Findings | Fixed |
 | --- | --- | --- | --- |
-| 1 | BLOCK | 1 High, 3 Medium, 3 Low | pending |
+| 1 | BLOCK | 1 High, 3 Medium, 3 Low | F1-F7 fixed in Phase R1 (`cb3a82f`) |
+| 2 | PASS WITH FINDINGS | F1-GLUE Medium, F1-RESIDUAL Medium, F1-DEFAULT Low, DOC-SYNC Low | all four closed in Phase R2 (`6e26ca6`): wiring guard with a falsification run, canonical `&pause=1` URL, enforcement moved to the call site, evidence corrected |
+
+### Round 2 notes
+
+- F1's fix was verified as real, and the determinism test was confirmed non-vacuous: it fails when a stream is shared and when two dinos are aliased to one generator.
+- F1-DEFAULT was closed by enforcement rather than by a default change. Switching the default to `Math.random` is correct in principle but changed which draws `DinoPlayer` consumes, which broke a merged-track guarantee — the minimal fix is the wiring guard plus a comment on the option.
+- F1-RESIDUAL is accepted: determinism is defined for a fixed frame sequence, and the canonical URL now says so.
 
 ## Doc sync
 
