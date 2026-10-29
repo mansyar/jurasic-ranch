@@ -15,7 +15,7 @@ import {
 /**
  * Baked pastel baby Brachio variant (FR-3 / FR-4): asserts the pinned bake
  * params, the procedural variant geometry they produce (lavender-blush pastel
- * COLOR_0, single material, size-0.6 baby with the extra 0.5 post-scale), and
+ * COLOR_0, single material, size-0.6 baby with the extra 0.27 post-scale), and
  * the Waddle rebuild the bake applies from the Trike donor clip. The GLB-level
  * checks (Draco, single material, Waddle 1.0 s, bounds) live in
  * scripts/check-brachio.test.ts, which cannot read colors out of Draco bytes.

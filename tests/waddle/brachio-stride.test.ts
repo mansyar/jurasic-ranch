@@ -16,7 +16,8 @@ import { gaitSpeedMetresPerSecond } from "../../src/ranch/waddle.js";
  * BRACHIO_POSITION_TRACK_SCALE (see the bake) rather than assumed.
  */
 
-const SHIPPED_GLB = new URL("../../public/models/trike.glb", import.meta.url);
+/** Trike donor GLB: only its animation tracks are extracted, not its geometry. */
+const DONOR_TRIKE_GLB = new URL("../../public/models/trike.glb", import.meta.url);
 const WALK_SPEED_METRES_PER_SECOND = gaitSpeedMetresPerSecond(BRACHIO_GAIT);
 const FEET = [
   "LeftFrontFoot",
@@ -65,7 +66,7 @@ interface FootReport {
  * measure how planted feet move in world space.
  */
 async function measureGait(): Promise<{ reports: Record<string, FootReport> }> {
-  const bytes = await readFile(SHIPPED_GLB);
+  const bytes = await readFile(DONOR_TRIKE_GLB);
   const animation = extractAnimationTracks(bytes);
   const group = createBrachioVariantGroup();
   const clip = buildBrachioWaddleClip(group, animation);
