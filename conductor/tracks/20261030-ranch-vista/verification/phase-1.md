@@ -46,3 +46,15 @@
 - The catalogue marks all twelve shipped props `mid`, which is where they stand today; the treeline restaging belongs to Phase 3 (prop library), whose plan entry already lists these files.
 - `src/ranch/layout.ts` coverage: 95.74% lines / 76.19% branches.
 - Frame-identical refactor: no rendered media is attached to the PR, and the PR body should say so.
+
+## Primary verification
+
+Run by the orchestrator after squashing the phase to `a190a1c`.
+
+| Step | Command | Exit | Result |
+| --- | --- | --- | --- |
+| Formatting (write) | `pnpm format` | 0 | 85 files, tree stayed clean — the subagent's hand formatting needed no correction (its `pnpm format` call was permission-denied) |
+| Full gate | `pnpm verify` | 0 | lint clean; oxfmt check clean; `tsrs --noEmit` clean; 509 tests passed; coverage 77.43% lines; audio pack 15 assets / 853,289 B; build ok; `dist clean: no dev harness markers` |
+| Touches | `git diff --name-only b2c0245..HEAD` | — | `src/ranch/layout.ts`, `src/ranch/dressing.ts`, `tests/ranch/layout.test.ts`, this file. No unreported file touched; `tests/ranch/dressing.test.ts` deliberately unchanged |
+| AC-5 independence | inspection of `tests/ranch/layout.test.ts` | — | the 22-entry snapshot is hardcoded literal floats, not recomputed through the new helpers, so it genuinely pins the pre-refactor values |
+| Refactor reality | grep `src/ranch/dressing.ts` for `onRing` / literal `position: [` | — | zero hits: the manifest is composed from helpers, not carried over verbatim |

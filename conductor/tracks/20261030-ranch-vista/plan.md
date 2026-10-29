@@ -14,20 +14,24 @@
 - **Covers:** FR-1, FR-2, AC-5
 - **Touches:** `src/ranch/layout.ts`, `src/ranch/dressing.ts`, `tests/ranch/layout.test.ts`, `tests/ranch/dressing.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P1.T1: Extract placement helpers** - covers: FR-1
-  - [ ] **P1.T1.1:** `ring(file, azimuth, radius, facing)` generalising the current `onRing`, plus `arc(file, from, to, count, radius)` and `row(file, start, count, axis, step)`
-  - [ ] **P1.T1.2:** `scatter(file, count, area, seed)` with a seeded stream so jitter is reproducible from `?seed=`
-- [ ] **P1.T2: Add per-file metadata** - covers: FR-1
-  - [ ] **P1.T2.1:** `DRESSING_CATALOGUE` entry per file: `{footprintMetres, heightMetres, band, parent?}`
-  - [ ] **P1.T2.2:** band type `'mid' | 'foreground' | 'treeline'` with its numeric range as a derived constant
-- [ ] **P1.T3: Express the shipped twelve through the helpers** - covers: FR-2
-  - [ ] **P1.T3.1:** rewrite `VALLEY_PLACEMENTS` and `FARM_PLACEMENTS` on top of the helpers
-  - [ ] **P1.T3.2:** keep `DRESSING_MANIFEST`, `DRESSING_FOOTPRINT_METRES` and `buildDressing` exported with unchanged shapes
-- [ ] **P1.T4: Pin the phase with a placement snapshot** - covers: AC-5
-  - [ ] **P1.T4.1:** test asserting the full manifest (file, position, rotationY) matches a recorded snapshot to 1e-9
-  - [ ] **P1.T4.2:** test asserting every catalogue entry has a band that matches its radius
+**Result:** verified
+**Checkpoint:** a190a1c
+**Evidence:** conductor/tracks/20261030-ranch-vista/verification/phase-1.md
+
+- [x] **P1.T1: Extract placement helpers** - covers: FR-1
+  - [x] **P1.T1.1:** `ring(file, azimuth, radius, facing)` generalising the current `onRing`, plus `arc(file, from, to, count, radius)` and `row(file, start, count, axis, step)`
+  - [x] **P1.T1.2:** `scatter(file, count, area, seed)` with a seeded stream so jitter is reproducible from `?seed=`
+- [x] **P1.T2: Add per-file metadata** - covers: FR-1
+  - [x] **P1.T2.1:** `DRESSING_CATALOGUE` entry per file: `{footprintMetres, heightMetres, band, parent?}`
+  - [x] **P1.T2.2:** band type `'mid' | 'foreground' | 'treeline'` with its numeric range as a derived constant
+- [x] **P1.T3: Express the shipped twelve through the helpers** - covers: FR-2
+  - [x] **P1.T3.1:** rewrite `VALLEY_PLACEMENTS` and `FARM_PLACEMENTS` on top of the helpers
+  - [x] **P1.T3.2:** keep `DRESSING_MANIFEST`, `DRESSING_FOOTPRINT_METRES` and `buildDressing` exported with unchanged shapes
+- [x] **P1.T4: Pin the phase with a placement snapshot** - covers: AC-5
+  - [x] **P1.T4.1:** test asserting the full manifest (file, position, rotationY) matches a recorded snapshot to 1e-9
+  - [x] **P1.T4.2:** test asserting every catalogue entry has a band that matches its radius
 
 ## Phase 2: Ground wear and sky
 
