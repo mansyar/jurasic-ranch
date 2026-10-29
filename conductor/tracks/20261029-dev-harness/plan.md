@@ -78,14 +78,18 @@ Review fixes are appended by `conductor-review` as:
 - **Covers:** FR-9, NFR-4, AC-10, AC-11
 - **Touches:** `scripts/**`, `package.json`, `tests/**`, `conductor/tech-stack.md`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P3.T1: dist guard** - covers: FR-9
-  - [ ] **P3.T1.1: `scripts/check-dist-clean.mjs`** scans `dist/` for the harness markers (`__ranch`, `data-dev-panel`, `installDevHarness`) and exits non-zero with the offending file when one is found.
-  - [ ] **P3.T1.2: verify wiring** appends the check after `pnpm build` in the `verify` script without changing lint/format/typecheck/test/build semantics.
-  - [ ] **P3.T1.3: test** proves the guard passes on the real build and fails when a marker is planted in a temporary `dist` fixture.
-- [ ] **P3.T2: Developer docs** - covers: FR-1, FR-9
-  - [ ] **P3.T2.1: `conductor/tech-stack.md`** gains a dated dev-harness note: how to open `?dev=1`, the `seed` parameter, the `window.__ranch` surface, and the dist guarantee.
+- [x] **P3.T1: dist guard** - covers: FR-9
+  - [x] **P3.T1.1: `scripts/check-dist-clean.mjs`** scans `dist/` for the harness markers (`__ranch`, `data-dev-panel`, `installDevHarness`) and exits non-zero with the offending file when one is found.
+  - [x] **P3.T1.2: verify wiring** appends the check after `pnpm build` in the `verify` script without changing lint/format/typecheck/test/build semantics.
+  - [x] **P3.T1.3: test** proves the guard passes on the real build and fails when a marker is planted in a temporary `dist` fixture.
+- [x] **P3.T2: Developer docs** - covers: FR-1, FR-9
+  - [x] **P3.T2.1: `conductor/tech-stack.md`** gains a dated dev-harness note: how to open `?dev=1`, the `seed` parameter, the `window.__ranch` surface, and the dist guarantee.
+
+**Result:** verified
+**Checkpoint:** b8737ed
+**Evidence:** conductor/tracks/20261029-dev-harness/verification/phase-3.md
 
 <!--
 The primary appends after acceptance:

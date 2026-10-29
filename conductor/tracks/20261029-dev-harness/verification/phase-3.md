@@ -81,3 +81,12 @@ Under `## Local Dev Env`, after the existing bullets:
   the `pnpm verify` tail.
 - No new dependencies, no network, no `src/**`, `index.html` or `vite.config.ts`
   changes.
+
+## Primary verification
+
+- Squash guard: 4 subagent commits (same author, conventional, no merge) plus the primary's `tech-stack.md` note squashed to `b8737ed`.
+- `git diff --name-only 9e194c8..HEAD` reported exactly the 6 expected paths — no product source touched, `index.html`/`src/**`/`vite.config.ts` untouched.
+- `pnpm verify` re-run by the primary: exit 0 — 31 files / 290 tests, precache unchanged at 29 entries / 4428.51 KiB, and the guard printed `dist clean: no dev harness markers in dist` from inside the chain.
+- **Independent failure proof** (the check must be able to fail): appended `window.__ranch=1;` to a built asset and ran `node scripts/check-dist-clean.mjs` → exit `1` with `dev harness leaked into dist (1 marker(s)): assets/draco_decoder-*.js: __ranch`. Rebuilt and re-ran → exit `0`. The guard is not vacuous.
+- Deviation accepted: `scripts/check-dist-clean.d.mts` added because strict `tsrs` needs a declaration for the `.mjs` import in the test; it mirrors the existing `scripts/bake-trike-variant.d.ts` pattern.
+- AC-10 passes on live evidence; AC-11 (precache and pre-existing suites unchanged) passes — 290 tests green with the 7 harness suites added and no precache growth beyond the earlier +0.34 KiB.
