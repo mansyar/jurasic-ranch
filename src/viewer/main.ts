@@ -3,6 +3,7 @@ import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from "../ranch/dino-player.js";
 import { avoidanceNudges } from "../ranch/avoidance.js";
+import { buildDressing } from "../ranch/dressing.js";
 import { DustPool } from "../ranch/dust.js";
 import { WADDLE_LOOP_SECONDS, wrapAngle, type GaitParams } from "../ranch/waddle.js";
 import { unlockAudio } from "./audio.js";
@@ -617,6 +618,13 @@ export async function bootViewer(): Promise<void> {
     .catch((error: unknown) => {
       console.warn("Rigged stego unavailable; keeping the placeholder.", error);
     });
+
+  // FR-3: Valley + Farm dressing loads in parallel with the dinos; any GLB
+  // failure falls back silently (offline first-visit safety) without
+  // blocking boot, and the ground stays playable bare.
+  void buildDressing(scene).catch((error: unknown) => {
+    console.warn("Ranch dressing unavailable; ground stays playable.", error);
+  });
 
   window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
