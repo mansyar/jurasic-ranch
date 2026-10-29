@@ -37,7 +37,7 @@ The primary appends after acceptance:
 - **Covers:** FR-3, FR-4, AC-2
 - **Touches:** `assets/brachio/**`, `public/models/brachio.glb`, `scripts/vendor/bake-brachio-*`, `scripts/**/check-brachio*`, `tests/**/brachio-*.ts`, `CREDITS.md`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P2.T1: Vendor + bake Brachio** — covers: FR-3
   - [ ] **P2.T1.1: Lookup Polyfork brachiosaurus-base, record final lavender distinct from Trike/Stego** — colorblind-safe, honest report_need if missing
