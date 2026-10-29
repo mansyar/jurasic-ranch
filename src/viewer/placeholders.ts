@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { WADDLE_LOOP_SECONDS } from '../ranch/waddle.js';
-import { BLUSH_HEX } from './loaders.js';
+import { BLUSH_HEX, IN_GAME_BODY_LENGTH_METRES } from './loaders.js';
 
 /**
  * The instant fallback dinos: boxy flat-shaded groups painted while the
  * rigged GLBs load, plus the shared body-bob pose. Each faces +Z with its feet
- * on y = 0 and is authored to its rigged swap target's footprint window, so
- * the swap never pops; all three share the PlaceholderBody bob part.
+ * on y = 0 and is scaled to the exact in-game length of the rigged model it
+ * stands in for, so the swap is a shape change and not also a size jump.
  */
 
 /** Placeholder part that may bob; the legs stay planted (body-only bob). */
@@ -27,8 +27,33 @@ export const BRACHIO_BELLY_HEX = 0xf2e9d8;
 /** Lateral spawn offset in metres: Trike starts at -x, Stego at +x (FR-5). */
 export const SPAWN_OFFSET_METRES = 0.4;
 
-/** Pastel flat-shaded baby Trike (~3.7 m, 3.3–4.2 m window per
- * scripts/check-trike.test.ts); paints instantly, then leaves on a swap. */
+/**
+ * Length each placeholder is scaled to, in metres: the rigged model's in-game
+ * length (phase 4). Driving the placeholder off the same numbers is what keeps
+ * the pop on load at 1.0x — the boxy Brachio used to stand 2.79 m where a
+ * 7.42 m model lands, a 2.66x jump.
+ */
+export const PLACEHOLDER_BODY_LENGTH_METRES = IN_GAME_BODY_LENGTH_METRES;
+
+/** Scratch vector for the one-off authored-span measurement. */
+const authoredSpan = new THREE.Vector3();
+
+/**
+ * Scale a finished placeholder so its longest side is `targetMetres`: measured
+ * from the assembled parts, so adding or reshaping a body part cannot silently
+ * change the size the swap lands at. Length is the longest side of each of
+ * these silhouettes (the Brachio's neck contributes height, never more than
+ * its tail-to-nose span), and the scale is uniform so the bob pose is safe.
+ */
+function scaleToBodyLength(group: THREE.Group, targetMetres: number): void {
+  group.updateMatrixWorld(true);
+  const size = new THREE.Box3().setFromObject(group).getSize(authoredSpan);
+  const authored = Math.max(size.x, size.y, size.z);
+  group.scale.setScalar(targetMetres / authored);
+}
+
+/** Pastel flat-shaded baby Trike: scaled to the rigged 3.708 m; paints
+ * instantly, then leaves on a swap. */
 export function createPlaceholderTrike(): THREE.Group {
   const body = new THREE.MeshStandardMaterial({
     color: PLACEHOLDER_BODY_HEX,
@@ -107,16 +132,17 @@ export function createPlaceholderTrike(): THREE.Group {
   tail.position.set(-0.55, 0.4, 0);
   upper.add(tail);
 
-  // Authored parts face +X at ~1.44 m: rotate onto +Z, scale by 2.6. Origin
-  // sits at ground level, so the feet stay on y = 0.
+  // Authored parts face +X at ~1.44 m: rotate onto +Z, then scale to the
+  // rigged Trike's 3.708 m. Origin sits at ground level, so the feet stay on
+  // y = 0.
   trike.rotation.y = -Math.PI / 2;
-  trike.scale.setScalar(2.6);
+  scaleToBodyLength(trike, PLACEHOLDER_BODY_LENGTH_METRES.trike);
 
   return trike;
 }
 
-/** Boxy Stego: dusty-teal hide with a peach plate row (~3.8 m, 3.3–4.2 m
- * window per scripts/check-stego.test.ts). */
+/** Boxy Stego: dusty-teal hide with a peach plate row, scaled to the rigged
+ * 3.845 m. */
 export function createPlaceholderStego(): THREE.Group {
   const hide = new THREE.MeshStandardMaterial({
     color: STEGO_BODY_HEX,
@@ -189,16 +215,16 @@ export function createPlaceholderStego(): THREE.Group {
     }
   }
 
-  // Same swap contract as the Trike: +X parts rotated onto +Z, scaled by 2.6;
-  // origin at ground level, feet on y = 0.
+  // Same swap contract as the Trike: +X parts rotated onto +Z, then scaled to
+  // the rigged Stego's 3.845 m; origin at ground level, feet on y = 0.
   stego.rotation.y = -Math.PI / 2;
-  stego.scale.setScalar(2.6);
+  scaleToBodyLength(stego, PLACEHOLDER_BODY_LENGTH_METRES.stego);
 
   return stego;
 }
 
-/** Boxy grazing Brachio: long neck, cream belly (~2.6 m, 2.3–3.1 m window,
- * head near the 1.2 m cap, per scripts/check-brachio.test.ts). */
+/** Boxy grazing Brachio: long neck, cream belly, scaled to the rigged 7.423 m
+ * so the swap no longer grows it 2.66x. */
 export function createPlaceholderBrachio(): THREE.Group {
   const hide = new THREE.MeshStandardMaterial({
     color: BRACHIO_BODY_HEX,
@@ -273,10 +299,10 @@ export function createPlaceholderBrachio(): THREE.Group {
     }
   }
 
-  // Same swap contract as the others: +X parts rotated onto +Z, scaled by
-  // 1.7; origin at ground level, feet on y = 0.
+  // Same swap contract as the others: +X parts rotated onto +Z, then scaled to
+  // the rigged Brachio's 7.423 m; origin at ground level, feet on y = 0.
   brachio.rotation.y = -Math.PI / 2;
-  brachio.scale.setScalar(1.7);
+  scaleToBodyLength(brachio, PLACEHOLDER_BODY_LENGTH_METRES.brachio);
 
   return brachio;
 }

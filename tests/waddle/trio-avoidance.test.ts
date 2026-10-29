@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AVOIDANCE_NUDGE_RADIANS,
   AVOIDANCE_TRIGGER_METRES,
+  LARGEST_DINO_BODY_LENGTH_METRES,
   avoidanceNudges,
   TRIO_SPAWN_RADIUS_METRES,
   trioAvoidanceNudges,
@@ -27,8 +28,11 @@ function clampNudge(radians: number): number {
 }
 
 describe('trio spawn (FR-5)', () => {
-  it('starts the trio on a 0.4 m triangle so all three clear the trigger', () => {
-    expect(TRIO_SPAWN_RADIUS_METRES).toBe(0.4);
+  it('starts the trio on a half-body-length triangle so no two can touch', () => {
+    // Half the largest body length: three points 120 deg apart then sit 6.43 m
+    // apart, which is 0.87 of a body length. 0.4 m (0.69 m apart) was a
+    // Trike-sized ring, and the Brachio's own length no longer fits inside it.
+    expect(TRIO_SPAWN_RADIUS_METRES).toBe(LARGEST_DINO_BODY_LENGTH_METRES / 2);
     const spawn = trioSpawnPositions();
     expect(spawn).toHaveLength(3);
     for (const [first, second] of [
@@ -38,6 +42,8 @@ describe('trio spawn (FR-5)', () => {
     ] as const) {
       const distance = Math.hypot(first.x - second.x, first.z - second.z);
       expect(distance).toBeGreaterThan(AVOIDANCE_TRIGGER_METRES);
+      // Nose to tail, two of the longest animals still cannot overlap.
+      expect(distance).toBeGreaterThan(LARGEST_DINO_BODY_LENGTH_METRES * 0.8);
     }
   });
 

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { DINO_WALK_RADIUS_METRES } from './avoidance.js';
 import { DustPool } from './dust.js';
 import { SLEEPY_DROOP_LID, yawnScaleFor } from './sleepy.js';
 import {
@@ -155,15 +156,17 @@ export class BlinkController {
 
 /**
  * Shipped Trike gait (FR-2): 0.29 m stride per 0.8 s loop (~0.4 m/s), PI yaw
- * cap, 4.5 rad/m stroller curvature, 0.8 m stay-in-frame wander circle. Values
- * match the waddle math constants so Trike behaviour is bit-identical.
+ * cap, 4.5 rad/m stroller curvature, and the ranch's shared stay-in-frame
+ * circle. Values match the waddle math constants so Trike behaviour is
+ * bit-identical; only the wander radius grew, and it grew for all three at
+ * once (`DINO_WALK_RADIUS_METRES`, half the largest body length).
  */
 export const TRIKE_GAIT: GaitParams = {
   strideMetres: 0.29,
   loopSeconds: 0.8,
   turnRateRadiansPerSecond: Math.PI,
   curvatureRadiansPerMetre: 4.5,
-  wanderRadiusMetres: 0.8,
+  wanderRadiusMetres: DINO_WALK_RADIUS_METRES,
 };
 
 /**
@@ -192,7 +195,7 @@ export const STEGO_GAIT: GaitParams = {
   loopSeconds: 2.4,
   turnRateRadiansPerSecond: Math.PI,
   curvatureRadiansPerMetre: 20,
-  wanderRadiusMetres: 0.8,
+  wanderRadiusMetres: DINO_WALK_RADIUS_METRES,
 };
 
 /**
@@ -218,7 +221,7 @@ export const BRACHIO_GAIT: GaitParams = {
   loopSeconds: 3.8,
   turnRateRadiansPerSecond: 1.8,
   curvatureRadiansPerMetre: 4.5,
-  wanderRadiusMetres: 0.8,
+  wanderRadiusMetres: DINO_WALK_RADIUS_METRES,
 };
 
 export interface DinoPlayerOptions {

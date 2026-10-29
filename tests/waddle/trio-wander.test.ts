@@ -27,8 +27,8 @@ import type { GaitParams } from '../../src/ranch/waddle.js';
  * outward through a full half turn — yaw capped at min(turn rate, curvature x
  * speed), plus the 0.2 s blend ramp — so the overshoot scales with the gait's
  * own measured speed. Phase 4 measured the trio reaching trike 1.347 m, stego
- * 1.414 m, brachio 1.099 m, against a 1.09 m bound that assumed the old
- * unmetered 0.29 m stride (see verification/phase-4.md; Phase 5 owns the frame).
+ * 1.414 m, brachio 1.099 m around the old 0.8 m circle; this bound tracks the
+ * circle the gaits actually share (`DINO_WALK_RADIUS_METRES`).
  */
 function inFrameCeilingMetres(gait: GaitParams): number {
   const speed = gaitSpeedMetresPerSecond(gait);
@@ -38,19 +38,15 @@ function inFrameCeilingMetres(gait: GaitParams): number {
 
 const DT = 1 / 60;
 const STEPS = 30 * 60;
-const MIN_SEPARATION_METRES = 0.25;
 /**
- * Floor actually asserted on the locked 30 s draw after phase 4 re-measured the
- * gaits. The 0.25 m design bar assumed the old shared ~0.36 m/s pace; at the
- * measured strides the closest pair closes at up to 1.21 m/s (Stego 0.745 +
- * Brachio 0.465), so the 0.4 m avoidance trigger buys 0.33 s — well under the
- * half turn a yaw-limited steer needs. The run reaches 0.106 m, so avoidance
- * still helps (see the differential assertion) but the design bar is gone.
- * Raising the trigger distance and making separation body-aware belongs to
- * Phase 5 (avoidance distances / ranch layout); this floor records the
- * regression instead of hiding it — see verification/phase-4.md.
+ * Design bar for the closest two bodies may come (FR-6). Phase 4 temporarily
+ * asserted 0.1 m here: at the measured strides the closest pair closes at up to
+ * 1.21 m/s (Stego 0.745 + Brachio 0.465), so the trike-tuned 0.4 m trigger
+ * bought 0.33 s — well under the half turn a yaw-limited steer needs — and the
+ * locked draw bottomed out at 0.106 m. Phase 5 made the trigger body-aware
+ * (1.84 m), so the bar is back to the real one.
  */
-const MIN_SEPARATION_FLOOR_METRES = 0.1;
+const MIN_SEPARATION_METRES = 0.25;
 /** Per-frame heading change above this reads as a snap/bounce, not a steer. */
 const HEADING_SNAP_RADIANS = 0.1;
 
@@ -265,7 +261,7 @@ describe('trio wander coexistence (FR-5, FR-6, AC-3)', () => {
       const ceiling = inFrameCeilingMetres(gaits[index]);
       expect(max, `${names[index]} stays in-frame`).toBeLessThanOrEqual(ceiling);
     });
-    expect(stats.minSeparationMetres).toBeGreaterThan(MIN_SEPARATION_FLOOR_METRES);
+    expect(stats.minSeparationMetres).toBeGreaterThan(MIN_SEPARATION_METRES);
     // Differential proof: the same draw without avoidance must come closer,
     // so the locked seeds prove avoidance helps in-draw (not a lucky draw).
     expect(baseline.avoidanceFrames).toBeGreaterThan(0);

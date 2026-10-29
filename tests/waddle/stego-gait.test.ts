@@ -5,6 +5,7 @@ import {
   buildStegoClips,
   createStegoVariantGroup,
 } from '../../scripts/vendor/bake-stego-variant.js';
+import { DINO_WALK_RADIUS_METRES } from '../../src/ranch/avoidance.js';
 import { DinoPlayer, STEGO_GAIT } from '../../src/ranch/dino-player.js';
 import { gaitSpeedMetresPerSecond, TURN_ALIGN_RADIANS, wrapAngle } from '../../src/ranch/waddle.js';
 
@@ -249,7 +250,8 @@ describe('stego gait config (FR-1, FR-5, AC-5)', () => {
     expect(STEGO_GAIT.loopSeconds).toBe(2.4);
     expect(STEGO_GAIT.turnRateRadiansPerSecond).toBe(Math.PI);
     expect(STEGO_GAIT.curvatureRadiansPerMetre).toBe(20);
-    expect(STEGO_GAIT.wanderRadiusMetres).toBe(0.8);
+    // FR-6: the walk circle belongs to the ranch, not to the Stego's stride.
+    expect(STEGO_GAIT.wanderRadiusMetres).toBe(DINO_WALK_RADIUS_METRES);
   });
 
   it('ties loop to the clip duration and stride to the clip walking speed (within 5 %)', async () => {

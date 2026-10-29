@@ -23,6 +23,8 @@ import {
 import {
   BRACHIO_BODY_HEX,
   createPlaceholderBrachio,
+  createPlaceholderStego,
+  createPlaceholderTrike,
   PLACEHOLDER_BODY_HEX,
   PLACEHOLDER_BODY_NAME,
   STEGO_BODY_HEX,
@@ -89,22 +91,27 @@ describe('placeholder brachio fallback (FR-8, AC-5)', () => {
     expect(BRACHIO_MODEL_URL).toBe('/models/brachio.glb');
   });
 
-  it('stands boxy and grazing on the ground plane with the swap footprint', () => {
+  it('stands boxy and grazing on the ground plane at the rigged length', () => {
     const brachio = createPlaceholderBrachio();
     expect(brachio.name).toContain('Brachio');
     expect(brachio.children.length).toBeGreaterThan(0);
     const box = new THREE.Box3().setFromObject(brachio);
     expect(Math.abs(box.min.y)).toBeLessThan(1e-6);
     const size = box.getSize(new THREE.Vector3());
-    // Same window as the rigged swap target (2.3–3.1 m grazing baby).
-    expect(size.z).toBeGreaterThanOrEqual(2.3);
-    expect(size.z).toBeLessThanOrEqual(3.1);
+    // Phase 4 sized the rigged model at 7.423 m; the boxy stand-in is the same
+    // length now, so the swap is a shape change and not also a 2.66x pop.
+    expect(size.z).toBeCloseTo(IN_GAME_BODY_LENGTH_METRES.brachio, 3);
     expect(brachio.rotation.y).toBeCloseTo(-Math.PI / 2, 5);
   });
 
-  it('keeps the grazing head near the 1.2 m cap', () => {
+  it('stays squat: no taller than half its own length', () => {
+    // The old "head near the 1.2 m cap" window described a 2.79 m toy. At the
+    // rigged size the cap that still means something is proportion, not metres:
+    // the stand-in must stay a low, child-readable shape...
     const box = new THREE.Box3().setFromObject(createPlaceholderBrachio());
-    expect(box.max.y).toBeLessThan(1.4);
+    expect(box.max.y).toBeLessThan(IN_GAME_BODY_LENGTH_METRES.brachio / 2);
+    // ...and shorter than the rigged animal, so it never grows on the swap.
+    expect(box.max.y).toBeGreaterThan(IN_GAME_BODY_LENGTH_METRES.brachio / 4);
   });
 
   it('reads as a Brachio, not a third Trike or Stego: lavender hide, no green or teal', () => {
@@ -121,6 +128,20 @@ describe('placeholder brachio fallback (FR-8, AC-5)', () => {
     expect(hexes.has(PLACEHOLDER_BODY_HEX)).toBe(false);
     expect(hexes.has(STEGO_BODY_HEX)).toBe(false);
     expect(hexes.has(STEGO_PLATE_HEX)).toBe(false);
+  });
+
+  it('lands every stand-in at the rigged length, so no swap changes size (FR-4)', () => {
+    const cases = [
+      [createPlaceholderTrike(), IN_GAME_BODY_LENGTH_METRES.trike],
+      [createPlaceholderStego(), IN_GAME_BODY_LENGTH_METRES.stego],
+      [createPlaceholderBrachio(), IN_GAME_BODY_LENGTH_METRES.brachio],
+    ] as const;
+    for (const [group, length] of cases) {
+      const size = new THREE.Box3().setFromObject(group).getSize(new THREE.Vector3());
+      // Each stand-in faces +Z after its rotation, so z is its length.
+      expect(Math.max(size.x, size.z)).toBeCloseTo(length, 3);
+      expect(size.y).toBeLessThan(length);
+    }
   });
 
   it('shares the seamless placeholder bob with the other two', () => {

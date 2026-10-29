@@ -15,8 +15,9 @@ export function setAllWalking(players: DinoPlayer[], walking: boolean): void {
 
 /**
  * Soft-steer both players apart (FR-6): bias each heading away when the pair
- * is closer than 0.4 m. Never touches `moving`, so neither dino stops,
- * bounces, or teleports.
+ * is closer than the avoidance trigger (`AVOIDANCE_TRIGGER_METRES`, derived
+ * from the biggest body length in src/ranch/avoidance.ts). Never touches
+ * `moving`, so neither dino stops, bounces, or teleports.
  */
 export function steerPairApart(
   trike: DinoPlayer,

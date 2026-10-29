@@ -1,6 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
+import {
+  DINO_WALK_RADIUS_METRES,
+  LARGEST_DINO_BODY_LENGTH_METRES,
+} from '../../src/ranch/avoidance.js';
 import { DUST_POOL_SIZE } from '../../src/ranch/dust.js';
 import {
   BlinkController,
@@ -75,12 +79,14 @@ function findHead(root: THREE.Object3D): THREE.Object3D {
 }
 
 describe('gait config (FR-1)', () => {
-  it('ships the Trike tuning: 0.29 m stride, 0.8 s loop, PI turn, 4.5 curve, 0.8 m wander', () => {
+  it('ships the Trike tuning: 0.29 m stride, 0.8 s loop, PI turn, 4.5 curve', () => {
     expect(TRIKE_GAIT.strideMetres).toBeCloseTo(0.29, 12);
     expect(TRIKE_GAIT.loopSeconds).toBeCloseTo(0.8, 12);
     expect(TRIKE_GAIT.turnRateRadiansPerSecond).toBeCloseTo(Math.PI, 12);
     expect(TRIKE_GAIT.curvatureRadiansPerMetre).toBeCloseTo(4.5, 12);
-    expect(TRIKE_GAIT.wanderRadiusMetres).toBeCloseTo(0.8, 12);
+    // FR-6: the circle is the ranch's, not the Trike's — all three share it.
+    expect(TRIKE_GAIT.wanderRadiusMetres).toBeCloseTo(DINO_WALK_RADIUS_METRES, 12);
+    expect(TRIKE_GAIT.wanderRadiusMetres).toBeCloseTo(LARGEST_DINO_BODY_LENGTH_METRES / 2, 12);
   });
 
   it('matches the waddle math constants so Trike behaviour is identical', () => {
@@ -173,9 +179,20 @@ describe('gait config (FR-1)', () => {
       roamer.update(DT, now);
       now += DT;
     }
-    // 2 m out is past the 0.8 m Trike circle, so it bends home; the 10 m
-    // circle never triggers and the roamer holds its heading.
-    expect(trike.heading).not.toBe(0);
+    // 2 m out is inside the ranch circle (half the Brachio's body, ~3.7 m),
+    // so the roamer never steers; a player spawned past its own circle bends
+    // home. FR-6 sized the circle for the biggest animal, so this checks the
+    // custom-radius path rather than the shipped 0.8 m Trike ring.
+    const wide = createTestRig();
+    const outsider = new DinoPlayer(wide, { clip: createWaddleClip(), random: () => 0.5 });
+    wide.position.set(DINO_WALK_RADIUS_METRES + 1.5, 0, 0);
+    outsider.setWalking(true);
+    now = 0;
+    for (let i = 0; i < 120; i += 1) {
+      outsider.update(DT, now);
+      now += DT;
+    }
+    expect(outsider.heading).not.toBe(0);
     expect(roamer.heading).toBe(0);
   });
 });
@@ -455,7 +472,8 @@ describe('stay-in-frame wander', () => {
   it('steers a far spawn back toward center and still halts on stop', () => {
     const rig = createTestRig();
     const player = createPlayer(rig);
-    rig.position.set(2, 0, 0);
+    // Past the ranch circle, so the boundary steer must engage (FR-6).
+    rig.position.set(DINO_WALK_RADIUS_METRES + 2, 0, 0);
     player.setWalking(true);
     let now = 0;
     for (let i = 0; i < 120; i += 1) {

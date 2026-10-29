@@ -132,20 +132,28 @@
 - **Covers:** FR-6, FR-7, FR-8, NFR-1, AC-4, AC-6, AC-7
 - **Touches:** `src/viewer/scene.ts`, `src/viewer/pov.ts`, `src/ranch/dressing.ts`, `src/ranch/avoidance.ts`, `src/ranch/dino-player.ts`, `src/viewer/placeholders.ts`, `tests/ranch/*.test.ts`, `tests/viewer/*.test.ts`
 - **Verification:** `pnpm verify` plus dev-harness screenshots per POV in the phase evidence
-- **Status:** in_progress
+- **Status:** verified
 - **Tasks:**
-  - [ ] **P5.T1: Grow the walkable area** - covers: FR-6
-    - [ ] **P5.T1.1: Increase ground radius, camera far plane, spawn ring and wander radius to derive from body length**
-    - [ ] **P5.T1.2: Scale walk clearance and the avoidance trigger with the largest pair's body length**
-    - [ ] **P5.T1.3: Restore the 0.25 m separation bar once the trigger grows, and delete the temporary floors (P4 measured 0.240 m dual / 0.106 m trio at a 0.4 m trigger)**
-  - [ ] **P5.T2: Keep the props out of the way** - covers: FR-7
-    - [ ] **P5.T2.1: Re-place the valley and farm dressing so every prop keeps its clearance from every wander path**
-    - [ ] **P5.T2.2: Assert the clearance in a test rather than by eye**
-  - [ ] **P5.T3: Re-aim the three presets** - covers: FR-8
-    - [ ] **P5.T3.1: Retune Ranch, Nest and Garden positions and look-at targets for the new layout**
-    - [ ] **P5.T3.2: Capture a screenshot per preset in the dev harness and check the named animal is unobstructed**
-  - [ ] **P5.T4: Hold the frame budget** - covers: NFR-1
-    - [ ] **P5.T4.1: Record harness triangles and draw calls for the trio and compare with the pre-track figures**
+  - [x] **P5.T1: Grow the walkable area** - covers: FR-6
+    - [x] **P5.T1.1: Increase ground radius, camera far plane, spawn ring and wander radius to derive from body length**
+    - [x] **P5.T1.2: Scale walk clearance and the avoidance trigger with the largest pair's body length**
+    - [x] **P5.T1.3: Restore the 0.25 m separation bar once the trigger grows, and delete the temporary floors (P4 measured 0.240 m dual / 0.106 m trio at a 0.4 m trigger)**
+  - [x] **P5.T2: Keep the props out of the way** - covers: FR-7
+    - [x] **P5.T2.1: Re-place the valley and farm dressing so every prop keeps its clearance from every wander path**
+    - [x] **P5.T2.2: Assert the clearance in a test rather than by eye**
+  - [x] **P5.T3: Re-aim the three presets** - covers: FR-8
+    - [x] **P5.T3.1: Retune Ranch, Nest and Garden positions and look-at targets for the new layout**
+    - [x] **P5.T3.2: Capture a screenshot per preset in the dev harness and check the named animal is unobstructed**
+    - [x] **P5.T3.3: Aim each lens at its named animal's placement and forbid another species spawning on the sightline (the screenshot round caught Garden framing the Brachio)**
+  - [x] **P5.T4: Hold the frame budget** - covers: NFR-1
+    - [x] **P5.T4.1: Record harness triangles and draw calls for the trio and compare with the pre-track figures**
+
+**Result:** verified — screenshots and frame figures captured by the primary (the
+subagent's shell could not drive a browser), and AC-7 needed one more fix.
+
+**Checkpoint:** _(set after squash)_
+
+**Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-5.md
 
 ## Phase 6: Tell the truth about the trio
 

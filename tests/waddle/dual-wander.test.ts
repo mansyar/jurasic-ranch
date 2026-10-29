@@ -32,19 +32,22 @@ function inFrameCeilingMetres(gait: GaitParams): number {
 
 const DT = 1 / 60;
 const STEPS = 30 * 60;
+/**
+ * Deliberately the tightest boom the old ranch allowed: two bodies starting
+ * 0.8 m apart, i.e. both already inside the 1.84 m avoidance trigger on frame
+ * zero. The trio spawns 6.43 m apart in production, so this pair is the harder
+ * case, not a mirror of boot.
+ */
 const SPAWN_OFFSET_METRES = 0.4;
 /**
- * Floor actually asserted on the locked 30 s draw after phase 4 re-measured the
- * gaits. The 0.25 m design bar was tuned when both dinos walked at the Trike's
- * 0.3625 m/s: at the measured strides the pair closes at 1.11 m/s (Trike
- * 0.3625 + Stego 0.745), so a 0.4 m avoidance trigger buys 0.36 s — less than
- * the yaw-limited half turn it needs. The run reaches 0.240 m, i.e. avoidance
- * still helps (the no-avoidance baseline is closer) but can no longer hold the
- * design bar. Raising the trigger distance and making separation body-aware is
- * Phase 5's (avoidance distances / ranch layout); this floor records the
- * regression instead of hiding it — see verification/phase-4.md.
+ * Design bar for the closest two bodies may come (FR-6). It was temporarily
+ * lowered to 0.15 m in phase 4: at the measured strides the pair closes at
+ * 1.11 m/s, so the trike-tuned 0.4 m trigger bought 0.36 s — less than the
+ * yaw-limited half turn it needs — and the locked draw bottomed out at 0.240 m.
+ * Phase 5 raised the trigger to 1.84 m (body clearance plus the ground covered
+ * reacting), so the bar is back where it always belonged.
  */
-const MIN_SEPARATION_FLOOR_METRES = 0.15;
+const MIN_SEPARATION_METRES = 0.25;
 
 /**
  * Deterministic PRNG (mulberry32): the sim needs the wander-jitter spread
@@ -212,7 +215,7 @@ describe('dual wander coexistence (FR-5, FR-6, AC-3)', () => {
     expect(stats.maxDistanceMetres).toBeGreaterThan(TRIKE_GAIT.wanderRadiusMetres - 0.3);
     const bound = Math.max(inFrameCeilingMetres(TRIKE_GAIT), inFrameCeilingMetres(STEGO_GAIT));
     expect(stats.maxDistanceMetres).toBeLessThanOrEqual(bound);
-    expect(stats.minSeparationMetres).toBeGreaterThan(MIN_SEPARATION_FLOOR_METRES);
+    expect(stats.minSeparationMetres).toBeGreaterThan(MIN_SEPARATION_METRES);
     // Differential proof: the same draw without avoidance must come closer,
     // so the locked seeds prove avoidance helps in-draw (not a lucky draw).
     const baseline = runDualWander(false);

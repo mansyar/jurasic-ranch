@@ -1,10 +1,13 @@
 import * as THREE from 'three';
+import { LARGEST_DINO_BODY_LENGTH_METRES, trioSpawnPositions } from '../ranch/avoidance.js';
+import { IN_GAME_BODY_LENGTH_METRES } from './loaders.js';
 
 /**
  * Fixed cozy viewpoints (FR-1). The camera never orbits or follows: every
  * switch is an instant cut, so all animations stay interruptible (FR-7).
- * Dino wander stays inside the 0.8 m circle, so both babies stay reachable
- * in frame from any preset via the existing wander/avoidance.
+ * Dino wander stays inside the half-body-length circle on the ranch, so both
+ * babies stay reachable in frame from any preset via the existing
+ * wander/avoidance.
  */
 
 /** Fixed camera viewpoint id. */
@@ -22,29 +25,105 @@ export interface PovPreset {
 /** Tab order for the POV buttons; Ranch is the boot view. */
 export const POV_ORDER: readonly PovPresetId[] = ['ranch', 'nest', 'garden'];
 
-/** Fixed camera presets. Ranch keeps the legacy fixed camera verbatim. */
+/**
+ * POV preset id -> the animal that preset is named for. Looking at a body
+ * centre inside the walk circle keeps the named animal in frame whatever it
+ * does, because every dino's centre stays within
+ * `LARGEST_DINO_BODY_LENGTH_METRES / 2` of it.
+ */
+/**
+ * POV preset id -> the animal that preset is named for. Every preset aims at
+ * where its animal is *placed* rather than at the middle of the ranch: the
+ * lens stands on a bearing of its own, and aiming at the centre put whichever
+ * animal spawned on the lens side between the camera and the animal it named.
+ */
+export const POV_FOCUS_SPECIES: Record<PovPresetId, keyof typeof IN_GAME_BODY_LENGTH_METRES> = {
+  ranch: 'brachio',
+  nest: 'trike',
+  garden: 'stego',
+};
+
+/** Spawn-ring order used by `trioSpawnPositions()` and the boot placement. */
+const TRIO_SPAWN_SPECIES_ORDER: readonly (keyof typeof IN_GAME_BODY_LENGTH_METRES)[] = [
+  'trike',
+  'stego',
+  'brachio',
+];
+
+/**
+ * Where a preset stands, as a bearing around the ranch in radians, measured
+ * from +X towards +Z — the same convention the dressing ring places props in,
+ * so the layout tests can hold the two against each other. The bow of the lens
+ * used to be hand-authored as three unrelated coordinates; since the trio now
+ * fills a much bigger circle, the bearing is what keeps the three views apart
+ * (FR-8).
+ */
+export const POV_BEARING_RADIANS: Record<PovPresetId, number> = {
+  // Bearings are degrees around the ranch in the dressing ring's convention.
+  ranch: 1.0123, // 58 deg: the boot view, lit from the sun at (+3, +5, +2).
+  nest: 2.471, // 141.6 deg: the nest stones sit 18 deg along the rim.
+  garden: 4.1888, // 240 deg: stands off the corn, looking back at its dino.
+};
+
+/**
+ * How far out a preset stands, in body lengths. Far enough that the biggest
+ * animal still fits the 40 deg lens, close enough that a 3.7 m hatchling is
+ * not a speck. Three distances rather than one keep the trio visually
+ * different from view to view.
+ */
+const POV_DISTANCES_IN_BODY_LENGTHS: Record<PovPresetId, number> = {
+  ranch: 2.4,
+  nest: 2.05,
+  garden: 2.18,
+};
+
+/**
+ * Eye height in metres. The ground is flat, so a single height keeps the
+ * horizon steady through a cut while still looking down on a 3.7 m animal.
+ */
+const POV_EYE_HEIGHT_METRES = 4.6;
+
+/**
+ * POV preset id -> index into `trioSpawnPositions()` for the animal that
+ * preset is named for, derived from the species map so the two cannot drift.
+ */
+export const POV_FOCUS_SPAWN_INDEX: Record<PovPresetId, number> = {
+  ranch: TRIO_SPAWN_SPECIES_ORDER.indexOf(POV_FOCUS_SPECIES.ranch),
+  nest: TRIO_SPAWN_SPECIES_ORDER.indexOf(POV_FOCUS_SPECIES.nest),
+  garden: TRIO_SPAWN_SPECIES_ORDER.indexOf(POV_FOCUS_SPECIES.garden),
+};
+
+/**
+ * Cut a preset to a camera position: stand `distance` out on `bearing`, look
+ * at the named animal's body centre. Keeping this derivation in one function
+ * means the three presets cannot drift out of step with each other, the walk
+ * circle, or the body heights when the ranch is resized (AC-7).
+ */
+function presetFor(id: PovPresetId, label: string, icon: string): PovPreset {
+  const bearing = POV_BEARING_RADIANS[id];
+  const distance = POV_DISTANCES_IN_BODY_LENGTHS[id] * LARGEST_DINO_BODY_LENGTH_METRES;
+  const bodyLength = IN_GAME_BODY_LENGTH_METRES[POV_FOCUS_SPECIES[id]];
+  const spawn = trioSpawnPositions()[POV_FOCUS_SPAWN_INDEX[id]];
+  return {
+    id,
+    label,
+    icon,
+    position: [distance * Math.cos(bearing), POV_EYE_HEIGHT_METRES, distance * Math.sin(bearing)],
+    // The middle of the animal it names, not its toes and not the ranch centre.
+    lookAt: [spawn.x, bodyLength / 2, spawn.z],
+  };
+}
+
+/**
+ * Fixed camera presets: Ranch looks at the Brachio, Nest at the Trike, Garden
+ * at the Stego (FR-8). All three stand outside the walk circle and inside the
+ * prop ring, so no prop can sit between a lens and the animal it names, and
+ * each lens aims past the other two animals rather than through one of them.
+ */
 export const POV_PRESETS: Record<PovPresetId, PovPreset> = {
-  ranch: {
-    id: 'ranch',
-    label: 'Ranch',
-    icon: '🏠',
-    position: [2.4, 1.5, 3.0],
-    lookAt: [0, 0.45, 0],
-  },
-  nest: {
-    id: 'nest',
-    label: 'Nest',
-    icon: '🪹',
-    position: [-2.3, 1.2, 2.5],
-    lookAt: [0, 0.4, 0],
-  },
-  garden: {
-    id: 'garden',
-    label: 'Garden',
-    icon: '🌼',
-    position: [0.3, 1.9, 3.7],
-    lookAt: [0, 0.35, 0],
-  },
+  ranch: presetFor('ranch', 'Ranch', '🏠'),
+  nest: presetFor('nest', 'Nest', '🪹'),
+  garden: presetFor('garden', 'Garden', '🌼'),
 };
 
 /** Look up a fixed camera preset by id. */

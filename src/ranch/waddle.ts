@@ -38,8 +38,8 @@ export const STOP_BLEND_DEADBAND = 0.03;
  * Stroller-arc curvature: radians of heading per metre walked. While moving,
  * yaw = curvature x actual root speed, capped above — so the slower baby
  * speed automatically yields gentler arcs at a constant turn radius
- * (1 / curvature ~ 0.22 m), keeping the Trike inside the 0.8 m
- * stay-in-frame wander circle while bending visibly.
+ * (1 / curvature ~ 0.22 m), keeping the Trike inside the
+ * stay-in-frame wander circle the ranch gaits share while bending visibly.
  */
 export const TURN_ARC_CURVATURE_RADIANS_PER_METRE = 4.5;
 

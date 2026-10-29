@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
+import { DINO_WALK_RADIUS_METRES } from '../../src/ranch/avoidance.js';
 import { BRACHIO_GAIT, DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from '../../src/ranch/dino-player.js';
 import {
   createWaddlePose,
@@ -67,7 +68,7 @@ function createBrachioPlayer(rig: THREE.Group): DinoPlayer {
 }
 
 describe('brachio gait config (FR-1, FR-5)', () => {
-  it('ships the measured Brachio walk: 1.767 m stride, 3.8 s loop, 1.8 turn, 4.5 curve, 0.8 m wander', () => {
+  it('ships the measured Brachio walk: 1.767 m stride, 3.8 s loop, 1.8 turn, 4.5 curve', () => {
     expect(BRACHIO_GAIT.strideMetres).toBe(1.767);
     expect(BRACHIO_GAIT.loopSeconds).toBe(3.8);
     expect(BRACHIO_GAIT.turnRateRadiansPerSecond).toBe(1.8);
@@ -76,7 +77,10 @@ describe('brachio gait config (FR-1, FR-5)', () => {
     // bound on outward rim crossings. 4.5 (the trike-proven stroller curvature)
     // is the smallest change that contains the trio — see the phase-1 evidence.
     expect(BRACHIO_GAIT.curvatureRadiansPerMetre).toBe(4.5);
-    expect(BRACHIO_GAIT.wanderRadiusMetres).toBe(0.8);
+    // FR-6: the body centre wanders inside half a body length, so a 7.42 m
+    // animal can turn without dragging its tail off the ranch.
+    expect(BRACHIO_GAIT.wanderRadiusMetres).toBe(DINO_WALK_RADIUS_METRES);
+    expect(BRACHIO_GAIT.wanderRadiusMetres).toBeCloseTo(3.7117, 4);
   });
 
   it('walks at the measured 0.465 m/s, faster than the Trike but slower than the Stego', () => {
@@ -166,12 +170,12 @@ describe('brachio gait config (FR-1, FR-5)', () => {
     expect(TRIKE_GAIT.loopSeconds).toBe(0.8);
     expect(TRIKE_GAIT.turnRateRadiansPerSecond).toBe(Math.PI);
     expect(TRIKE_GAIT.curvatureRadiansPerMetre).toBe(4.5);
-    expect(TRIKE_GAIT.wanderRadiusMetres).toBe(0.8);
+    expect(TRIKE_GAIT.wanderRadiusMetres).toBe(DINO_WALK_RADIUS_METRES);
     expect(STEGO_GAIT.strideMetres).toBe(1.788);
     expect(STEGO_GAIT.loopSeconds).toBe(2.4);
     expect(STEGO_GAIT.turnRateRadiansPerSecond).toBe(Math.PI);
     expect(STEGO_GAIT.curvatureRadiansPerMetre).toBe(20);
-    expect(STEGO_GAIT.wanderRadiusMetres).toBe(0.8);
+    expect(STEGO_GAIT.wanderRadiusMetres).toBe(DINO_WALK_RADIUS_METRES);
   });
 
   it('adds no new player class: only DinoPlayer drives gaits (FR-1, FR-10, AC-7)', async () => {
