@@ -28,7 +28,7 @@
 | AC-4 (pause/step) | 2 | `harness-state.test.ts` proves step consumes exactly N frames and re-pauses (live blocked, see below) |
 | AC-5 (HUD) | 2 | `formatHud` unit tests (live fps blocked, see below) |
 | AC-6 (forced states) | 2 | `blink.test.ts`; live POV + hint |
-| AC-7 (overlays) | 2 | `harness-state.test.ts` overlay toggle; group built from live positions |
+| AC-7 (overlays) | 2 | `harness-state.test.ts` `overlayTransforms`: follows a moved dino, hidden dinos yield no overlays, arrow yaw equals heading; the group is built from live positions |
 | AC-8 (snapshot) | 1 + 2 | `snapshot.test.ts`; live distances 0.6928 m = 120° triangle at r=0.4 |
 | AC-9 (determinism) | 1 | seeded-RNG tests; plays the same sequence for the same seed |
 | AC-10 (dist clean) | 3 | guard passes in `verify`; planted marker makes it exit 1 |

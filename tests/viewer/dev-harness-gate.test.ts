@@ -8,13 +8,25 @@ async function read(relativePath: string): Promise<string> {
 }
 
 describe("dev harness production gate (FR-1, FR-10, AC-1)", () => {
+  it("consults ?dev=1 before fetching the harness module", async () => {
+    const viewer = await read("src/viewer/main.ts");
+    // FR-10: an ordinary dev boot must not pay a module round trip.
+    expect(viewer).toMatch(
+      /import\.meta\.env\.DEV && new URLSearchParams\(window\.location\.search\)\.get\("dev"\) === "1"/,
+    );
+    expect(viewer).toMatch(
+      /const dev = devRequested\s*\?\s*await import\("\.\.\/dev\/harness\.js"\)\s*:\s*null;/,
+    );
+    const requestedAt = viewer.indexOf('get("dev") === "1"');
+    const importAt = viewer.indexOf('import("../dev/harness.js")');
+    expect(requestedAt).toBeGreaterThanOrEqual(0);
+    expect(requestedAt).toBeLessThan(importAt);
+  });
+
   it("guards the harness import with import.meta.env.DEV", async () => {
     const viewer = await read("src/viewer/main.ts");
-    expect(viewer).toMatch(
-      /const dev = import\.meta\.env\.DEV \? await import\("\.\.\/dev\/harness\.js"\) : null;/,
-    );
     // Publish + install only behind the same dev flag and the `?dev=1` option.
-    expect(viewer).toMatch(/options\?\.enabled === true && options\.seed !== null && dev !== null/);
+    expect(viewer).toMatch(/dev !== null && options\?\.enabled === true && options\.seed !== null/);
     expect(viewer).toMatch(
       /if \(dev !== null && devBridge !== null && options !== null\) \{\s*\n\s*devFrame = dev\.installDevHarness\(devBridge, options\);/,
     );

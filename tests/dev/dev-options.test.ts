@@ -50,6 +50,16 @@ describe("seed parsing (FR-8)", () => {
     expect(parseDevQuery("?dev=1&seed=").seed).toBeNull();
     expect(parseDevQuery("?dev=1").seed).toBeNull();
   });
+
+  it("rejects a partially numeric seed instead of truncating it (F7)", () => {
+    // `Number.parseInt("12abc")` is 12, which would silently seed a run from a
+    // typo; only a full `/^-?\d+$/` integer is a seed.
+    expect(parseDevQuery("?dev=1&seed=12abc").seed).toBeNull();
+    expect(parseDevQuery("?dev=1&seed=42.5").seed).toBeNull();
+    expect(parseDevQuery("?dev=1&seed=1e3").seed).toBeNull();
+    expect(parseDevQuery("?dev=1&seed=%2042").seed).toBeNull();
+    expect(parseDevQuery("?dev=1&seed=12abc").enabled).toBe(true);
+  });
 });
 
 describe("remaining options", () => {

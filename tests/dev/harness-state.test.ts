@@ -4,6 +4,8 @@ import {
   DEV_STEP_DT_SECONDS,
   formatHud,
   nextPausedFrame,
+  overlayTransforms,
+  type OverlayDino,
 } from "../../src/dev/harness-state.js";
 import { buildSnapshot, type SnapshotDino } from "../../src/dev/snapshot.js";
 import type { DevSpeciesId } from "../../src/dev/dev-options.js";
@@ -86,6 +88,40 @@ describe("formatHud (FR-4, AC-5)", () => {
   it("degrades to a dash instead of Infinity fps", () => {
     expect(formatHud(0, 0, 0)).toBe("0 fps · — ms · 0 calls · 0 tris");
     expect(formatHud(Number.NaN, Number.NaN, Number.NaN)).toBe("0 fps · — ms · 0 calls · 0 tris");
+  });
+});
+
+describe("overlayTransforms (FR-6, AC-7)", () => {
+  const dinos: OverlayDino[] = [
+    { id: "trike", visible: true, x: 0.1, z: -0.2, heading: 0.5 },
+    { id: "stego", visible: false, x: 1, z: 1, heading: 1 },
+    { id: "brachio", visible: true, x: -0.3, z: 0.4, heading: -2 },
+  ];
+
+  it("projects ring centre and arrow yaw for the visible dinos", () => {
+    expect(overlayTransforms(dinos)).toEqual([
+      { id: "trike", ringX: 0.1, ringZ: -0.2, arrowYaw: 0.5 },
+      { id: "brachio", ringX: -0.3, ringZ: 0.4, arrowYaw: -2 },
+    ]);
+  });
+
+  it("follows a dino that wandered", () => {
+    const moved = dinos.map((dino) =>
+      dino.id === "trike" ? { ...dino, x: 0.65, z: 0.12, heading: 1.25 } : dino,
+    );
+    const trike = overlayTransforms(moved).find((transform) => transform.id === "trike");
+    expect(trike).toEqual({ id: "trike", ringX: 0.65, ringZ: 0.12, arrowYaw: 1.25 });
+  });
+
+  it("renders no overlays for hidden dinos", () => {
+    const hidden = dinos.map((dino) => ({ ...dino, visible: false }));
+    expect(overlayTransforms(hidden)).toEqual([]);
+  });
+
+  it("does not mutate its input", () => {
+    const copy = dinos.map((dino) => ({ ...dino }));
+    overlayTransforms(dinos);
+    expect(dinos).toEqual(copy);
   });
 });
 

@@ -208,6 +208,13 @@ export interface DinoPlayerOptions {
   clip: THREE.AnimationClip;
   texture?: THREE.Texture;
   random?: () => number;
+  /**
+   * Separate generator for the blink schedule (FR-8). Blink draws are gated by
+   * wall-clock time, so sharing one stream with wander jitter and dust would
+   * let extra blink draws shift the poses of a seeded run. Defaults to
+   * `random`, keeping unseeded behaviour identical.
+   */
+  blinkRandom?: () => number;
   /** Gait tuning; defaults to the Trike gait. */
   gait?: GaitParams;
   /**
@@ -262,7 +269,7 @@ export class DinoPlayer {
     this.action.weight = 0;
     this.action.play();
     this.pose = createWaddlePose();
-    this.blink = new BlinkController(this.random);
+    this.blink = new BlinkController(options.blinkRandom ?? this.random);
     this.targets = findBlinkTargets(model);
     this.baseScale = model.scale.clone();
     this.dust = options.dust ?? new DustPool({ texture: options.texture, random: this.random });

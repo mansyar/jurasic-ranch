@@ -437,6 +437,7 @@ async function loadDinoPlayer(
   gait: GaitParams,
   sharedDust?: DustPool,
   random?: () => number,
+  blinkRandom?: () => number,
 ): Promise<LoadedDino> {
   const draco = new DRACOLoader();
   draco.setDecoderPath(DRACO_DECODER_PATH);
@@ -452,7 +453,13 @@ async function loadDinoPlayer(
     // Baked pastel baby look: the GLB already carries the pastel palette in
     // its vertex colors, so no runtime recolor runs here. Only pin blush
     // cheeks to the blink Head bone. No-op on models without a Head node.
-    const player = new DinoPlayer(gltf.scene, { clip, gait, dust: sharedDust, random });
+    const player = new DinoPlayer(gltf.scene, {
+      clip,
+      gait,
+      dust: sharedDust,
+      random,
+      blinkRandom,
+    });
     attachBlushCheeks(player.head);
     return { model: gltf.scene, player };
   } finally {
@@ -461,21 +468,37 @@ async function loadDinoPlayer(
 }
 
 /** Load the baked Trike GLB with the Trike gait (FR-2 behaviour unchanged). */
-export function loadTrikePlayer(sharedDust?: DustPool, random?: () => number): Promise<LoadedTrike> {
-  return loadDinoPlayer(TRIKE_MODEL_URL, "Trike", TRIKE_GAIT, sharedDust, random);
+export function loadTrikePlayer(
+  sharedDust?: DustPool,
+  random?: () => number,
+  blinkRandom?: () => number,
+): Promise<LoadedTrike> {
+  return loadDinoPlayer(TRIKE_MODEL_URL, "Trike", TRIKE_GAIT, sharedDust, random, blinkRandom);
 }
 
 /** Load the baked Stego GLB with the Stego gait (FR-4). */
-export function loadStegoPlayer(sharedDust?: DustPool, random?: () => number): Promise<LoadedDino> {
-  return loadDinoPlayer(STEGO_MODEL_URL, "Stego", STEGO_GAIT, sharedDust, random);
+export function loadStegoPlayer(
+  sharedDust?: DustPool,
+  random?: () => number,
+  blinkRandom?: () => number,
+): Promise<LoadedDino> {
+  return loadDinoPlayer(STEGO_MODEL_URL, "Stego", STEGO_GAIT, sharedDust, random, blinkRandom);
 }
 
 /** Load the baked Brachio GLB with the Brachio shuffle gait (FR-1). */
 export function loadBrachioPlayer(
   sharedDust?: DustPool,
   random?: () => number,
+  blinkRandom?: () => number,
 ): Promise<LoadedDino> {
-  return loadDinoPlayer(BRACHIO_MODEL_URL, "Brachio", BRACHIO_GAIT, sharedDust, random);
+  return loadDinoPlayer(
+    BRACHIO_MODEL_URL,
+    "Brachio",
+    BRACHIO_GAIT,
+    sharedDust,
+    random,
+    blinkRandom,
+  );
 }
 
 /** One Walk button drives every loaded player together (FR-7, AC-4). */
@@ -578,14 +601,20 @@ export async function bootViewer(): Promise<void> {
     return;
   }
   // FR-1/FR-10: the harness is a dev-build-only dynamic import. Production
-  // builds statically replace `import.meta.env.DEV` with false, so the chunk is
-  // dropped and the kid-facing DOM, RNG and bundle stay exactly as before.
-  const dev = import.meta.env.DEV ? await import("../dev/harness.js") : null;
+  // builds statically replace `import.meta.env.DEV` with false, so neither the
+  // query read nor the chunk survives in `dist/`, and the kid-facing DOM, RNG
+  // and bundle stay exactly as before. Read `dev=1` before the import: an
+  // ordinary dev boot must not fetch the harness module (F4).
+  const devRequested =
+    import.meta.env.DEV && new URLSearchParams(window.location.search).get("dev") === "1";
+  const dev = devRequested ? await import("../dev/harness.js") : null;
   const options = dev?.parseDevQuery(window.location.search) ?? null;
-  const random: () => number =
-    options?.enabled === true && options.seed !== null && dev !== null
-      ? dev.seededRandom(options.seed)
-      : Math.random;
+  // FR-8/AC-9: one generator per consumer, derived from `seed` by fixed index,
+  // so GLB resolution order and wall-clock blink draws never shift poses.
+  const streams =
+    dev !== null && options?.enabled === true && options.seed !== null
+      ? dev.seededStreams(options.seed)
+      : null;
   const canvas = document.getElementById(CANVAS_ID);
   const button = document.getElementById(WALK_BUTTON_ID);
   const status = document.getElementById(STATUS_ID);
@@ -658,7 +687,7 @@ export async function bootViewer(): Promise<void> {
   scene.add(brachio);
 
   // FR-9: one shared DustPool feeds all three players (single draw call).
-  const sharedDust = new DustPool({ random });
+  const sharedDust = new DustPool({ random: streams?.dust ?? Math.random });
   scene.add(sharedDust.points);
 
   let walking = (await readSetting(WALK_SETTING_KEY)) === true;
@@ -855,7 +884,11 @@ export async function bootViewer(): Promise<void> {
   // finishes. A failed load keeps its placeholder walking (offline
   // first-visit safety) and surfaces the reason in the console; the other
   // dinos are unaffected.
-  void loadTrikePlayer(sharedDust, random)
+  void loadTrikePlayer(
+    sharedDust,
+    streams?.movement.trike ?? Math.random,
+    streams?.blink.trike,
+  )
     .then((loaded) => {
       swapToRigged(trike, loaded, TRIO_SPAWN_HEADINGS_RADIANS[0], (player, model) => {
         trikePlayer = player;
@@ -866,7 +899,11 @@ export async function bootViewer(): Promise<void> {
       console.warn("Rigged trike unavailable; keeping the placeholder.", error);
     });
 
-  void loadStegoPlayer(sharedDust, random)
+  void loadStegoPlayer(
+    sharedDust,
+    streams?.movement.stego ?? Math.random,
+    streams?.blink.stego,
+  )
     .then((loaded) => {
       swapToRigged(stego, loaded, TRIO_SPAWN_HEADINGS_RADIANS[1], (player, model) => {
         stegoPlayer = player;
@@ -877,7 +914,11 @@ export async function bootViewer(): Promise<void> {
       console.warn("Rigged stego unavailable; keeping the placeholder.", error);
     });
 
-  void loadBrachioPlayer(sharedDust, random)
+  void loadBrachioPlayer(
+    sharedDust,
+    streams?.movement.brachio ?? Math.random,
+    streams?.blink.brachio,
+  )
     .then((loaded) => {
       swapToRigged(brachio, loaded, TRIO_SPAWN_HEADINGS_RADIANS[2], (player, model) => {
         brachioPlayer = player;

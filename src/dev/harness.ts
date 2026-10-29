@@ -9,18 +9,27 @@
  */
 
 import * as THREE from "three";
-import type { DinoPlayer } from "../ranch/dino-player.js";
+import { TRIKE_GAIT, type DinoPlayer } from "../ranch/dino-player.js";
 import type { DustPool } from "../ranch/dust.js";
 import type { SleepyState } from "../ranch/sleepy.js";
+import { AVOIDANCE_TRIGGER_METRES } from "../ranch/avoidance.js";
 import { POV_ORDER, type PovPresetId } from "../viewer/pov.js";
 import { type DevOptions, type DevSpeciesId } from "./dev-options.js";
-import { applySolo, nextPausedFrame, formatHud, DEV_STEP_DT_SECONDS } from "./harness-state.js";
+import {
+  applySolo,
+  nextPausedFrame,
+  formatHud,
+  overlayTransforms,
+  DEV_STEP_DT_SECONDS,
+} from "./harness-state.js";
 import { buildSnapshot, type DevSnapshot, type SnapshotDino } from "./snapshot.js";
 
 /** True activation flag; the harness is inert without `?dev=1`. */
 export { parseDevQuery } from "./dev-options.js";
 /** Seeded RNG for `?dev=1&seed=`, reused by the viewer's construction path. */
 export { seededRandom } from "./seeded-random.js";
+/** Per-consumer seeded streams (FR-8), reused by the viewer's construction path. */
+export { seededStreams } from "./harness-state.js";
 
 /** Attribute marking the runtime panel root (Phase 3 scans `dist/` for it). */
 export const DEV_PANEL_ATTRIBUTE = "data-dev-panel";
@@ -28,11 +37,15 @@ export const DEV_PANEL_ATTRIBUTE = "data-dev-panel";
 /** Attribute marking the single injected stylesheet. */
 export const DEV_PANEL_STYLE_ATTRIBUTE = "data-dev-panel-style";
 
-/** Shared wander circle the trio steers inside, in metres. */
-export const DEV_WANDER_RADIUS_METRES = 0.8;
+/**
+ * Shared wander circle the trio steers inside, in metres. Derived from the
+ * gait so the diagnostic ring can never drift from what the players obey
+ * (F5); all three gaits share this radius (asserted in the panel tests).
+ */
+export const DEV_WANDER_RADIUS_METRES = TRIKE_GAIT.wanderRadiusMetres;
 
-/** Pairwise avoidance trigger distance drawn per dino, in metres. */
-export const DEV_AVOIDANCE_TRIGGER_METRES = 0.4;
+/** Pairwise avoidance trigger distance drawn per dino: the steering constant. */
+export const DEV_AVOIDANCE_TRIGGER_METRES = AVOIDANCE_TRIGGER_METRES;
 
 /** Particles per forced dust puff (matches a foot plant at full blend). */
 const FORCED_DUST_PARTICLES = 4;
@@ -207,11 +220,12 @@ function createOverlays(bridge: DevBridge): {
       depthWrite: false,
     }),
   );
+  wanderRing.name = "DevWanderRing";
   wanderRing.rotation.x = -Math.PI / 2;
   wanderRing.position.y = 0.02;
   group.add(wanderRing);
 
-  const perDino = bridge.dinos.map(() => {
+  const perDino = bridge.dinos.map((dino) => {
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(DEV_AVOIDANCE_TRIGGER_METRES - 0.008, DEV_AVOIDANCE_TRIGGER_METRES, 32),
       new THREE.MeshBasicMaterial({
@@ -222,6 +236,7 @@ function createOverlays(bridge: DevBridge): {
         depthWrite: false,
       }),
     );
+    ring.name = `DevAvoidanceRing:${dino.id}`;
     ring.rotation.x = -Math.PI / 2;
     ring.position.y = 0.025;
     group.add(ring);
@@ -233,6 +248,7 @@ function createOverlays(bridge: DevBridge): {
       0.16,
       0.1,
     );
+    arrow.name = `DevHeadingArrow:${dino.id}`;
     group.add(arrow);
     return { ring, arrow };
   });
@@ -240,17 +256,34 @@ function createOverlays(bridge: DevBridge): {
   return {
     group,
     update: (isVisible: (id: DevSpeciesId) => boolean): void => {
+      // The projection is pure (FR-6, AC-7); this loop only writes the three
+      // transforms it returns, keyed by id so a filtered-out dino leaves its
+      // ring and arrow off.
+      const transforms = overlayTransforms(
+        bridge.dinos.map((dino) => {
+          const model = dino.getModel();
+          return {
+            id: dino.id,
+            visible: isVisible(dino.id),
+            x: model.position.x,
+            z: model.position.z,
+            heading: dino.getPlayer()?.heading ?? 0,
+          };
+        }),
+      );
+      const byId = new Map(transforms.map((transform) => [transform.id, transform]));
       bridge.dinos.forEach((dino, index) => {
-        const model = dino.getModel();
-        const player = dino.getPlayer();
         const { ring, arrow } = perDino[index];
-        const shown = isVisible(dino.id);
-        ring.visible = shown;
-        arrow.visible = shown;
-        ring.position.x = model.position.x;
-        ring.position.z = model.position.z;
-        arrow.position.set(model.position.x, 0.05, model.position.z);
-        arrow.rotation.y = player?.heading ?? 0;
+        const transform = byId.get(dino.id);
+        ring.visible = transform !== undefined;
+        arrow.visible = transform !== undefined;
+        if (transform === undefined) {
+          return;
+        }
+        ring.position.x = transform.ringX;
+        ring.position.z = transform.ringZ;
+        arrow.position.set(transform.ringX, 0.05, transform.ringZ);
+        arrow.rotation.y = transform.arrowYaw;
       });
     },
   };
@@ -329,6 +362,18 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     }
   };
 
+  // FR-2: species buttons toggle exactly their own dino (AC-2)...
+  const visibilityButtons = new Map<DevSpeciesId, HTMLButtonElement>();
+  const visibilityRowButtons: HTMLButtonElement[] = [];
+  for (const dino of bridge.dinos) {
+    const button = createButton(dino.label);
+    button.setAttribute("data-dev-show", dino.id);
+    visibilityButtons.set(dino.id, button);
+    visibilityRowButtons.push(button);
+  }
+
+  // ...and the one-tap presets live in their own group, so a solo press never
+  // doubles as an independent toggle.
   const soloButtons = new Map<DevSpeciesId | "all", HTMLButtonElement>();
   const allButton = createButton("All");
   soloButtons.set("all", allButton);
@@ -339,26 +384,43 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     soloRowButtons.push(button);
   }
 
+  const syncVisibilityButtons = (): void => {
+    for (const [id, button] of visibilityButtons) {
+      button.setAttribute("aria-pressed", visibility[id] ? "true" : "false");
+    }
+  };
+
   const syncSoloButtons = (): void => {
-    const allShown = bridge.dinos.every((dino) => visibility[dino.id]);
-    allButton.setAttribute("aria-pressed", allShown ? "true" : "false");
+    const visibleIds = bridge.dinos.filter((dino) => visibility[dino.id]).map((dino) => dino.id);
+    allButton.setAttribute(
+      "aria-pressed",
+      visibleIds.length === bridge.dinos.length ? "true" : "false",
+    );
     for (const dino of bridge.dinos) {
-      soloButtons.get(dino.id)?.setAttribute("aria-pressed", visibility[dino.id] ? "true" : "false");
+      const alone = visibleIds.length === 1 && visibleIds[0] === dino.id;
+      soloButtons.get(dino.id)?.setAttribute("aria-pressed", alone ? "true" : "false");
     }
   };
 
   const setSolo = (solo: DevSpeciesId | null): void => {
     Object.assign(visibility, applySolo(solo, ids));
     applyVisibility();
+    syncVisibilityButtons();
     syncSoloButtons();
   };
 
   const showDino = (id: DevSpeciesId, visible: boolean): void => {
     visibility[id] = visible;
     applyVisibility();
+    syncVisibilityButtons();
     syncSoloButtons();
   };
 
+  for (const [id, button] of visibilityButtons) {
+    button.addEventListener("click", () => {
+      showDino(id, !visibility[id]);
+    });
+  }
   for (const [key, button] of soloButtons) {
     button.addEventListener("click", () => {
       setSolo(key === "all" ? null : key);
@@ -395,9 +457,10 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     queueStep(10);
   });
 
+  // Visual readout only: a 5 Hz `aria-live` region would flood a screen
+  // reader, so the numbers are never announced (F6).
   const hud = document.createElement("p");
   hud.setAttribute("data-dev-hud", "");
-  hud.setAttribute("aria-live", "polite");
   hud.textContent = formatHud(0, 0, 0);
 
   const forceBlink = (): void => {
@@ -470,7 +533,8 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
   });
 
   body.append(
-    createRow("Dino visibility", soloRowButtons),
+    createRow("Dino visibility", visibilityRowButtons),
+    createRow("Solo", soloRowButtons),
     createRow("Simulation", [pauseButton, stepOne, stepTen]),
     hud,
     createRow("Forced states", [blinkButton, dustButton, sleepyButton, hintButton]),
@@ -533,6 +597,7 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
   window.__ranch = api;
 
   applyVisibility();
+  syncVisibilityButtons();
   syncSoloButtons();
   syncPauseButton();
   syncPovButtons();

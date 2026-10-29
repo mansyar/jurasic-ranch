@@ -23,12 +23,17 @@ export interface DevOptions {
 
 const SOLO_IDS: readonly DevSpeciesId[] = ["trike", "stego", "brachio"];
 
+/** A seed is a whole base-10 integer, optionally negative — nothing else. */
+const SEED_PATTERN = /^-?\d+$/;
+
 /** Parse `seed` as a base-10 integer; empty and junk values mean "unseeded". */
 function parseSeed(params: URLSearchParams): number | null {
   const raw = params.get("seed");
-  if (raw === null || raw === "") {
+  if (raw === null || !SEED_PATTERN.test(raw)) {
     return null;
   }
+  // A regex-validated digit string parses to a finite number unless it is far
+  // beyond `Number.MAX_SAFE_INTEGER`, where it still stays finite (F7).
   const parsed = Number.parseInt(raw, 10);
   return Number.isFinite(parsed) ? parsed : null;
 }

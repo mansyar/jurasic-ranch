@@ -1,13 +1,72 @@
 /**
- * Pure dev-harness logic (FR-2, FR-3, FR-4): visibility presets, pause/step
- * transitions and the HUD string. No `three` and no DOM, so the panel's
- * decisions are unit-testable without WebGL.
+ * Pure dev-harness logic (FR-2, FR-3, FR-4, FR-6, FR-8): visibility presets,
+ * pause/step transitions, the HUD string, seeded stream derivation and the
+ * overlay projection. No `three` and no DOM, so the panel's decisions are
+ * unit-testable without WebGL.
  */
 
+import { seededRandom } from "./seeded-random.js";
 import type { DevSpeciesId } from "./dev-options.js";
 
 /** Fixed simulation delta per stepped frame (1/60 s, spec assumption). */
 export const DEV_STEP_DT_SECONDS = 1 / 60;
+
+/** Fixed dino order every seeded stream index is derived from. */
+export const DEV_TRIO_ORDER: readonly DevSpeciesId[] = ["trike", "stego", "brachio"];
+
+/** Seed offset mixed into the dust stream so it never aliases a dino stream. */
+const DUST_SEED_OFFSET = 0x9e3779b9;
+/** First dino movement stream index offset (`seed + 1 + i`). */
+const MOVEMENT_SEED_OFFSET = 1;
+/** First blink stream index offset (`seed + 101 + i`). */
+const BLINK_SEED_OFFSET = 101;
+
+/** One independent generator per consumer (FR-8, AC-9). */
+export interface DevSeededStreams {
+  /** Shared particle pool: dust counts only. */
+  dust: () => number;
+  /** Wander jitter and per-plant puff counts, keyed by dino id. */
+  movement: Record<DevSpeciesId, () => number>;
+  /** Blink schedule, keyed by dino id; never shared with movement. */
+  blink: Record<DevSpeciesId, () => number>;
+}
+
+/**
+ * Derive every seeded stream from the same seed by fixed index (FR-8): dust
+ * gets `seed ^ 0x9e3779b9`, dino *i* of the fixed trio order `seed + 1 + i`
+ * and blink *i* `seed + 101 + i`. Because the index is the species id's slot
+ * in `DEV_TRIO_ORDER` (never the GLB resolution order), `?seed=42` replays
+ * the same poses however the models load and however long the wall clock runs
+ * between blink draws.
+ */
+export function seededStreams(seed: number): DevSeededStreams {
+  return {
+    dust: seededRandom(seed ^ DUST_SEED_OFFSET),
+    movement: {
+      trike: movementStream(seed, "trike"),
+      stego: movementStream(seed, "stego"),
+      brachio: movementStream(seed, "brachio"),
+    },
+    blink: {
+      trike: blinkStream(seed, "trike"),
+      stego: blinkStream(seed, "stego"),
+      brachio: blinkStream(seed, "brachio"),
+    },
+  };
+}
+
+/** Fixed slot of a species in `DEV_TRIO_ORDER`; the stream index. */
+function streamIndex(id: DevSpeciesId): number {
+  return DEV_TRIO_ORDER.indexOf(id);
+}
+
+function movementStream(seed: number, id: DevSpeciesId): () => number {
+  return seededRandom(seed + MOVEMENT_SEED_OFFSET + streamIndex(id));
+}
+
+function blinkStream(seed: number, id: DevSpeciesId): () => number {
+  return seededRandom(seed + BLINK_SEED_OFFSET + streamIndex(id));
+}
 
 /**
  * Visibility for every species after applying a solo preset. `null` shows the
@@ -49,6 +108,40 @@ export function nextPausedFrame(paused: boolean, stepFrames: number): PausedFram
     return { paused: true, stepFrames: queued - 1, advance: true };
   }
   return { paused: true, stepFrames: 0, advance: false };
+}
+
+/** One dino's live ground state, as the overlay projection needs it. */
+export interface OverlayDino {
+  id: DevSpeciesId;
+  visible: boolean;
+  x: number;
+  z: number;
+  heading: number;
+}
+
+/** Ring centre plus heading arrow yaw for one visible dino (FR-6). */
+export interface OverlayTransform {
+  id: DevSpeciesId;
+  ringX: number;
+  ringZ: number;
+  arrowYaw: number;
+}
+
+/**
+ * Project live dino state into overlay transforms (FR-6, AC-7): the avoidance
+ * ring sits under the model on the ground plane and the heading arrow shares
+ * that centre with the player's yaw. Hidden dinos produce no transform, so
+ * their ring and arrow stay off. Inputs are copied, never mutated.
+ */
+export function overlayTransforms(dinos: readonly OverlayDino[]): OverlayTransform[] {
+  return dinos
+    .filter((dino) => dino.visible)
+    .map((dino) => ({
+      id: dino.id,
+      ringX: dino.x,
+      ringZ: dino.z,
+      arrowYaw: dino.heading,
+    }));
 }
 
 /**
