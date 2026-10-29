@@ -14,7 +14,7 @@
 - **Covers:** FR-1, FR-5, FR-6, FR-7, NFR-5
 - **Touches:** `src/audio/catalog.ts`, `src/audio/mix.ts`, `tests/audio/catalog.test.ts`, `tests/audio/mix.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P1.T1: Define the catalog schema and all 15 entries** — covers: FR-1
   - [ ] **P1.T1.1:** Add `AudioBus`, `AudioAsset`, `AUDIO_CATALOG`, `getAudioAsset`, and an `assetUrl` helper resolving through `import.meta.env.BASE_URL`.
