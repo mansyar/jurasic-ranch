@@ -115,3 +115,28 @@ Requirement coverage for this phase:
   revision argument returned “permission denied”. None is an unmet need: the
   format layer runs inside `pnpm verify` and exited 0 on the final tree, and the
   commit list above comes from each commit's own output. They are not blockers.
+
+## Primary verification
+
+Re-run independently by the primary agent after the phase subagent finished.
+
+- **Tree** - clean (git status --porcelain empty); no commits outside the phase.
+- **Diff vs 665c086** - 8 files: the seven Touches paths plus the evidence file.
+  src/viewer/hud.ts changed exactly two lines (aliased import, redirected call),
+  as the brief allowed.
+- **Commands** - ` pnpm verify ` exit 0: 45 test files / 537 tests, coverage
+  80.34 % lines overall, ` feedback.ts ` 100 %, ` audio.ts ` 84.31 %,
+  ` hud.ts ` 78.57 %, 45 precache entries (5072.24 KiB, unchanged by this
+  track), build 306 ms, dist clean of dev-harness markers.
+- **AC check** - AC-2 call order asserted through both mute buttons; AC-5 single
+  timer, suppressed on muted and mute-first; AC-6 held press delivered once and a
+  second flush delivers nothing; AC-7 gear, Close and slider dispatch nothing;
+  AC-8 forced-failure path throws nothing. AC-1/3/4/9 were closed in Phase 2.
+- **Squash guard** - five reported commits, no merge commits, then
+  ` git reset --soft 665c086 ` and one phase commit ` 8fff83a `.
+- **Note (non-blocking, for review)** - the greeting timer delivers through
+  ` playFeedback `, which would hold the id if the engine were still locked at
+  fire time. After a resolved unlock the only way to stay locked is a permanent
+  load failure, in which case nothing ever flushes it, so the observed behaviour
+  is silence (FR-9). A ` isAudioUnlocked() ` guard in the timer would make that
+  explicit rather than incidental; recorded for ` conductor-review `.
