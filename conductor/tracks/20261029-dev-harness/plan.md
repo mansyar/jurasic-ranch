@@ -97,3 +97,18 @@ The primary appends after acceptance:
 **Checkpoint:** <short-sha>
 **Evidence:** conductor/tracks/<track-id>/verification/phase-3.md
 -->
+
+## Phase R1: Review Fixes
+
+- **Goal:** Resolve review findings F1-F7.
+- **Depends on:** Phase 3
+- **Covers:** F1, F2, F3, F4, F5, F6, F7
+- **Touches:** `src/dev/dev-options.ts`, `src/dev/harness.ts`, `src/dev/harness-state.ts`, `src/dev/snapshot.ts`, `src/viewer/main.ts`, `src/ranch/dino-player.ts`, `tests/dev/**`, `tests/viewer/dev-harness-gate.test.ts`, `conductor/tracks/20261029-dev-harness/verification/phase-R1.md`, `conductor/tracks/20261029-dev-harness/verification/integrated.md`
+- **Verification:** `pnpm verify`
+- **Status:** pending
+
+- [ ] **R1.T1: Independent seeded streams (F1)** - covers: F1
+- [ ] **R1.T2: Independent per-dino toggles (F2)** - covers: F2
+- [ ] **R1.T3: Testable overlays and corrected evidence (F3)** - covers: F3
+- [ ] **R1.T4: Skip the harness import without ?dev=1 (F4)** - covers: F4
+- [ ] **R1.T5: Shared constants, HUD a11y, strict seed parsing (F5, F6, F7)** - covers: F5, F6, F7
