@@ -32,20 +32,20 @@
 - **Covers:** FR-1, FR-3, FR-4, FR-5, FR-9, NFR-1, NFR-3, NFR-6
 - **Touches:** `public/audio/**`, `scripts/voice/**`, `scripts/check-audio-pack.mjs`, `CREDITS.md`, `vite.config.ts`, `package.json`, `tests/scripts/check-audio-pack.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P2.T1: Build the Kokoro voice generation pipeline** — covers: FR-5, NFR-3, NFR-6
-  - [ ] **P2.T1.1:** Add `scripts/voice/lines.json` with the eight ids, final text, `af_bella`, speed `0.85`, and tail `0.3`.
-  - [ ] **P2.T1.2:** Add `scripts/voice/generate.py` (kokoro-onnx -> ffmpeg: trim, -16 LUFS, 0.3 s tail, 128 kbps mono mp3) and a setup README including model/license notes.
-  - [ ] **P2.T1.3:** Generate the eight files and record durations and loudness for the evidence file.
-- [ ] **P2.T2: Source and process CC0 music and SFX** — covers: FR-3, FR-4, NFR-1, NFR-6
-  - [ ] **P2.T2.1:** Select one 30-60 s CC0 kalimba loop and trim it to a seamless loop point.
-  - [ ] **P2.T2.2:** Source CC0 coo, tap, heart, and sparkle audio; derive three distinct species coos without changing pitch beyond a warm range.
-  - [ ] **P2.T2.3:** Encode at 128 kbps mp3, normalize, and add a CREDITS row per asset with source URL, license, and processing notes.
-- [ ] **P2.T3: Validate the pack and precache mp3** — covers: FR-1, FR-9, NFR-1
-  - [ ] **P2.T3.1:** Add `scripts/check-audio-pack.mjs`: manifest <-> files, exact counts, no orphans, total <=2.5 MB, nonzero exit on failure.
-  - [ ] **P2.T3.2:** Add `mp3` to the Vite precache glob and the pack check to `pnpm verify`; unit-test the script helpers.
-  - [ ] **P2.T3.3:** Build and record the new precache entry count and total size.
+- [x] **P2.T1: Build the Kokoro voice generation pipeline** — covers: FR-5, NFR-3, NFR-6
+  - [x] **P2.T1.1:** Add `scripts/voice/lines.json` with the eight ids, final text, `af_bella`, speed `0.85`, and tail `0.3`.
+  - [x] **P2.T1.2:** Add `scripts/voice/generate.py` (kokoro-onnx -> ffmpeg: trim, -16 LUFS, 0.3 s tail, 128 kbps mono mp3) and a setup README including model/license notes.
+  - [x] **P2.T1.3:** Generate the eight files and record durations and loudness for the evidence file.
+- [x] **P2.T2: Source and process CC0 music and SFX** — covers: FR-3, FR-4, NFR-1, NFR-6
+  - [x] **P2.T2.1:** Select one 30-60 s CC0 kalimba loop and trim it to a seamless loop point.
+  - [x] **P2.T2.2:** Source CC0 coo, tap, heart, and sparkle audio; derive three distinct species coos without changing pitch beyond a warm range.
+  - [x] **P2.T2.3:** Encode at 128 kbps mp3, normalize, and add a CREDITS row per asset with source URL, license, and processing notes.
+- [x] **P2.T3: Validate the pack and precache mp3** — covers: FR-1, FR-9, NFR-1
+  - [x] **P2.T3.1:** Add `scripts/check-audio-pack.mjs`: manifest <-> files, exact counts, no orphans, total <=2.5 MB, nonzero exit on failure.
+  - [x] **P2.T3.2:** Add `mp3` to the Vite precache glob and the pack check to `pnpm verify`; unit-test the script helpers.
+  - [x] **P2.T3.3:** Build and record the new precache entry count and total size.
 
 ## Phase 3: Howler Engine, Unlock & Ducking
 
