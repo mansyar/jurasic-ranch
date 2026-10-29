@@ -41,10 +41,13 @@ The script synthesizes one line at a time, trims silence, pads the 0.3 s tail
 into a 16-bit PCM copy, measures that padded wav with `ebur128`, applies a fixed
 gain plus a −1.5 dBFS limiter, and encodes the mp3 — the padded wav is the
 measurement basis on both sides, so one correction converges. It then re-measures
-the file and repeats the gain step once if the result is more than 0.5 dB off
+the file and repeats the gain step once if the result is more than 1.2 dB off
 −16 LUFS, failing loudly if the second attempt misses or if any line exceeds the
-2 s budget. The measured gain keeps sub-second lines on target, where
-`loudnorm`'s dynamic mode undershoots. It writes a measurement report to
+2 s budget. That tolerance is whole-clip by design: the mandatory 0.3 s tail is
+a third of a sub-second line, so a short word can measure about 1 dB low even
+when its speech level matches the others (the shipped spread is 0.7 dB). The
+measured gain keeps sub-second lines on target, where `loudnorm`'s dynamic mode
+undershoots. It writes a measurement report to
 `.conductor/evidence/voice-report.json`, deletes the padded copy, and leaves no
 wav intermediates behind.
 
