@@ -14,7 +14,7 @@
 - **Covers:** FR-1, FR-2, FR-5, FR-6, FR-10, AC-1, AC-3, AC-7
 - **Touches:** `src/ranch/waddle.ts`, `src/ranch/dino-player.ts`, `src/ranch/avoidance.ts`, `tests/**/brachio-*.ts`, `tests/**/trio-*.ts`, `tests/**/avoidance-*.ts`, `tests/**/dino-*.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P1.T1: Define BRACHIO_GAIT + Brachio config** — covers: FR-1
   - [ ] **P1.T1.1: Gait params stride 0.24 loop 1.0 turnRate 1.8 curvature 3.0 wander 0.8** — speed ~0.24 m/s shuffle, 90° <1.0 s
