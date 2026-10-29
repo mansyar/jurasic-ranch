@@ -69,9 +69,9 @@
   boundary.
 - **Depends on:** Phase 2
 - **Covers:** FR-3, FR-6, FR-7, FR-8, FR-9, AC-2, AC-5, AC-6, AC-7, AC-8
-- **Touches:** `src/viewer/main.ts`, `src/viewer/audio-controls.ts`, `tests/viewer/audio-controls*.test.ts`
+- **Touches:** `src/viewer/main.ts`, `src/viewer/audio.ts`, `src/viewer/audio-controls.ts`, `src/viewer/hud.ts` (two-line redirect to the facade only), `tests/viewer/audio-controls*.test.ts`, `tests/viewer/hud*.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P3.T1: First-press queue across unlock** — covers: FR-7
   - [ ] **P3.T1.1:** Queue the unlocking press and flush it when `unlockAudio()` resolves
