@@ -13,16 +13,20 @@
 - **Depends on:** none
 - **Covers:** FR-3, AC-3
 - **Touches:** `src/ranch/trike-player.ts`, `tests/waddle/trike-player.test.ts`, `tests/waddle/dino-player.test.ts`
-- **Verification:** `pnpm test` (green at 174+ tests) then `pnpm verify`
-- **Status:** in_progress
+- **Verification:** `pnpm test` (green at 232 tests from the branch base) then `pnpm verify`
+- **Status:** verified
 
-- [ ] **P1.T1: Port the unique assertion, then delete the shim** - covers: FR-3
-  - [ ] **P1.T1.1:** Confirm `tests/waddle/dino-player.test.ts` already asserts one 0.8 s loop covers `WADDLE_STRIDE_METRES`; if not, add that assertion there before deleting anything
-  - [ ] **P1.T1.2:** Delete `src/ranch/trike-player.ts` and `tests/waddle/trike-player.test.ts`
-  - [ ] **P1.T1.3:** Grep `src/`, `tests/`, `scripts/` for `trike-player` and `TrikePlayer`; the only surviving hit must be the guard assertion in `dino-player.test.ts`
-- [ ] **P1.T2: Record the retirement** - covers: FR-3
-  - [ ] **P1.T2.1:** Add a one-line note to `conductor/tech-stack.md` that `DinoPlayer` is the single player class, so a future track does not reintroduce a species shim
-  - [ ] **P1.T2.2:** Confirm `pnpm verify` exits 0 and the test count drop matches the two deleted `it` blocks
+- [x] **P1.T1: Port the unique assertion, then delete the shim** - covers: FR-3
+  - [x] **P1.T1.1:** Confirm `tests/waddle/dino-player.test.ts` already asserts one 0.8 s loop covers `WADDLE_STRIDE_METRES`; if not, add that assertion there before deleting anything
+  - [x] **P1.T1.2:** Delete `src/ranch/trike-player.ts` and `tests/waddle/trike-player.test.ts`
+  - [x] **P1.T1.3:** Grep `src/`, `tests/`, `scripts/` for `trike-player` and `TrikePlayer`; the only surviving hit must be the guard assertion in `dino-player.test.ts`
+- [x] **P1.T2: Record the retirement** - covers: FR-3
+  - [x] **P1.T2.1:** Add a one-line note to `conductor/tech-stack.md` that `DinoPlayer` is the single player class, so a future track does not reintroduce a species shim
+  - [x] **P1.T2.2:** Confirm `pnpm verify` exits 0 and the test count drop matches the two deleted `it` blocks
+
+**Result:** verified
+**Checkpoint:** a3c5118
+**Evidence:** conductor/tracks/20261029-ranch-housekeeping/verification/phase-1.md
 
 ## Phase 2: Decompose the viewer
 
