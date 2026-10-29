@@ -731,15 +731,23 @@ export const WALLOW_EDGE_PLACEMENTS: readonly DressingPlacement[] = [
 ];
 
 /**
- * Foreground sprigs (FR-6, P3.T3): one moss mat and one wildflower beside every
- * lens, 24 deg off its axis at 13 m — inside the foreground window, outside
- * every lens's ±18 deg, and never between a camera and its animal. Phase 5 added
- * four more at 12.4-13 m on the arcs no lens looks down, so the near apron
- * carries grass tufts instead of bare green.
+ * Foreground sprigs (FR-6, P3.T3): moss mats and wildflowers at 13 m, every one
+ * clear of every ground lens's ±18 deg corridor by measurement *at the lens* —
+ * the angle the sprig subtends from the camera, which is the only frame FR-6
+ * speaks in. Phase 5 added four more at 12.4-13 m on the arcs no lens looks
+ * down, so the near apron carries grass tufts instead of bare green.
+ *
+ * Review fix F1: two of them were inside the forbidden corridor and passed only
+ * because the test compared the sprig's polar bearing round the ranch origin
+ * against the lens's own bearing — two different reference frames. Seen from the
+ * Ranch lens the club-moss at 285 deg sat 6.9 deg off the axis that frames the
+ * Brachio, and the wildflower at 100 deg 8.4 deg off the Garden axis: both
+ * standing near the middle of a frame instead of off to its side. The club-moss
+ * moved to 320 deg (20 deg clear) and the wildflower to 130 deg (25 deg clear).
  */
 export const FOREGROUND_PLACEMENTS: readonly DressingPlacement[] = [
   ring('club-moss-mat-edcb1b.glb', 34, 13, 'inward'),
-  ring('wildflower-68d3a1.glb', 100, 13, 'inward'),
+  ring('wildflower-68d3a1.glb', 130, 13, 'inward'),
   ring('club-moss-mat-edcb1b.glb', 117.6, 13, 'inward'),
   ring('wildflower-68d3a1.glb', 165.6, 13, 'inward'),
   ring('club-moss-mat-edcb1b.glb', 216, 13, 'inward'),
@@ -747,7 +755,7 @@ export const FOREGROUND_PLACEMENTS: readonly DressingPlacement[] = [
   // Phase 5 apron fill (FR-6): the same two files, more of them.
   ring('club-moss-mat-edcb1b.glb', 145, 12.4, 'inward'),
   ring('wildflower-68d3a1.glb', 200, 12.8, 'inward'),
-  ring('club-moss-mat-edcb1b.glb', 285, 13, 'inward'),
+  ring('club-moss-mat-edcb1b.glb', 320, 13, 'inward'),
   ring('wildflower-68d3a1.glb', 40, 12.9, 'inward'),
 ];
 

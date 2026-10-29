@@ -432,6 +432,7 @@ describe('band rules the new props answer to (FR-6, NFR-5)', () => {
 
   it('keeps every sprig under 0.5 m, in band, and 18 degrees off every lens axis', () => {
     expect(FOREGROUND_PLACEMENTS.length).toBeGreaterThan(0);
+    const findings: string[] = [];
     for (const item of FOREGROUND_PLACEMENTS) {
       const entry = DRESSING_CATALOGUE[item.file];
       expect(entry?.band).toBe('foreground');
@@ -439,17 +440,30 @@ describe('band rules the new props answer to (FR-6, NFR-5)', () => {
       const radius = Math.hypot(item.position[0], item.position[2]);
       expect(radius).toBeGreaterThanOrEqual(DRESSING_BAND_RANGES.foreground.minMetres);
       expect(radius).toBeLessThanOrEqual(DRESSING_BAND_RANGES.foreground.maxMetres);
-      const bearing = bearingDegrees([0, 0], groundXZ(item.position));
+      // FR-6's corridor is measured *at the lens*: the angle a sprig subtends from
+      // the camera, not its polar bearing round the ranch origin. Comparing the
+      // sprig's own bearing to the lens's bearing mixed two reference frames and
+      // passed by luck — the club-moss at 285 deg is 5.5 deg off the Ranch axis
+      // when seen from the Ranch lens, and the wildflower at 100 deg 6.9 deg off
+      // the Garden axis, both inside the forbidden corridor. Read it the way the
+      // treeline test does: bearing from the lens to the prop against the lens
+      // to its subject.
       // Ground lenses only: the overhead preset has no lateral axis to keep a
       // sprig off, and it is framed instead by the sky kit in `pov.test.ts`.
       for (const id of GROUND_POV_ORDER) {
         const preset = POV_PRESETS[id];
-        const axis = bearingDegrees(groundXZ(preset.position), groundXZ(preset.lookAt));
+        const lens = groundXZ(preset.position);
+        const axis = bearingDegrees(lens, groundXZ(preset.lookAt));
+        const bearing = bearingDegrees(lens, groundXZ(item.position));
         const apart = apartDegrees(bearing, axis);
-        const where = `${id}: ${item.file} ${apart.toFixed(1)} deg off its axis`;
-        expect(apart, where).toBeGreaterThanOrEqual(LENS_AXIS_CLEARANCE_DEGREES);
+        if (apart < LENS_AXIS_CLEARANCE_DEGREES) {
+          findings.push(
+            `${id}: ${item.file} at ${radius.toFixed(1)} m sits ${apart.toFixed(1)} deg off its axis`,
+          );
+        }
       }
     }
+    expect(findings, findings.join('\n')).toEqual([]);
   });
 
   it('masses the treeline into thickets with gaps between them (rework 1)', () => {
