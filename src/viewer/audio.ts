@@ -4,7 +4,7 @@
  * first gesture, so boot stays silent until a pointerdown or keydown.
  */
 
-import type { AudioAssetId } from '../audio/catalog.js';
+import { getAudioAsset, type AudioAssetId } from '../audio/catalog.js';
 import {
   createFirstPressSlot,
   GREETING_ASSET_ID,
@@ -47,7 +47,20 @@ const firstPress = createFirstPressSlot<AudioAssetId>();
 /** Deliver one asset; a locked, muted, failed or disposed engine is silence. */
 function deliver(id: AudioAssetId): void {
   try {
-    audioEngine().playSfx(id);
+    // The catalog bus picks the call, never the caller: `voice` gets the duck
+    // and `activeLine` tracking, `sfx` the overlap cap. A wrong-bus call is
+    // dropped by `readyHowl`, so 'hello' on `playSfx` would be silence.
+    const asset = getAudioAsset(id);
+    if (asset === undefined) {
+      return;
+    }
+    if (asset.bus === 'voice') {
+      audioEngine().playVoice(asset.id);
+      return;
+    }
+    if (asset.bus === 'sfx') {
+      audioEngine().playSfx(asset.id);
+    }
   } catch {
     // FR-9: a child's tap never throws and is never retried.
   }
@@ -135,6 +148,11 @@ export function createUnlockFeedback(options?: UnlockFeedbackOptions): UnlockFee
           sinceUnlockMs: clock.now() - unlockedAtMs,
         });
         if (!mayGreet) {
+          return;
+        }
+        // A locked engine would park the greeting in the first-press slot,
+        // where it would surface on a later tap: drop it instead.
+        if (!isAudioUnlocked()) {
           return;
         }
         greeted = true;

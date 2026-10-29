@@ -52,6 +52,13 @@ vi.mock('../../src/audio/engine.js', () => {
       engineState.played.push(id);
     }
 
+    playVoice(id: string): void {
+      if (engineState.fail) {
+        throw new Error('engine down');
+      }
+      engineState.played.push(id);
+    }
+
     dispose(): void {}
   }
 
