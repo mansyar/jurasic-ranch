@@ -52,6 +52,17 @@
   `src/audio/gate.ts`). Mute and volume persist through idb-keyval under
   `audio-muted` and `audio-volume`; a blocked store falls back to in-memory
   defaults and never throws.
+- Feedback: `src/audio/feedback.ts` keeps the decisions as pure data - surface to
+  asset mapping, the per-species coo gate, the greeting rule and the first-press
+  slot - so they are testable without a DOM or a Howl. `src/viewer/audio.ts`
+  delivers every kid-facing sound through `playFeedback(id)`, which dispatches by
+  catalog bus (`voice` -> `playVoice`, `sfx` -> `playSfx`; a wrong-bus call is
+  silence, so the greeting would vanish on `playSfx`) and holds one press in the
+  first-press slot until `unlockAudio()` resolves. Wired surfaces: Walk, the three
+  POV pills, the three species buttons (each its own coo) and both mute buttons;
+  the gear hold, the panel Close and the volume slider stay silent by design, and
+  `heart`, `sparkle`, `nom`, `all-done` and `count-*` stay reserved for the care
+  and feeding tracks.
 - Pack budget: 15 assets, 853,289 B total (<=2.5 MB), precached with the app
   shell (total precache under 15 MB). `node scripts/check-audio-pack.mjs`
   (`pnpm audio:check`, also part of `pnpm verify`) fails on a manifest/file
