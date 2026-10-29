@@ -78,6 +78,20 @@ describe('loadAudioSettings (FR-6, FR-7, FR-12)', () => {
     storage.readSetting.mockRejectedValue(new Error('private mode'));
     await expect(loadAudioSettings()).resolves.toEqual({ muted: false, volume: DEFAULT_VOLUME });
   });
+
+  it('round-trips what save wrote, which is what a reload sees', async () => {
+    const store = new Map<string, unknown>();
+    storage.writeSetting.mockImplementation((key: string, value: unknown) => {
+      store.set(key, value);
+      return Promise.resolve();
+    });
+    storage.readSetting.mockImplementation((key: string) => Promise.resolve(store.get(key)));
+
+    await saveMuted(true);
+    await saveVolume(0.65);
+
+    await expect(loadAudioSettings()).resolves.toEqual({ muted: true, volume: 0.65 });
+  });
 });
 
 describe('saveMuted / saveVolume (FR-6, FR-7, FR-12)', () => {
