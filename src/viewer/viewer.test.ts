@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DinoPlayer } from '../ranch/dino-player.js';
 import { WADDLE_LOOP_SECONDS } from '../ranch/waddle.js';
-import { isAudioUnlocked } from './audio.js';
+import { audioEngine, disposeAudio, isAudioUnlocked } from './audio.js';
 import { BLUSH_HEX, loadTrikePlayer, TRIKE_MODEL_URL } from './loaders.js';
 import {
   createPlaceholderTrike,
@@ -250,6 +250,16 @@ describe('audio facade', () => {
     // import Howler or construct an AudioContext at module load (FR-2).
     expect(source).not.toMatch(/howler/);
     expect(source).toMatch(/new AudioEngine\(\)/);
+  });
+
+  it('builds one lazy engine that stays locked until the first gesture', () => {
+    expect(isAudioUnlocked()).toBe(false);
+    const engine = audioEngine();
+    expect(audioEngine()).toBe(engine);
+    expect(engine.unlocked).toBe(false);
+    expect(isAudioUnlocked()).toBe(false);
+    disposeAudio();
+    expect(isAudioUnlocked()).toBe(false);
   });
 
   it('unlocks from the first document gesture, not the Walk toggle', async () => {
