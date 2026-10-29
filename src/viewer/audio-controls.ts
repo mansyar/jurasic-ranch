@@ -305,6 +305,10 @@ export function createAudioControls(options: AudioControlsOptions): AudioControl
       return;
     }
     onSfx?.(sfxForSurface('mute'));
+    // A muting press while audio is still locked dispatches and is then refused
+    // by the muted engine by design (FR-9): the held press flushes after the
+    // mute applies. Deferring the mute until unlock resolved would read the
+    // stale unmuted state and blip the music for the length of the unlock.
     setMuted(true);
     unlock();
   };
