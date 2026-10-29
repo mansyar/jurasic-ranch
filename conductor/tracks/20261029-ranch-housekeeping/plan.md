@@ -67,7 +67,7 @@
 - **Covers:** FR-4, FR-5, FR-6, FR-7, AC-4, AC-5, AC-6, AC-7, NFR-4, NFR-5
 - **Touches:** `package.json`, `.oxfmtrc.json`, `src/**/*.ts`, `tests/**/*.ts`, `scripts/**/*.ts`, `pnpm-lock.yaml`, `.github/workflows/ci.yml`
 - **Verification:** `pnpm verify` (must now include a coverage report) and a deliberate mis-format probe
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P3.T1: Make the formatter explicit and complete** - covers: FR-4, FR-5
   - [ ] **P3.T1.1:** Add `.oxfmtrc.json` with the project's chosen settings and confirm the "No config found" message disappears (AC-5)
