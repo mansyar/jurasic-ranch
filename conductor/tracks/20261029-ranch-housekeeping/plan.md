@@ -121,20 +121,29 @@
 - **Covers:** FR-10, FR-11, FR-12, AC-10, AC-11, AC-12, NFR-1
 - **Touches:** `public/manifest.webmanifest`, `public/icons/**`, `index.html`, `scripts/build-icons.mjs`, `package.json`, `pnpm-lock.yaml`
 - **Verification:** `pnpm verify` plus a manifest parse and a script-rerun cleanliness check
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P5.T1: Generate the icon set** - covers: FR-12, NFR-1
-  - [ ] **P5.T1.1:** Add `sharp` as a devDependency only, and confirm it appears nowhere in the client bundle
-  - [ ] **P5.T1.2:** Write `scripts/build-icons.mjs` to rasterize `public/icons/icon.svg` into `icon-192.png`, `icon-512.png`, a maskable 512 with safe-area padding, and `apple-touch-icon.png`
-  - [ ] **P5.T1.3:** Run it, commit the PNGs, then re-run on a clean tree and confirm `git status` stays clean (AC-12)
-- [ ] **P5.T2: Rewrite the manifest** - covers: FR-10, AC-10
-  - [ ] **P5.T2.1:** Update `name`, `short_name` and `description` to describe Trike, Stego and Brachio on the ranch
-  - [ ] **P5.T2.2:** Declare the 192 and 512 raster icons, add a `purpose: "maskable"` entry, and keep the SVG entry for scalable contexts
-  - [ ] **P5.T2.3:** Parse the manifest and assert every icon `src` resolves to a file that exists (AC-10)
-- [ ] **P5.T3: Update the document head** - covers: FR-11, AC-11
-  - [ ] **P5.T3.1:** Replace the `<title>` and `meta[name=description]` with trio-accurate copy
-  - [ ] **P5.T3.2:** Add an `apple-touch-icon` link and confirm it resolves (AC-11)
-  - [ ] **P5.T3.3:** Confirm no other `index.html` change slipped in — layout, styles and element ids stay identical (NFR-2)
+- [x] **P5.T1: Generate the icon set** - covers: FR-12, NFR-1
+  - [x] **P5.T1.1:** Add `sharp` as a devDependency only, and confirm it appears nowhere in the client bundle
+  - [x] **P5.T1.2:** Write `scripts/build-icons.mjs` to rasterize `public/icons/icon.svg` into `icon-192.png`, `icon-512.png`, a maskable 512 with safe-area padding, and `apple-touch-icon.png`
+  - [x] **P5.T1.3:** Run it, commit the PNGs, then re-run on a clean tree and confirm `git status` stays clean (AC-12)
+- [x] **P5.T2: Rewrite the manifest** - covers: FR-10, AC-10
+  - [x] **P5.T2.1:** Update `name`, `short_name` and `description` to describe Trike, Stego and Brachio on the ranch
+  - [x] **P5.T2.2:** Declare the 192 and 512 raster icons, add a `purpose: "maskable"` entry, and keep the SVG entry for scalable contexts
+  - [x] **P5.T2.3:** Parse the manifest and assert every icon `src` resolves to a file that exists (AC-10)
+- [x] **P5.T3: Update the document head** - covers: FR-11, AC-11
+  - [x] **P5.T3.1:** Replace the `<title>` and `meta[name=description]` with trio-accurate copy
+  - [x] **P5.T3.2:** Add an `apple-touch-icon` link and confirm it resolves (AC-11)
+  - [x] **P5.T3.3:** Confirm no other `index.html` change slipped in — layout, styles and element ids stay identical (NFR-2)
+
+**Result:** verified
+**Checkpoint:** _(set after squash)_
+**Evidence:** conductor/tracks/20261029-ranch-housekeeping/verification/phase-5.md
+
+> `pnpm-workspace.yaml` gained `onlyBuiltDependencies` for `sharp` (see the
+> evidence deviations): the `package.json` form is rejected by oxfmt and cannot
+> be committed formatted. `src/viewer/viewer.test.ts` also had one assertion
+> rewritten — the old test pinned the single-icon manifest this phase replaced.
 
 <!--
 The primary appends after acceptance:

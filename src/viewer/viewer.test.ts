@@ -263,19 +263,46 @@ describe('offline shell', () => {
     expect(html).toContain('72px');
   });
 
-  it('ships a standalone manifest with an icon', async () => {
+  it('ships a standalone manifest with installable icons', async () => {
     const raw = await readText('public/manifest.webmanifest');
     const manifest = JSON.parse(raw) as {
       display?: string;
-      icons?: Array<{ src?: string }>;
+      icons?: Array<{ src?: string; sizes?: string; type?: string; purpose?: string }>;
       name?: string;
       start_url?: string;
     };
     expect(manifest.name).toContain('Jurasic Ranch');
     expect(manifest.display).toBe('standalone');
     expect(manifest.start_url).toBeDefined();
-    expect(manifest.icons?.length ?? 0).toBeGreaterThan(0);
-    expect(manifest.icons?.[0]?.src).toBe('/icons/icon.svg');
-    await expect(readFile(new URL('public/icons/icon.svg', ROOT_URL))).resolves.toBeDefined();
+
+    const icons = manifest.icons ?? [];
+    const bySrc = new Map(icons.map((icon) => [icon.src, icon]));
+    // Android wants a raster 192 + 512 pair; the maskable entry carries its own
+    // safe-area artwork so the OS mask cannot clip the horns; the SVG stays for
+    // scalable contexts.
+    expect(bySrc.get('/icons/icon-192.png')).toMatchObject({
+      sizes: '192x192',
+      type: 'image/png',
+      purpose: 'any',
+    });
+    expect(bySrc.get('/icons/icon-512.png')).toMatchObject({
+      sizes: '512x512',
+      type: 'image/png',
+      purpose: 'any',
+    });
+    expect(bySrc.get('/icons/icon-maskable-512.png')).toMatchObject({
+      sizes: '512x512',
+      type: 'image/png',
+      purpose: 'maskable',
+    });
+    expect(bySrc.get('/icons/icon.svg')).toMatchObject({ type: 'image/svg+xml' });
+
+    for (const icon of icons) {
+      expect(icon.src, 'every manifest icon declares a src').toBeDefined();
+      await expect(
+        readFile(new URL(`public${icon.src ?? ''}`, ROOT_URL)),
+        `${icon.src ?? 'icon'} resolves on disk`,
+      ).resolves.toBeDefined();
+    }
   });
 });

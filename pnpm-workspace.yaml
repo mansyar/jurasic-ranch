@@ -1,2 +1,10 @@
-allowBuilds:
-  esbuild: true
+# pnpm settings for this single-package repo.
+#
+# `sharp` is the icon generator's rasterizer and `esbuild` backs vite/vitest;
+# neither needs its postinstall script at runtime, but pnpm's default is to
+# refuse to run unapproved build scripts and then warn that `node_modules` may
+# be out of sync on every install. Approving both keeps `pnpm install` and
+# `pnpm verify` quiet and deterministic.
+onlyBuiltDependencies:
+  - esbuild
+  - sharp

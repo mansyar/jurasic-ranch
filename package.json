@@ -12,6 +12,7 @@
     "coverage": "vitest run --coverage",
     "lint": "oxlint --ignore-pattern \"scripts/vendor/**\"",
     "format": "oxfmt index.html package.json vite.config.ts tsconfig.json .oxfmtrc.json \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\"",
+    "icons": "node scripts/build-icons.mjs",
     "typecheck": "tsrs --noEmit",
     "verify": "pnpm lint && pnpm format --check && pnpm typecheck && pnpm coverage && pnpm build"
   },
@@ -27,6 +28,7 @@
     "@vitest/coverage-v8": "5.0.5",
     "oxfmt": "0.75.0",
     "oxlint": "1.90.0",
+    "sharp": "^0.34.0",
     "tsrs": "latest",
     "typescript": "^7.0.0",
     "vite": "^8.0.0",
