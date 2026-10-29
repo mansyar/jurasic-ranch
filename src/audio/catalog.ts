@@ -18,14 +18,15 @@ export interface AudioAsset {
   readonly loop: boolean;
   /** Per-asset trim in 0..1. Bus gains live in `mix.ts`. */
   readonly gain: number;
-  /** Declared duration budget in seconds; Phase 2 validates the real files. */
+  /** Measured length in seconds, rounded up so it never undercuts the file. */
   readonly durationSeconds: number;
 }
 
 /**
  * The 15-asset starter pack, grouped by bus: one kalimba loop, six one-shot
- * SFX, eight voice lines. `durationSeconds` is the expected length used to
- * budget the pack, not a measurement of the shipped file.
+ * SFX, eight voice lines. `durationSeconds` is the measured length of the
+ * shipped file rounded up to the next centisecond, so a duck timer or overlap
+ * budget never cuts a line short.
  */
 export const AUDIO_CATALOG = [
   {
@@ -42,7 +43,7 @@ export const AUDIO_CATALOG = [
     path: 'audio/sfx/coo-trike.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 1.1,
+    durationSeconds: 1,
   },
   {
     id: 'coo-stego',
@@ -50,7 +51,7 @@ export const AUDIO_CATALOG = [
     path: 'audio/sfx/coo-stego.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 1.3,
+    durationSeconds: 1.2,
   },
   {
     id: 'coo-brachio',
@@ -58,7 +59,7 @@ export const AUDIO_CATALOG = [
     path: 'audio/sfx/coo-brachio.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 1.5,
+    durationSeconds: 1.4,
   },
   {
     id: 'tap',
@@ -66,7 +67,7 @@ export const AUDIO_CATALOG = [
     path: 'audio/sfx/tap.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.2,
+    durationSeconds: 0.18,
   },
   {
     id: 'heart',
@@ -74,7 +75,7 @@ export const AUDIO_CATALOG = [
     path: 'audio/sfx/heart.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.8,
+    durationSeconds: 0.75,
   },
   {
     id: 'sparkle',
@@ -90,7 +91,7 @@ export const AUDIO_CATALOG = [
     path: 'audio/voice/hello.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 1,
+    durationSeconds: 0.93,
   },
   {
     id: 'nom',
@@ -98,7 +99,7 @@ export const AUDIO_CATALOG = [
     path: 'audio/voice/nom.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.8,
+    durationSeconds: 1.12,
   },
   {
     id: 'all-done',
@@ -106,7 +107,7 @@ export const AUDIO_CATALOG = [
     path: 'audio/voice/all-done.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 1.2,
+    durationSeconds: 1.02,
   },
   {
     id: 'count-1',
@@ -114,7 +115,7 @@ export const AUDIO_CATALOG = [
     path: 'audio/voice/count-1.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.7,
+    durationSeconds: 0.79,
   },
   {
     id: 'count-2',
@@ -122,7 +123,7 @@ export const AUDIO_CATALOG = [
     path: 'audio/voice/count-2.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.7,
+    durationSeconds: 0.85,
   },
   {
     id: 'count-3',
@@ -130,7 +131,7 @@ export const AUDIO_CATALOG = [
     path: 'audio/voice/count-3.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.8,
+    durationSeconds: 0.85,
   },
   {
     id: 'count-4',
@@ -138,7 +139,7 @@ export const AUDIO_CATALOG = [
     path: 'audio/voice/count-4.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.8,
+    durationSeconds: 0.86,
   },
   {
     id: 'count-5',
@@ -146,7 +147,7 @@ export const AUDIO_CATALOG = [
     path: 'audio/voice/count-5.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.9,
+    durationSeconds: 0.91,
   },
 ] as const satisfies readonly AudioAsset[];
 
