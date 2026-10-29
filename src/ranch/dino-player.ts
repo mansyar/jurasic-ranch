@@ -138,6 +138,26 @@ export const STEGO_GAIT: GaitParams = {
   wanderRadiusMetres: 0.8,
 };
 
+/**
+ * Shipped Brachio gait (FR-1): a slower seated-shuffle — 0.24 m stride per
+ * 1.0 s loop (~0.24 m/s), 1.8 rad/s yaw cap (a 90 deg rate bound of 0.87 s),
+ * trike-like 4.5 rad/m stroller curvature, 0.8 m wander circle. The plan
+ * assumed curvature 3.0, but TDD against AC-3 falsified it: at 3.0 the yaw
+ * rate binds on curvature x speed (0.72 rad/s, 0.33 m turn radius) and even a
+ * solo Brachio swings to ~1.2 m on outward rim crossings — past the
+ * RADIUS + CYCLE bound — while Trike (1.63 rad/s) and Stego (PI) stay inside.
+ * 4.5 is the smallest change that contains the trio (yaw 1.08 rad/s, 0.22 m
+ * radius, ~1.45 s full 90 deg arc) while keeping every other assumed number.
+ * See phase-1 evidence for the data. The shared waddle math stays untouched.
+ */
+export const BRACHIO_GAIT: GaitParams = {
+  strideMetres: 0.24,
+  loopSeconds: 1.0,
+  turnRateRadiansPerSecond: 1.8,
+  curvatureRadiansPerMetre: 4.5,
+  wanderRadiusMetres: 0.8,
+};
+
 export interface DinoPlayerOptions {
   /** Baked `Waddle` clip (0.8 s loop for Trike). */
   clip: THREE.AnimationClip;
