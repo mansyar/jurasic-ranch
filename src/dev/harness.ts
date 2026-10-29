@@ -227,7 +227,11 @@ function createOverlays(bridge: DevBridge): {
 
   const perDino = bridge.dinos.map((dino) => {
     const ring = new THREE.Mesh(
-      new THREE.RingGeometry(DEV_AVOIDANCE_TRIGGER_METRES - 0.008, DEV_AVOIDANCE_TRIGGER_METRES, 32),
+      new THREE.RingGeometry(
+        DEV_AVOIDANCE_TRIGGER_METRES - 0.008,
+        DEV_AVOIDANCE_TRIGGER_METRES,
+        32,
+      ),
       new THREE.MeshBasicMaterial({
         color: 0xd94f4f,
         side: THREE.DoubleSide,

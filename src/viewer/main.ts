@@ -884,11 +884,7 @@ export async function bootViewer(): Promise<void> {
   // finishes. A failed load keeps its placeholder walking (offline
   // first-visit safety) and surfaces the reason in the console; the other
   // dinos are unaffected.
-  void loadTrikePlayer(
-    sharedDust,
-    streams?.movement.trike ?? Math.random,
-    streams?.blink.trike,
-  )
+  void loadTrikePlayer(sharedDust, streams?.movement.trike ?? Math.random, streams?.blink.trike)
     .then((loaded) => {
       swapToRigged(trike, loaded, TRIO_SPAWN_HEADINGS_RADIANS[0], (player, model) => {
         trikePlayer = player;
@@ -899,11 +895,7 @@ export async function bootViewer(): Promise<void> {
       console.warn("Rigged trike unavailable; keeping the placeholder.", error);
     });
 
-  void loadStegoPlayer(
-    sharedDust,
-    streams?.movement.stego ?? Math.random,
-    streams?.blink.stego,
-  )
+  void loadStegoPlayer(sharedDust, streams?.movement.stego ?? Math.random, streams?.blink.stego)
     .then((loaded) => {
       swapToRigged(stego, loaded, TRIO_SPAWN_HEADINGS_RADIANS[1], (player, model) => {
         stegoPlayer = player;
