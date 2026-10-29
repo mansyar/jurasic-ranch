@@ -2,11 +2,7 @@ import * as THREE from "three";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { BRACHIO_GAIT, DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from "../ranch/dino-player.js";
-import {
-  avoidanceNudges,
-  trioAvoidanceNudges,
-  trioSpawnPositions,
-} from "../ranch/avoidance.js";
+import { avoidanceNudges, trioAvoidanceNudges, trioSpawnPositions } from "../ranch/avoidance.js";
 import { buildDressing } from "../ranch/dressing.js";
 import { DustPool } from "../ranch/dust.js";
 import { SleepyController } from "../ranch/sleepy.js";
@@ -850,14 +846,7 @@ export async function bootViewer(): Promise<void> {
       sleepyShown = showSleepy;
     }
     if (trikePlayer !== null && stegoPlayer !== null && brachioPlayer !== null) {
-      steerTrioApart(
-        trikePlayer,
-        trikeModel,
-        stegoPlayer,
-        stegoModel,
-        brachioPlayer,
-        brachioModel,
-      );
+      steerTrioApart(trikePlayer, trikeModel, stegoPlayer, stegoModel, brachioPlayer, brachioModel);
     } else {
       // Partial load window: steer whichever pairs are rigged yet.
       if (trikePlayer !== null && stegoPlayer !== null) {
