@@ -124,7 +124,7 @@
 - **Covers:** F1, F3, F4, F5, F6
 - **Touches:** `src/viewer/audio.ts`, `src/viewer/main.ts`, `src/viewer/audio-controls.ts`, `tests/viewer/audio-routing.test.ts`, `tests/viewer/hud-audio.test.ts`, `conductor/tracks/20261030-ranch-audible/spec.md`, `conductor/tracks/20261030-ranch-audible/verification/phase-4.md`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **R1.T1: Record unlock provenance** - covers: F1
   - [ ] **R1.T1.1:** `afterUnlock({ viaMuteControl })` OR-ed into `firstGestureWasMute`; `main.ts` passes `true` from the mute `onUnlock` and no flag from the gesture
