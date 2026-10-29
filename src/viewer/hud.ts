@@ -2,7 +2,7 @@ import type { PerspectiveCamera } from 'three';
 import type { AudioAssetId } from '../audio/catalog.js';
 import { createCooGate, sfxForSurface, type SpeciesId } from '../audio/feedback.js';
 import { IDLE_AFTER_MS, SleepyController, type SleepyState } from '../ranch/sleepy.js';
-import { audioEngine } from './audio.js';
+import { playFeedback as dispatchFeedback } from './audio.js';
 import type { AudioControls } from './audio-controls.js';
 import {
   HINT_IDLE_MS,
@@ -133,7 +133,7 @@ export function createHud(options: HudOptions): Hud {
    */
   const playFeedback = (assetId: AudioAssetId): void => {
     try {
-      audioEngine().playSfx(assetId);
+      dispatchFeedback(assetId);
     } catch {
       // FR-9: nothing to surface, nothing to retry.
     }

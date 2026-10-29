@@ -7,16 +7,17 @@ import { createHud, type Hud } from '../../src/viewer/hud.js';
 /**
  * HUD feedback wiring (FR-1, FR-2, FR-4, FR-5, FR-9, AC-1, AC-3, AC-9).
  *
- * The engine facade is stubbed, not Howler: `playSfx` is the only seam the HUD
- * uses. The DOM is a small hand-rolled fake rather than jsdom, which this
- * project does not configure; every click below runs the real listener that
- * `createHud` registered on the element the fake document returned.
+ * The audio facade is stubbed, not Howler: `playFeedback` is the seam the HUD
+ * uses, and the facade owns the queued-first-press logic behind it. The DOM is a
+ * small hand-rolled fake rather than jsdom, which this project does not
+ * configure; every click below runs the real listener that `createHud`
+ * registered on the element the fake document returned.
  */
 
 const { playSfx } = vi.hoisted(() => ({ playSfx: vi.fn() }));
 
 vi.mock('../../src/viewer/audio.js', () => ({
-  audioEngine: () => ({ playSfx }),
+  playFeedback: playSfx,
 }));
 
 /** Manual clock the coo gate reads through `performance.now`. */
