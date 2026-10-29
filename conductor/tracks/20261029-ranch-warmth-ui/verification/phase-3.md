@@ -65,6 +65,13 @@ track).
   the existing animation loop, hint-glow suppression while drowsy/sleepy,
   `reducedMotion` passed into `player.update`. No new listeners or timers.
 
+## Primary verification (independent)
+
+- Re-ran `pnpm verify` on the squashed tree: exit 0 (build ok, precache 28 entries / 4309.50 KiB).
+- `git status` clean except intended files; `src/viewer/main.ts` touched outside Touches — accepted as smallest-necessary wiring (deviation recorded in evidence).
+- AC-4/AC-7 spot-check: timestamp-driven machine, twin-restore + max-lid tests prove no stuck pose; 30s sleepy walk stays in 0.8m.
+- Squashed 6 commits (2f7665d, 33a979b, ef4b83a, 5ada931, f44411d, 0b05d99) → `293d2ae feat(ranch): visual-only sleepy cues with cozy interrupt guards` via `git reset --soft 2338ed3`.
+
 ## Notes
 
 - Timestamps, not fake timers: the controller is timestamp-driven, so tests
