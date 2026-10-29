@@ -129,3 +129,13 @@ base-to-head diff only because the primary marked the phase in progress at
 - **Supersedes** the earlier “One glyph, two surfaces” note above: the follow-up
   it described is done, so `🦴` no longer appears in `index.html` or
   `walkStatusText`.
+
+## Primary verification
+
+- Command: `pnpm verify`
+- Exit code: 0
+- Result: 44 test files / 524 tests passed; `src/viewer/hud.ts` 78.57 % lines (up from 6.17 %), `src/audio/feedback.ts` 100 %; 15 audio assets; build and dist-clean green.
+- Diff reviewed: `git diff --name-only 9778980..HEAD` returned the three Touches paths plus the one declared deviation (`tests/waddle/trio-viewer.test.ts`, two glyph expectations) and this evidence file.
+- Glyph check by code point: `hud.ts:34` holds U+1F995, U+1F996, U+1F992; no U+1F9B4 remains under `src/` or `index.html`.
+- Rework attempt 1 was required: `walkStatusText` still carried the bone, which P2.T1.2 covers. Squash guard then passed over seven reported commits with no merges; phase squashed to `ab596ed`.
+- Deferred by design: AC-9's pixel half moves to Phase 4.T2.1.

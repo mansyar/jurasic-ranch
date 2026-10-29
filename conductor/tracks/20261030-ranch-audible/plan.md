@@ -43,20 +43,24 @@
 - **Covers:** FR-1, FR-2, FR-4, FR-10, AC-1, AC-3, AC-9
 - **Touches:** `index.html`, `src/viewer/hud.ts`, `tests/viewer/hud*.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P2.T1: Species entries become buttons** — covers: FR-4, FR-10
-  - [ ] **P2.T1.1:** `<li>` becomes `<li><button data-species>` keeping emoji and label, with an accessible name and a 72 px minimum target
-  - [ ] **P2.T1.2:** Replace the Brachio bone glyph with a creature emoji
-  - [ ] **P2.T1.3:** Styles live in the existing `<style>` block; no new CSS file
-- [ ] **P2.T2: Walk and POV dispatch** — covers: FR-1, FR-2
-  - [ ] **P2.T2.1:** `tap` on every Walk press and every POV press, routed through the feedback module
-  - [ ] **P2.T2.2:** Unit tests with a stubbed engine assert one dispatch per press, including re-pressing the active view
-- [ ] **P2.T3: Coo wiring** — covers: FR-4, FR-5
-  - [ ] **P2.T3.1:** Each species button plays its own coo through the gate
-  - [ ] **P2.T3.2:** Test: three different species produce three distinct ids
-- [ ] **P2.T4: Target and label contract** — covers: AC-9
-  - [ ] **P2.T4.1:** DOM test asserts each species button keeps its text label as its accessible name and declares a 72 px minimum target in the stylesheet; the pixel proof is Phase 4's screenshot
+**Result:** verified
+**Checkpoint:** ab596ed
+**Evidence:** conductor/tracks/20261030-ranch-audible/verification/phase-2.md
+
+- [x] **P2.T1: Species entries become buttons** — covers: FR-4, FR-10
+  - [x] **P2.T1.1:** `<li>` becomes `<li><button data-species>` keeping emoji and label, with an accessible name and a 72 px minimum target
+  - [x] **P2.T1.2:** Replace the Brachio bone glyph with a creature emoji — both the species button and `walkStatusText`
+  - [x] **P2.T1.3:** Styles live in the existing `<style>` block; no new CSS file
+- [x] **P2.T2: Walk and POV dispatch** — covers: FR-1, FR-2
+  - [x] **P2.T2.1:** `tap` on every Walk press and every POV press, routed through the feedback module
+  - [x] **P2.T2.2:** Unit tests with a stubbed engine assert one dispatch per press, including re-pressing the active view
+- [x] **P2.T3: Coo wiring** — covers: FR-4, FR-5
+  - [x] **P2.T3.1:** Each species button plays its own coo through the gate
+  - [x] **P2.T3.2:** Test: three different species produce three distinct ids
+- [x] **P2.T4: Target and label contract** — covers: AC-9
+  - [x] **P2.T4.1:** DOM test asserts each species button keeps its text label as its accessible name and declares a 72 px minimum target in the stylesheet; the pixel proof is Phase 4's screenshot
 
 ## Phase 3: Unlock timing, greeting and mute ordering
 
