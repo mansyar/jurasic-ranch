@@ -170,3 +170,16 @@ The primary appends after acceptance:
 **Checkpoint:** c8328c5
 **Evidence:** conductor/tracks/20261029-ranch-housekeeping/verification/phase-R1.md
 
+## Phase R2: Review Fixes, Round 2
+
+- **Goal:** Resolve the three Low findings round 2 raised about the bookkeeping the first fix phase left behind - the task counter, the precache figure and the FR-9 row wording.
+- **Depends on:** Phase R1
+- **Covers:** F5, F6, F7
+- **Touches:** `conductor/tracks/20261029-ranch-housekeeping/metadata.json`, `conductor/tracks/20261029-ranch-housekeeping/verification/integrated.md`
+- **Verification:** `pnpm verify`
+- **Status:** in_progress
+
+- [ ] **R2.T1: Reconcile the task counter with the plan** - covers: F5
+- [ ] **R2.T2: Use the fix-head precache figures** - covers: F6
+- [ ] **R2.T3: Restate the FR-9 row to match the spec** - covers: F7
+

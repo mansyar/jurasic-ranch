@@ -15,8 +15,8 @@
   "progress": {
     "phases_total": 6,
     "phases_verified": 6,
-    "tasks_total": 18,
-    "tasks_done": 18
+    "tasks_total": 20,
+    "tasks_done": 20
   },
   "last_checkpoint": "c8328c5",
   "review_verdict": "BLOCK",

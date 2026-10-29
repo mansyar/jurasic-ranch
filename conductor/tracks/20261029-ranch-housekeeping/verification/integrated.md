@@ -17,7 +17,7 @@
 | `vitest run` | 23 files, **232 tests passed** |
 | coverage (v8) | **77.47 % lines** (717/923 statements), threshold 60 |
 | `vite build` | 396 ms |
-| PWA precache | 30 entries, 3,425.76 KiB |
+| PWA precache | 30 entries, 3,425.89 KiB |
 
 The branch base ran **234** tests and the head runs **232**. The two that are gone
 are exactly the shim's `it` blocks that FR-3 asked for; no other test was lost.
@@ -39,7 +39,7 @@ the evidence that verifies it.
 | FR-6 | Coverage installed, fails below 60 % | P3.T2.1, T2.2 | 50.80 % failed → 77.47 % passes | covered |
 | FR-7 | `verify` runs the coverage gate | P3.T3.1 | `package.json` verify chain | covered |
 | FR-8 | Single decoder, no `setDecoderPath`, models still load | P4.T1.1 | grep clean, only `/assets/draco_*` requested | covered |
-| FR-9 | One decoder set, `dist/` at least 1.0 MiB smaller | P4.T1.2, T3 | 3,489,691 vs 4,553,881 B (−1,064,190 B) | covered |
+| FR-9 | No app-supplied decoder in `dist/`; every decoder file is three-emitted; at least 1.0 MiB smaller | P4.T1.2, T3 | 3,489,691 vs 4,553,881 B (-1,064,190 B) | covered |
 | FR-10 | Manifest names the trio and declares 192/512/maskable/**touch** icons | P5.T2.1, T2.2 + R1.T1 | manifest parse, 5 icons, every file resolves | covered |
 | FR-11 | `<title>`, `meta[name=description]` and an `apple-touch-icon` link | P5.T3.1, T3.2 | `index.html:12,16,17`, 2-line diff | covered |
 | FR-12 | `build-icons.mjs` deterministic, committed PNGs match its output | P5.T1.2, T1.3 | clean tree on re-run, identical SHA-256 | covered |
@@ -48,7 +48,7 @@ the evidence that verifies it.
 | NFR-3 | Fully offline start after the Draco change | P4.T2.2 | dead server, 23 requests, 0 failures | covered |
 | NFR-4 | Gate green end to end, no material duration regression | P3–P5 | exit 0, tests 2.9 s, build 396 ms | covered |
 | NFR-5 | Styleguide met on changed lines (named exports, semicolons, no `any`, no `public`) | P2, P3 | oxlint + `tsrs --noEmit`, `.oxfmtrc.json` `singleQuote: true` | covered |
-| NFR-6 | Precache within the 15 MB `DRESSING_BUDGET_BYTES` budget | P4, P5 | 30 entries, 3,425.76 KiB | covered |
+| NFR-6 | Precache within the 15 MB `DRESSING_BUDGET_BYTES` budget | P4, P5 | 30 entries, 3,425.89 KiB | covered |
 | AC-1 | `main.ts` under 300 lines, no `WebGLRenderer`/`DirectionalLight`/`DRACOLoader` | P2.T5.2 | 171 lines, grep 0 | covered |
 | AC-2 | Modules under 300; pre-existing tests pass unchanged except import paths | P2.T5.4 | 232 pass; two assertions rewritten and ten guards re-pointed (reported) | partial (reported deviations) |
 | AC-3 | No shim file, no importer, tests green | P1 | `git ls-files` empty, grep, 232 pass | covered |
@@ -100,6 +100,14 @@ decoder. The precache went 29 → 26 entries with the Draco copy removed, then t
 | F2 `.mjs` outside the format gate | Added `"scripts/**/*.mjs"` with `"!scripts/vendor/**/*.mjs"`; probe failed at exit 1; gate now 49 files |
 | F3 evidence and counter drift | This file re-keyed to the spec's IDs; counts corrected |
 | F4 AC-9 read as a file count | Restated as "no app-supplied decoder; every decoder file present is emitted by three" |
+
+### Round 2 corrections
+
+| Finding | Fix |
+| --- | --- |
+| F5 `tasks_total`/`tasks_done` said 18 against a 20-task plan | Both set to 20 (16 `P*` + 4 `R1.*`) |
+| F6 precache stated as the pre-R1 build's 3,425.76 KiB | Both occurrences now 3,425.89 KiB, matching `phase-R1.md` |
+| F7 the FR-9 row reintroduced "one decoder set" | Row restated to match `spec.md`, which says no app-supplied decoder |
 
 ## Deviations accepted across the track
 
