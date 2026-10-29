@@ -54,7 +54,7 @@
 - **Covers:** FR-2, FR-3, FR-4, FR-5, FR-9, NFR-2, NFR-7
 - **Touches:** `src/audio/engine.ts`, `src/audio/gesture.ts`, `src/viewer/audio.ts`, `src/viewer/main.ts`, `tests/audio/engine.test.ts`, `tests/audio/gesture.test.ts`, `tests/viewer/viewer.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P3.T1: Build the Howler-backed engine** — covers: FR-1, FR-3, FR-4, FR-5, FR-9
   - [ ] **P3.T1.1:** Lazy-load Howler, create Howls with `preload` and Web Audio, and warn once per failed asset without throwing.
