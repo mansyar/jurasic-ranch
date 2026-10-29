@@ -5,15 +5,15 @@ Pipeline per line (FR-5, NFR-3):
 
 1. Kokoro `af_bella` at the manifest speed produces mono float samples.
 2. Leading/trailing silence is trimmed in numpy (no ffmpeg guessing).
-3. The trimmed wav is measured with `ebur128`, then one encode applies a fixed
+3. The trimmed wav is padded with the manifest tail and written as mono 16-bit
+   PCM, so the loudness basis is identical before and after encoding.
+4. That padded wav is measured with `ebur128`, then one encode applies a fixed
    `volume=<target - measured>dB` gain and a -1.5 dBFS `alimiter`. A measured
    gain is deterministic for sub-second lines, where `loudnorm`'s dynamic mode
    undershoots.
-4. `apad` appends the manifest tail (0.3 s) and the result is encoded as mono
-   44.1 kHz 128 kbps mp3 under `public/audio/voice/`.
 5. The finished mp3 is measured again; if it missed -16 LUFS by more than 0.5 dB
-   the gain step repeats once, always from the trimmed wav, never from the mp3.
-   A second miss is a hard failure.
+   the gain step repeats once, always from the padded wav, never from the mp3.
+   A second miss is a hard failure. The padded temp file is always removed.
 
 Intermediates live under `.conductor/evidence/voice-work/` (gitignored) and are
 deleted on success. Model files live under `.conductor/kokoro-models/` and are
@@ -109,12 +109,35 @@ def measure_integrated_loudness(path: Path) -> float | None:
     return float(matches[-1]) if matches else None
 
 
-def encode_once(path_in: Path, path_out: Path, gain_db: float, tail_seconds: float) -> None:
-    """Apply a fixed gain and limiter, pad the tail, and write a 128 kbps mono mp3."""
+def pad_audio(path_in: Path, path_out: Path, tail_seconds: float) -> None:
+    """Write the trimmed speech plus its silent tail as mono 16-bit PCM."""
+    run(
+        [
+            FFMPEG,
+            '-y',
+            '-hide_banner',
+            '-loglevel',
+            'error',
+            '-i',
+            str(path_in),
+            '-af',
+            f'apad=pad_dur={tail_seconds},aresample={SAMPLE_RATE}',
+            '-ac',
+            str(CHANNELS),
+            '-ar',
+            str(SAMPLE_RATE),
+            '-c:a',
+            'pcm_s16le',
+            str(path_out),
+        ]
+    )
+
+
+def encode_once(path_in: Path, path_out: Path, gain_db: float) -> None:
+    """Apply the measured gain and limiter, then write a 128 kbps mono mp3."""
     filters = (
         f'volume={gain_db:.3f}dB,'
-        f'alimiter=limit={LIMITER_CEILING}:level=false:latency=true,'
-        f'apad=pad_dur={tail_seconds},aresample={SAMPLE_RATE}'
+        f'alimiter=limit={LIMITER_CEILING}:level=false:latency=true'
     )
     run(
         [
@@ -141,28 +164,33 @@ def encode_once(path_in: Path, path_out: Path, gain_db: float, tail_seconds: flo
 
 
 def encode(path_in: Path, path_out: Path, tail_seconds: float) -> int:
-    """Reach -16 LUFS +/-0.5 dB from the trimmed wav, returning the attempts used."""
-    measured = measure_integrated_loudness(path_in)
-    if measured is None:
-        fail(f'cannot measure {path_in.name}: ebur128 reported no loudness')
-    gain_db = LOUDNESS_TARGET - measured
-    last_achieved = measured
-    for attempt in range(1, MAX_ENCODE_ATTEMPTS + 1):
-        encode_once(path_in, path_out, gain_db, tail_seconds)
-        achieved = measure_integrated_loudness(path_out)
-        if achieved is None:
-            fail(f'{path_out.name}: cannot verify loudness after encoding')
-        last_achieved = achieved
-        delta = LOUDNESS_TARGET - achieved
-        if abs(delta) <= LOUDNESS_TOLERANCE:
-            return attempt
-        # Correct on the original wav; never re-encode a lossy generation.
-        gain_db += delta
-    fail(
-        f'{path_out.name} missed {LOUDNESS_TARGET:.1f} LUFS '
-        f'+/-{LOUDNESS_TOLERANCE:.1f} (measured {last_achieved:.1f} LUFS after '
-        f'{MAX_ENCODE_ATTEMPTS} attempts)'
-    )
+    """Reach -16 LUFS +/-0.5 dB from the padded wav, returning the attempts used."""
+    padded_path = path_in.with_name(f'{path_in.stem}-tail.wav')
+    try:
+        pad_audio(path_in, padded_path, tail_seconds)
+        measured = measure_integrated_loudness(padded_path)
+        if measured is None:
+            fail(f'cannot measure {padded_path.name}: ebur128 reported no loudness')
+        gain_db = LOUDNESS_TARGET - measured
+        last_achieved = measured
+        for attempt in range(1, MAX_ENCODE_ATTEMPTS + 1):
+            encode_once(padded_path, path_out, gain_db)
+            achieved = measure_integrated_loudness(path_out)
+            if achieved is None:
+                fail(f'{path_out.name}: cannot verify loudness after encoding')
+            last_achieved = achieved
+            delta = LOUDNESS_TARGET - achieved
+            if abs(delta) <= LOUDNESS_TOLERANCE:
+                return attempt
+            # Correct on the padded original; never re-encode a lossy generation.
+            gain_db += delta
+        fail(
+            f'{path_out.name} missed {LOUDNESS_TARGET:.1f} LUFS '
+            f'+/-{LOUDNESS_TOLERANCE:.1f} (measured {last_achieved:.1f} LUFS after '
+            f'{MAX_ENCODE_ATTEMPTS} attempts)'
+        )
+    finally:
+        padded_path.unlink(missing_ok=True)
 
 
 def probe_duration(path: Path) -> float:
@@ -255,9 +283,7 @@ def synthesize(manifest: dict, model_dir: Path, out_dir: Path, work_dir: Path) -
             }
         )
         level = f'{loudness:.1f} LUFS' if loudness is not None else 'unmeasured'
-        sys.stdout.write(
-            f'{line_id}: {duration:.2f}s  {level}  {rows[-1]["bytes"]} bytes\n'
-        )
+        sys.stdout.write(f'{line_id}: {duration:.2f}s  {level}  {rows[-1]["bytes"]} bytes\n')
     return rows
 
 
