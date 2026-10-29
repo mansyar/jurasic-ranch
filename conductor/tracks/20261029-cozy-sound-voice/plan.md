@@ -97,20 +97,20 @@
 - **Covers:** FR-9, FR-10, FR-11, NFR-1, NFR-2, NFR-5, NFR-8
 - **Touches:** `src/dev/harness.ts`, `src/dev/snapshot.ts`, `tests/dev/dev-harness.test.ts`, `tests/dev/snapshot.test.ts`, `conductor/tech-stack.md`, `conductor/product.md`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P5.T1: Expose audio in the dev harness** — covers: FR-10
-  - [ ] **P5.T1.1:** Add `window.__ranch.audio` state (`unlocked`, `muted`, `volume`, `musicPlaying`, `activeLine`, `lastStartLatencyMs`) and actions (`mute`, `setVolume`, `play`, `stopAll`).
-  - [ ] **P5.T1.2:** Add the same state to the snapshot; keep the bridge dev-only and covered by `check-dist-clean`.
-  - [ ] **P5.T1.3:** Test the bridge surface and snapshot shape without real audio.
-- [ ] **P5.T2: Capture offline, latency, and fps evidence** — covers: FR-9, FR-11, NFR-1, NFR-2, NFR-8
-  - [ ] **P5.T2.1:** Build and preview, reload with the network offline, and confirm music, SFX, and voice play with no external requests.
-  - [ ] **P5.T2.2:** Record pack size, precache total, voice start latency, and fps before/after playback in the phase evidence.
-  - [ ] **P5.T2.3:** Confirm the production build has no harness and no dev-only audio controls.
-- [ ] **P5.T3: Sync the docs and run integrated verification** — covers: NFR-1, NFR-6
-  - [ ] **P5.T3.1:** Document the audio pipeline, bus gains, pack budget, and voice-generation command in `tech-stack.md`.
-  - [ ] **P5.T3.2:** Update the Track 7 lullaby note in `product.md` to record delivery by this track.
-  - [ ] **P5.T3.3:** Confirm CREDITS and the `pnpm verify` pack check are documented, then run the full integrated verification.
+- [x] **P5.T1: Expose audio in the dev harness** — covers: FR-10
+  - [x] **P5.T1.1:** Add `window.__ranch.audio` state (`unlocked`, `muted`, `volume`, `musicPlaying`, `activeLine`, `lastStartLatencyMs`) and actions (`mute`, `setVolume`, `play`, `stopAll`).
+  - [x] **P5.T1.2:** Add the same state to the snapshot; keep the bridge dev-only and covered by `check-dist-clean`.
+  - [x] **P5.T1.3:** Test the bridge surface and snapshot shape without real audio.
+- [x] **P5.T2: Capture offline, latency, and fps evidence** — covers: FR-9, FR-11, NFR-1, NFR-2, NFR-8
+  - [x] **P5.T2.1:** Build and preview, reload with the network offline, and confirm music, SFX, and voice play with no external requests.
+  - [x] **P5.T2.2:** Record pack size, precache total, voice start latency, and fps before/after playback in the phase evidence.
+  - [x] **P5.T2.3:** Confirm the production build has no harness and no dev-only audio controls.
+- [x] **P5.T3: Sync the docs and run integrated verification** — covers: NFR-1, NFR-6
+  - [x] **P5.T3.1:** Document the audio pipeline, bus gains, pack budget, and voice-generation command in `tech-stack.md`.
+  - [x] **P5.T3.2:** Update the Track 7 lullaby note in `product.md` to record delivery by this track.
+  - [x] **P5.T3.3:** Confirm CREDITS and the `pnpm verify` pack check are documented, then run the full integrated verification.
 
 > **Human-only exceptions:** `parent-voice-review` and `tablet-touch-play` are
 > recorded during review. Phase 5 collects the pack measurements and harness
