@@ -38,12 +38,12 @@ The primary appends after acceptance:
 - **Goal:** Valley ground + Farm props precached offline, AAA-cozy look, size/fps reported
 - **Depends on:** Phase 1
 - **Covers:** FR-3, NFR-1, NFR-2, NFR-4, AC-3
-- **Touches:** `src/ranch/dressing.ts`, `scripts/vendor/*`, `public/assets/*`, `vite.config.ts`, `tests/ranch/dressing*`
+- **Touches:** `src/ranch/dressing.ts`, `public/models/dressing/*`, `src/viewer/main.ts`, `vite.config.ts`, `tests/ranch/dressing*`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
-- [ ] **P2.T1: Kit shortlist 12-18 parts** - covers: FR-3
-  - [ ] **P2.T1.1: get_kit Valley + Farm rows + tris audit** - covers: FR-3
+- [x] **P2.T1: Kit shortlist 12 parts (primary-vendored, 1.1MB)** - covers: FR-3
+  - [x] **P2.T1.1: get_kit Valley + Farm rows + tris audit (~8k tris)** - covers: FR-3
 - [ ] **P2.T2: Valley ground + trees/rocks** - covers: FR-3
 - [ ] **P2.T3: Farm fences/trough/nest-garden markers** - covers: FR-3
 - [ ] **P2.T4: Precache + size/fps report** - covers: FR-3
