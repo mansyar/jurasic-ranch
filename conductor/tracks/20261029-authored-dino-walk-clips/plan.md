@@ -35,7 +35,7 @@
 - **Covers:** FR-1, FR-2, FR-9, NFR-3, AC-1
 - **Touches:** `scripts/vendor/bake-stego-variant.js`, `scripts/vendor/bake-brachio-variant.js`, `scripts/vendor/*-base-params.json`, `scripts/bake-trike-variant.js` (shared helpers only), `public/models/stego.glb`, `public/models/brachio.glb`, `CREDITS.md`
 - **Verification:** `pnpm verify` plus a second bake that reproduces byte-identical GLBs
-- **Status:** pending
+- **Status:** in_progress
 - **Tasks:**
   - [ ] **P2.T1: Replace the donor transfer with a graft** - covers: FR-1
     - [ ] **P2.T1.1: Drop the Trike-donor extraction, `STEGO_POSITION_TRACK_SCALE` and the position rescaling entirely**
