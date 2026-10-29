@@ -204,5 +204,5 @@ subagent's shell could not drive a browser), and AC-7 needed one more fix.
   - [x] **R1.T4: Point the evidence at the tests that assert it** - covers: F5
 
 **Result:** verified - the shipped stride is the one the clip plays, and the bake docs describe what ships.
-**Checkpoint:** _(set after squash)_
+**Checkpoint:** cc689c9
 **Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-R1.md
