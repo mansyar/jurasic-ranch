@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#7ec850" />
     <meta
       name="description"
@@ -18,12 +21,16 @@
         padding: 0;
         height: 100%;
         overflow: hidden;
+        overscroll-behavior: none;
         background: #dff3d8;
         font-family:
           system-ui,
           -apple-system,
           "Segoe UI",
           sans-serif;
+      }
+      body {
+        touch-action: manipulation;
       }
       #scene {
         position: fixed;
@@ -50,9 +57,96 @@
         color: #fff;
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
         cursor: pointer;
+        touch-action: manipulation;
       }
       #walk-button:active {
         transform: translateX(-50%) scale(0.96);
+      }
+      #pov {
+        position: fixed;
+        left: 12px;
+        bottom: max(24px, env(safe-area-inset-bottom));
+        display: flex;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+      }
+      #pov button {
+        min-width: 72px;
+        min-height: 72px;
+        padding: 8px 14px;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+        border: 3px solid transparent;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        color: #2f4a2f;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+      #pov button span {
+        display: block;
+      }
+      #pov button[aria-pressed="true"] {
+        border-color: #2f7d3b;
+        background: #fff;
+      }
+      #pov button:active {
+        transform: scale(0.94);
+      }
+      @keyframes hint-pulse {
+        0%,
+        100% {
+          box-shadow:
+            0 4px 14px rgba(0, 0, 0, 0.25),
+            0 0 0 0 rgba(255, 213, 79, 0.9);
+        }
+        50% {
+          box-shadow:
+            0 4px 14px rgba(0, 0, 0, 0.25),
+            0 0 0 12px rgba(255, 213, 79, 0);
+        }
+      }
+      body.hint-glow #walk-button,
+      body.hint-glow #pov button {
+        animation: hint-pulse 1.2s ease-in-out infinite;
+      }
+      body.hint-static #walk-button,
+      body.hint-static #pov button {
+        outline: 4px solid #ffd54f;
+        outline-offset: 2px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        body.hint-glow #walk-button,
+        body.hint-glow #pov button {
+          animation: none;
+          outline: 4px solid #ffd54f;
+          outline-offset: 2px;
+        }
+      }
+      #rotate-hint {
+        position: fixed;
+        top: max(12px, env(safe-area-inset-top));
+        left: 50%;
+        transform: translateX(-50%);
+        margin: 0;
+        padding: 12px 20px;
+        border-radius: 999px;
+        background: rgba(47, 74, 47, 0.9);
+        color: #fff;
+        font-size: 16px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      #rotate-hint[hidden] {
+        display: none;
+      }
+      @media (orientation: portrait) {
+        #pov {
+          bottom: calc(max(24px, env(safe-area-inset-bottom)) + 88px);
+        }
       }
       #status {
         position: fixed;
@@ -95,6 +189,18 @@
         <li>🦖 Stego</li>
       </ul>
       <button id="walk-button" type="button" aria-pressed="false">Walk</button>
+      <nav id="pov" aria-label="Viewpoints">
+        <button id="pov-ranch" type="button" data-pov="ranch" aria-pressed="true">
+          🏠<span>Ranch</span>
+        </button>
+        <button id="pov-nest" type="button" data-pov="nest" aria-pressed="false">
+          🪹<span>Nest</span>
+        </button>
+        <button id="pov-garden" type="button" data-pov="garden" aria-pressed="false">
+          🌼<span>Garden</span>
+        </button>
+      </nav>
+      <p id="rotate-hint" hidden>🔄 Turn your tablet sideways</p>
     </main>
     <script type="module" src="/src/viewer/main.ts"></script>
   </body>
