@@ -1,10 +1,11 @@
 # pnpm settings for this single-package repo.
 #
 # `sharp` is the icon generator's rasterizer and `esbuild` backs vite/vitest.
-# pnpm 12 refuses to run unapproved dependency build scripts and then warns that
-# `node_modules` may be out of sync on every install. Both packages expect their
-# own postinstall to run, so approving them keeps `pnpm install` and `pnpm verify`
-# quiet and deterministic.
-onlyBuiltDependencies:
-  - esbuild
-  - sharp
+# pnpm 12 refuses to run unapproved dependency build scripts and then fails the
+# install with ERR_PNPM_IGNORED_BUILDS. Both packages expect their own postinstall
+# to run, so approving them keeps `pnpm install` and `pnpm verify` deterministic.
+# The `onlyBuiltDependencies` list is the pnpm 10 spelling and pnpm 12 ignores it;
+# `allowBuilds` is the current one.
+allowBuilds:
+  esbuild: true
+  sharp: true

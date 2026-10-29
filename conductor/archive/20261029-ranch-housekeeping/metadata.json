@@ -6,17 +6,17 @@
   "priority": "medium",
   "depends_on": [],
   "created_at": "2026-10-29T10:55:00Z",
-  "updated_at": "2026-10-29T16:15:00Z",
+  "updated_at": "2026-10-29T16:40:00Z",
   "spec": "spec.md",
   "plan": "plan.md",
   "branch": "refactor/20261029-ranch-housekeeping",
   "base_branch": "main",
   "base_sha": "cb123990caa72c10b7a99651e040a5e58eb50e62",
   "progress": {
-    "phases_total": 7,
-    "phases_verified": 7,
-    "tasks_total": 23,
-    "tasks_done": 23
+    "phases_total": 8,
+    "phases_verified": 8,
+    "tasks_total": 25,
+    "tasks_done": 25
   },
   "last_checkpoint": "de27e2f",
   "review_verdict": "PASS",

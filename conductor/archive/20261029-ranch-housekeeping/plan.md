@@ -186,3 +186,18 @@ The primary appends after acceptance:
 **Result:** verified
 **Checkpoint:** de27e2f
 **Evidence:** conductor/tracks/20261029-ranch-housekeeping/verification/phase-R2.md
+## Phase R3: CI Install Fix
+
+- **Goal:** `pnpm install --frozen-lockfile` succeeds on CI under pnpm 12, so the gate can actually run.
+- **Depends on:** Phase 5
+- **Covers:** NFR-4, F8
+- **Touches:** `pnpm-workspace.yaml`, `conductor/archive/20261029-ranch-housekeeping/verification/phase-R3.md`
+- **Verification:** `pnpm install --frozen-lockfile` then `pnpm verify`
+- **Status:** verified
+
+- [x] **R3.T1: Approve the build scripts with the key pnpm 12 reads** - covers: F8
+- [x] **R3.T2: Prove a clean install locally and let CI re-run** - covers: NFR-4
+
+**Result:** verified
+**Checkpoint:** _(set after commit)_
+**Evidence:** conductor/archive/20261029-ranch-housekeeping/verification/phase-R3.md
