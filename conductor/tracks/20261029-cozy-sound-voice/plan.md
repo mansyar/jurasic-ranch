@@ -123,7 +123,7 @@
 - **Covers:** F1, F2, F3, F4, F5, F6, F7, F8, F9, F10
 - **Touches:** `src/audio/engine.ts`, `tests/audio/engine.test.ts`, `src/viewer/audio-controls.ts`, `tests/viewer/audio-controls.test.ts`, `src/viewer/main.ts`, `scripts/voice/generate.py`, `src/audio/mix.ts`, `conductor/tech-stack.md`, `CREDITS.md`, `conductor/tracks/20261029-cozy-sound-voice/verification/phase-5.md`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **R1.T1: Block failed-load assets and un-duck safely** — covers: F1
   - [ ] **R1.T1.1:** Track failed ids and make `readyHowl`/`musicHowl` reject them; clear their SFX slots.
