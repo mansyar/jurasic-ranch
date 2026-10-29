@@ -4,7 +4,19 @@ import { trioSpawnPositions } from '../ranch/avoidance.js';
 import { buildDressing } from '../ranch/dressing.js';
 import { DustPool } from '../ranch/dust.js';
 import { installGestureUnlock, installVisibilityHandling } from '../audio/gesture.js';
-import { audioEngine, unlockAudio } from './audio.js';
+import { loadAudioSettings, saveMuted, saveVolume } from '../audio/settings.js';
+import {
+  AUDIO_MUTE_ID,
+  AUDIO_PANEL_CLOSE_ID,
+  AUDIO_PANEL_ID,
+  AUDIO_PANEL_MUTE_ID,
+  AUDIO_PARENT_ID,
+  AUDIO_VOLUME_ID,
+  AUDIO_VOLUME_VALUE_ID,
+  createAudioControls,
+  isAudioControlTarget,
+} from './audio-controls.js';
+import { audioEngine, configureAudio, unlockAudio } from './audio.js';
 import {
   CANVAS_ID,
   STATUS_ID,
@@ -67,6 +79,60 @@ export async function bootViewer(): Promise<void> {
   }
   const { renderer, scene, camera } = viewer;
 
+  // FR-6/FR-7/FR-12: the sound controls are part of the shell; a missing
+  // element means the HTML and the viewer disagree, so boot stays silent-safe
+  // and leaves the rest of the ranch alone. Elements are injected, never
+  // queried inside the controls module.
+  const muteButton = document.getElementById(AUDIO_MUTE_ID);
+  const parentButton = document.getElementById(AUDIO_PARENT_ID);
+  const panel = document.getElementById(AUDIO_PANEL_ID);
+  const panelMuteButton = document.getElementById(AUDIO_PANEL_MUTE_ID);
+  const slider = document.getElementById(AUDIO_VOLUME_ID);
+  const volumeValue = document.getElementById(AUDIO_VOLUME_VALUE_ID);
+  const closeButton = document.getElementById(AUDIO_PANEL_CLOSE_ID);
+  if (
+    !(muteButton instanceof HTMLButtonElement) ||
+    !(parentButton instanceof HTMLButtonElement) ||
+    !(panel instanceof HTMLElement) ||
+    !(panelMuteButton instanceof HTMLButtonElement) ||
+    !(slider instanceof HTMLInputElement) ||
+    !(closeButton instanceof HTMLButtonElement)
+  ) {
+    return;
+  }
+
+  // Read both settings before the engine exists, so the first gesture already
+  // knows whether to start music and at which volume (FR-2, FR-6, FR-7).
+  const audioSettings = await loadAudioSettings();
+  configureAudio({
+    getMuted: () => audioSettings.muted,
+    getVolume: () => audioSettings.volume,
+  });
+  const audio = createAudioControls({
+    muteButton,
+    parentButton,
+    panel,
+    panelMuteButton,
+    slider,
+    closeButton,
+    volumeValue: volumeValue instanceof HTMLElement ? volumeValue : null,
+    initialMuted: audioSettings.muted,
+    initialVolume: audioSettings.volume,
+    // Mirrored twice: the mutable object feeds the engine providers, while the
+    // engine calls apply the change to already-built Howls immediately.
+    onMutedChange: (muted) => {
+      audioSettings.muted = muted;
+      audioEngine().setMuted(muted);
+      void saveMuted(muted);
+    },
+    onVolumeChange: (volume) => {
+      audioSettings.volume = volume;
+      audioEngine().setVolume(volume);
+      void saveVolume(volume);
+    },
+    onUnlock: () => unlockAudio(),
+  });
+
   // Instant boxy trio at the 120 deg triangle spawn (FR-5): each rigged GLB
   // swaps its own placeholder on load, so a slow fetch never blocks the rest.
   const spawn = trioSpawnPositions();
@@ -100,6 +166,7 @@ export async function bootViewer(): Promise<void> {
     camera,
     button,
     status,
+    audio,
     initialWalking: (await readSetting(WALK_SETTING_KEY)) === true,
     onWalkChange: (walking) => {
       setAllWalking(stage.players, walking);
@@ -109,8 +176,13 @@ export async function bootViewer(): Promise<void> {
 
   // FR-2/NFR-7: the first document gesture unlocks the engine and visibility
   // changes pause/resume the loop. Walk no longer gates audio, and a repeated
-  // gesture is a no-op because the installer removes its listeners.
-  installGestureUnlock({ onUnlock: () => unlockAudio() });
+  // gesture is a no-op because the installer removes its listeners. A tap on
+  // the sound controls is ignored so mute can unlock silently (AC-6 edge) and
+  // the parent gate cannot start music behind the child.
+  installGestureUnlock({
+    onUnlock: () => unlockAudio(),
+    shouldIgnore: (event) => isAudioControlTarget(event.target),
+  });
   installVisibilityHandling(audioEngine());
 
   // Swap one instant placeholder for its rigged GLB. Staggered-entry

@@ -249,7 +249,7 @@ describe('audio facade', () => {
     // The engine is built lazily on the first gesture; the facade must never
     // import Howler or construct an AudioContext at module load (FR-2).
     expect(source).not.toMatch(/howler/);
-    expect(source).toMatch(/new AudioEngine\(\)/);
+    expect(source).toMatch(/new AudioEngine\(engineOptions\)/);
   });
 
   it('builds one lazy engine that stays locked until the first gesture', () => {
@@ -268,6 +268,17 @@ describe('audio facade', () => {
     expect(source).toContain('installVisibilityHandling');
     expect(source).not.toMatch(/void unlockAudio\(\)/);
   });
+
+  it('configures persisted providers before the engine is built (FR-6, FR-7)', async () => {
+    const source = await readText('src/viewer/main.ts');
+    const configureAt = source.indexOf('configureAudio({');
+    const engineAt = source.indexOf('audioEngine()');
+    expect(configureAt).toBeGreaterThan(-1);
+    expect(engineAt).toBeGreaterThan(configureAt);
+    // The first gesture ignores taps inside the sound controls (AC-6 edge).
+    expect(source).toContain('shouldIgnore');
+    expect(source).toContain('isAudioControlTarget');
+  });
 });
 
 describe('storage stub', () => {
@@ -283,6 +294,31 @@ describe('offline shell', () => {
     expect(html).toContain('/src/viewer/main.ts');
     expect(html).toContain('walk-button');
     expect(html).toContain('72px');
+  });
+
+  it('ships the sound controls and parent panel (FR-6, FR-7, FR-8)', async () => {
+    const html = await readText('index.html');
+    for (const id of [
+      'audio-controls',
+      'audio-mute',
+      'audio-parent',
+      'audio-panel',
+      'audio-panel-title',
+      'audio-panel-mute',
+      'audio-volume',
+      'audio-volume-value',
+      'audio-panel-close',
+    ]) {
+      expect(html).toContain(`id="${id}"`);
+    }
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain('role="dialog"');
+    expect(html).toContain('aria-modal="true"');
+    expect(html).toContain('type="range"');
+    expect(html).toContain('--hold-progress');
+    // Walk, POV, mute/gear, close, and the slider all meet the 72 px target.
+    const touchTargets = html.match(/min-height: 72px/g) ?? [];
+    expect(touchTargets.length).toBeGreaterThanOrEqual(4);
   });
 
   it('ships a standalone manifest with installable icons', async () => {

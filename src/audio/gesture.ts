@@ -7,8 +7,17 @@
 
 /** Minimal event target: `document` satisfies it, tests use a fake. */
 export interface GestureTarget {
-  addEventListener(type: string, listener: () => void, options?: { passive: boolean }): void;
-  removeEventListener(type: string, listener: () => void): void;
+  addEventListener(
+    type: string,
+    listener: (event: GestureEventLike) => void,
+    options?: { passive: boolean },
+  ): void;
+  removeEventListener(type: string, listener: (event: GestureEventLike) => void): void;
+}
+
+/** The part of a gesture event the ignore predicate reads. */
+export interface GestureEventLike {
+  readonly target?: unknown;
 }
 
 /** Just enough of a document to read tab visibility. */
@@ -29,17 +38,27 @@ export interface GestureUnlockOptions {
   /** Runs at most once, on the first pointerdown or keydown. */
   onUnlock: () => void | Promise<void>;
   target?: GestureTarget;
+  /**
+   * Return true to ignore a gesture (for example a tap inside the sound
+   * controls). Ignoring never consumes the once-only gesture: the next gesture
+   * outside still unlocks.
+   */
+  shouldIgnore?: (event: GestureEventLike) => boolean;
 }
 
 /** Unlock audio on the first pointerdown or keydown anywhere on the target. */
 export function installGestureUnlock({
   onUnlock,
   target = document,
+  shouldIgnore,
 }: GestureUnlockOptions): () => void {
   let fired = false;
 
-  const handle = (): void => {
+  const handle = (event: GestureEventLike): void => {
     if (fired) {
+      return;
+    }
+    if (shouldIgnore !== undefined && shouldIgnore(event)) {
       return;
     }
     fired = true;

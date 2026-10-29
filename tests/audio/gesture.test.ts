@@ -2,22 +2,27 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   installGestureUnlock,
   installVisibilityHandling,
+  type GestureEventLike,
   type VisibilityDocument,
 } from '../../src/audio/gesture.js';
 
 /** DOM-free event target: listeners are stored and dispatched by hand. */
 class FakeTarget {
-  readonly listeners = new Map<string, Array<() => void>>();
+  readonly listeners = new Map<string, Array<(event: GestureEventLike) => void>>();
   readonly passive = new Map<string, boolean>();
 
-  addEventListener(type: string, listener: () => void, options?: { passive: boolean }): void {
+  addEventListener(
+    type: string,
+    listener: (event: GestureEventLike) => void,
+    options?: { passive: boolean },
+  ): void {
     const listeners = this.listeners.get(type) ?? [];
     listeners.push(listener);
     this.listeners.set(type, listeners);
     this.passive.set(type, options?.passive ?? false);
   }
 
-  removeEventListener(type: string, listener: () => void): void {
+  removeEventListener(type: string, listener: (event: GestureEventLike) => void): void {
     const listeners = (this.listeners.get(type) ?? []).filter((entry) => entry !== listener);
     if (listeners.length === 0) {
       this.listeners.delete(type);
@@ -26,9 +31,9 @@ class FakeTarget {
     this.listeners.set(type, listeners);
   }
 
-  dispatch(type: string): void {
+  dispatch(type: string, event?: GestureEventLike): void {
     for (const listener of this.listeners.get(type) ?? []) {
-      listener();
+      listener(event ?? {});
     }
   }
 
@@ -167,6 +172,27 @@ describe('installGestureUnlock (FR-2, AC-2)', () => {
     await settle();
 
     expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a gesture inside the controls without consuming the unlock', () => {
+    const target = new FakeTarget();
+    const onUnlock = vi.fn();
+    installGestureUnlock({
+      target,
+      onUnlock,
+      shouldIgnore: (event) => event.target === 'audio-control',
+    });
+
+    target.dispatch('pointerdown', { target: 'audio-control' });
+    target.dispatch('keydown', { target: 'audio-control' });
+
+    // The ignored gestures leave both listeners armed for the next gesture.
+    expect(onUnlock).not.toHaveBeenCalled();
+    expect(target.listenerCount()).toBe(2);
+
+    target.dispatch('pointerdown', { target: 'scene' });
+    expect(onUnlock).toHaveBeenCalledTimes(1);
+    expect(target.listenerCount()).toBe(0);
   });
 });
 
