@@ -13,6 +13,12 @@
 - Howler.js 2.2 (audio sprites, ducking, mute lock)
 - idb-keyval (IndexedDB stickers/settings wrapper)
 
+## Architecture Notes
+
+- Ranch players: `DinoPlayer` is the single player class — species behaviour is
+  a gait config (`TRIKE_GAIT`, `STEGO_GAIT`, `BRACHIO_GAIT`), never a species
+  subclass or shim (Trike alias retired in 20261029-ranch-housekeeping).
+
 ## Package Manager & Build
 
 - pnpm 12.15.0 + pnpm-lock.yaml

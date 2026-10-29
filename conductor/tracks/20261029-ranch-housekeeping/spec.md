@@ -55,7 +55,8 @@ nobody loads.
 - **Goal:** land Feed/Wash/Stickers on a codebase where the viewer is split by
   responsibility and every check that claims to run actually runs.
 - **Metric:** `src/viewer/main.ts` under 300 lines with no behaviour change;
-  175 existing tests still pass; `pnpm format --check` covers ≥ 40 files
+  every pre-existing test still passes (234 at the base commit);
+  `pnpm format --check` covers ≥ 40 files
   (source + tests + scripts); `pnpm coverage` exits 0 with a 60% threshold;
   `dist/` total shrinks by ≥ 1.2 MB; zero new runtime dependencies.
 
@@ -125,7 +126,7 @@ nobody loads.
 | ID | Criterion | Verifies |
 | --- | --- | --- |
 | AC-1 | `src/viewer/main.ts` is under 300 lines and a grep finds no `new THREE.WebGLRenderer`, `new THREE.DirectionalLight`, or `DRACOLoader` construction inside it. | FR-1 |
-| AC-2 | Every extracted viewer module is under 300 lines and the suite of 175 tests passes unchanged apart from import paths. | FR-2 |
+| AC-2 | Every extracted viewer module is under 300 lines and every pre-existing test (234 at the branch base) passes unchanged apart from import paths. | FR-2 |
 | AC-3 | `git ls-files` shows no `src/ranch/trike-player.ts`, no test imports `trike-player.js`, and `pnpm test` is green. | FR-3 |
 | AC-4 | `pnpm format --check` reports checking at least 40 files, and deliberately mis-formatting a file in `tests/` makes it exit non-zero. | FR-4 |
 | AC-5 | `.oxfmtrc.json` exists and `pnpm format --check` emits no "No config found" message. | FR-5 |
