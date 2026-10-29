@@ -23,3 +23,16 @@
 - License: commercial use allowed, no attribution required. No redistribution of the
   standalone files; vendoring into this game counts as use, not redistribution.
   See https://polyfork.dev/licensing.
+
+## Brachiosaurus base model
+
+- Asset: Brachiosaurus (`brachiosaurus-base`), Polyfork low-poly animal, 2910 tris, one material.
+- Source: https://polyfork.dev/asset/brachiosaurus-base
+- Vendored: `scripts/vendor/brachiosaurus-base.mjs` and
+  `scripts/vendor/brachiosaurus-base-params.json`; baked game file `public/models/brachio.glb`
+  (baked size-0.6 baby variant with an extra 0.27 uniform post-scale: grazing
+  neck, lavender-blush pastel colors, Waddle clip rebuilt from the Trike donor
+  GLB and retimed to the 1.0 s shuffle loop, Draco-compressed).
+- License: commercial use allowed, no attribution required. No redistribution of the
+  standalone files; vendoring into this game counts as use, not redistribution.
+  See https://polyfork.dev/licensing.
