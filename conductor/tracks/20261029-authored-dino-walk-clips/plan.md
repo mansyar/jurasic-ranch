@@ -52,7 +52,7 @@
     - [x] **P2.T4.2: Update `CREDITS.md` and both script docblocks to name the official GLB as the clip source**
 
 **Result:** verified
-**Checkpoint:** _(set after squash)_
+**Checkpoint:** d2a3bcd
 **Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-2.md
 
 > The graft could not go through `GLTFExporter`: it resamples at 24 fps and
