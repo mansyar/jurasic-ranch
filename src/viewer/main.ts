@@ -7,6 +7,14 @@ import { DustPool } from "../ranch/dust.js";
 import { WADDLE_LOOP_SECONDS, wrapAngle, type GaitParams } from "../ranch/waddle.js";
 import { unlockAudio } from "./audio.js";
 import { resolvePixelRatio } from "./pixel-ratio.js";
+import {
+  HINT_IDLE_MS,
+  applyPovPreset,
+  hintModeFor,
+  isPortraitViewport,
+  shouldShowHint,
+  type PovPresetId,
+} from "./pov.js";
 import { readSetting, writeSetting } from "./storage.js";
 
 /**
@@ -447,8 +455,9 @@ export async function bootViewer(): Promise<void> {
   scene.add(ground);
 
   const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 50);
-  camera.position.set(2.4, 1.5, 3.0);
-  camera.lookAt(0, 0.45, 0);
+  // Ranch is the boot view; the preset owns the numbers (FR-1).
+  let activePov: PovPresetId = "ranch";
+  applyPovPreset(camera, activePov);
 
   const enableShadows = (root: THREE.Object3D): void => {
     root.traverse((child: THREE.Object3D) => {
@@ -484,14 +493,85 @@ export async function bootViewer(): Promise<void> {
     button.setAttribute("aria-pressed", walking ? "true" : "false");
     setStatus(status, walkStatusText(walking));
   };
+  // FR-5: hint glow after 5 s of no interaction; any press clears it.
+  let lastInteractionMs = performance.now();
+  const markInteraction = (): void => {
+    lastInteractionMs = performance.now();
+    document.body.classList.remove("hint-glow", "hint-static");
+  };
+  window.addEventListener("pointerdown", markInteraction, { passive: true });
   button.addEventListener("click", () => {
     walking = !walking;
     setAllWalking(players, walking);
     void unlockAudio();
     void writeSetting(WALK_SETTING_KEY, walking);
+    markInteraction();
     syncChrome();
   });
   syncChrome();
+
+  // FR-1: fixed POV buttons cut the camera instantly (no tween, AC-1).
+  const povButtons = Array.from(
+    document.querySelectorAll<HTMLButtonElement>("#pov [data-pov]"),
+  );
+  const syncPov = (): void => {
+    for (const povButton of povButtons) {
+      povButton.setAttribute(
+        "aria-pressed",
+        povButton.dataset["pov"] === activePov ? "true" : "false",
+      );
+    }
+  };
+  for (const povButton of povButtons) {
+    povButton.addEventListener("click", () => {
+      const id = povButton.dataset["pov"];
+      if (id !== "ranch" && id !== "nest" && id !== "garden") {
+        return;
+      }
+      activePov = id;
+      applyPovPreset(camera, activePov);
+      markInteraction();
+      syncPov();
+    });
+  }
+  syncPov();
+
+  window.setInterval(() => {
+    if (shouldShowHint(lastInteractionMs, performance.now(), HINT_IDLE_MS)) {
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.body.classList.add(hintModeFor(reduced));
+    }
+  }, 1000);
+
+  // FR-6: no pinch/double-tap zoom on the tablet stage.
+  document.addEventListener("gesturestart", (event: Event) => {
+    event.preventDefault();
+  });
+  document.addEventListener(
+    "dblclick",
+    (event: Event) => {
+      event.preventDefault();
+    },
+    { passive: false },
+  );
+  document.addEventListener(
+    "touchmove",
+    (event: TouchEvent) => {
+      if (event.touches.length > 1) {
+        event.preventDefault();
+      }
+    },
+    { passive: false },
+  );
+
+  // FR-6: portrait shows the rotate hint.
+  const rotateHint = document.getElementById("rotate-hint");
+  const syncRotateHint = (): void => {
+    if (rotateHint) {
+      rotateHint.hidden = !isPortraitViewport(window.innerWidth, window.innerHeight);
+    }
+  };
+  syncRotateHint();
 
   // Swap one instant placeholder for its rigged GLB. Crossing initial
   // headings (+X for Trike, -X for Stego) send the pair past each other
@@ -543,6 +623,7 @@ export async function bootViewer(): Promise<void> {
     camera.updateProjectionMatrix();
     renderer.setPixelRatio(resolvePixelRatio(window.devicePixelRatio));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    syncRotateHint();
   });
 
   const clock = new THREE.Clock();
