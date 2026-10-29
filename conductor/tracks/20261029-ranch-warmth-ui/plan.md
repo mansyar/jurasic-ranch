@@ -14,7 +14,7 @@
 - **Covers:** FR-1, FR-2, FR-5, FR-6, NFR-1, NFR-3, NFR-5, AC-1, AC-2, AC-5, AC-6
 - **Touches:** `src/viewer/main.ts`, `src/viewer/pov.ts`, `index.html`, `src/styles/*`, `tests/viewer/*`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P1.T1: Fixed POV presets + buttons** - covers: FR-1
   - [ ] **P1.T1.1: Preset constants + camera jump** - covers: FR-1
