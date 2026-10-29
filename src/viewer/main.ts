@@ -3,7 +3,21 @@ import type { DinoPlayer } from '../ranch/dino-player.js';
 import { trioSpawnPositions } from '../ranch/avoidance.js';
 import { buildDressing } from '../ranch/dressing.js';
 import { DustPool } from '../ranch/dust.js';
-import { unlockAudio } from './audio.js';
+import { installGestureUnlock, installVisibilityHandling } from '../audio/gesture.js';
+import { loadAudioSettings, saveMuted, saveVolume } from '../audio/settings.js';
+import {
+  AUDIO_MUTE_ID,
+  AUDIO_PANEL_CLOSE_ID,
+  AUDIO_PANEL_ID,
+  AUDIO_PANEL_MUTE_ID,
+  AUDIO_PARENT_ID,
+  AUDIO_VOLUME_ID,
+  AUDIO_VOLUME_VALUE_ID,
+  createAudioControls,
+  isAudioControlTarget,
+  type AudioControls,
+} from './audio-controls.js';
+import { audioEngine, configureAudio, unlockAudio } from './audio.js';
 import {
   CANVAS_ID,
   STATUS_ID,
@@ -66,6 +80,82 @@ export async function bootViewer(): Promise<void> {
   }
   const { renderer, scene, camera } = viewer;
 
+  let audio: AudioControls | null = null;
+  const audioReadyControl = { resolve: (): void => {} };
+  const audioReady = new Promise<void>((resolve) => {
+    audioReadyControl.resolve = resolve;
+  });
+
+  // FR-2: install the first-gesture listener before any awaited settings read,
+  // so a tap during boot is not lost. It waits for the controls and engine
+  // settings to exist, then unlocks. A tap on the sound controls is ignored so
+  // mute can unlock silently (AC-6 edge) and the parent gate cannot start music.
+  installGestureUnlock({
+    onUnlock: async () => {
+      await audioReady;
+      if (audio !== null) {
+        await unlockAudio();
+      }
+    },
+    shouldIgnore: (event) => isAudioControlTarget(event.target),
+  });
+  installVisibilityHandling(audioEngine());
+
+  // FR-6/FR-7/FR-12: the sound controls are part of the shell. If the markup
+  // and the viewer disagree, keep the ranch alive (silent) instead of aborting
+  // after the scene exists; only the audio block is skipped.
+  const muteButton = document.getElementById(AUDIO_MUTE_ID);
+  const parentButton = document.getElementById(AUDIO_PARENT_ID);
+  const panel = document.getElementById(AUDIO_PANEL_ID);
+  const panelMuteButton = document.getElementById(AUDIO_PANEL_MUTE_ID);
+  const slider = document.getElementById(AUDIO_VOLUME_ID);
+  const volumeValue = document.getElementById(AUDIO_VOLUME_VALUE_ID);
+  const closeButton = document.getElementById(AUDIO_PANEL_CLOSE_ID);
+  if (
+    muteButton instanceof HTMLButtonElement &&
+    parentButton instanceof HTMLButtonElement &&
+    panel instanceof HTMLElement &&
+    panelMuteButton instanceof HTMLButtonElement &&
+    slider instanceof HTMLInputElement &&
+    closeButton instanceof HTMLButtonElement
+  ) {
+    // Read both settings before the engine exists, so the first gesture already
+    // knows whether to start music and at which volume (FR-2, FR-6, FR-7).
+    const audioSettings = await loadAudioSettings();
+    configureAudio({
+      getMuted: () => audioSettings.muted,
+      getVolume: () => audioSettings.volume,
+    });
+    audio = createAudioControls({
+      muteButton,
+      parentButton,
+      panel,
+      panelMuteButton,
+      slider,
+      closeButton,
+      volumeValue: volumeValue instanceof HTMLElement ? volumeValue : null,
+      initialMuted: audioSettings.muted,
+      initialVolume: audioSettings.volume,
+      // Mirrored twice: the mutable object feeds the engine providers, while the
+      // engine calls apply the change to already-built Howls immediately.
+      onMutedChange: (muted) => {
+        audioSettings.muted = muted;
+        audioEngine().setMuted(muted);
+        void saveMuted(muted);
+      },
+      onVolumeChange: (volume) => {
+        audioSettings.volume = volume;
+        audioEngine().setVolume(volume);
+        void saveVolume(volume);
+      },
+      onUnlock: () => unlockAudio(),
+    });
+  } else {
+    console.warn('Audio controls are missing from the shell; continuing without sound.');
+    setStatus(status, 'Sound unavailable');
+  }
+  audioReadyControl.resolve();
+
   // Instant boxy trio at the 120 deg triangle spawn (FR-5): each rigged GLB
   // swaps its own placeholder on load, so a slow fetch never blocks the rest.
   const spawn = trioSpawnPositions();
@@ -99,10 +189,10 @@ export async function bootViewer(): Promise<void> {
     camera,
     button,
     status,
+    audio,
     initialWalking: (await readSetting(WALK_SETTING_KEY)) === true,
     onWalkChange: (walking) => {
       setAllWalking(stage.players, walking);
-      void unlockAudio();
       void writeSetting(WALK_SETTING_KEY, walking);
     },
   });
@@ -223,6 +313,32 @@ export async function bootViewer(): Promise<void> {
             hud.forceHint();
           },
           getSleepyState: () => hud.sleepyState(),
+          // FR-10: state comes from the engine and the kid-facing controls;
+          // mute and volume go through `hud.audio` so label, aria-pressed and
+          // persistence move exactly as a real tap would.
+          getAudioState: () => {
+            const engine = audioEngine();
+            return {
+              unlocked: engine.unlocked,
+              muted: audio?.isMuted() ?? engine.muted,
+              volume: audio?.volume() ?? engine.volume,
+              musicPlaying: engine.musicPlaying,
+              activeLine: engine.activeVoiceId,
+              lastStartLatencyMs: engine.lastStartLatencyMs,
+            };
+          },
+          mute: (muted: boolean) => {
+            audio?.setMuted(muted);
+          },
+          setVolume: (volume: number) => {
+            audio?.setVolume(volume);
+          },
+          play: (id) => {
+            audioEngine().play(id);
+          },
+          stopAll: () => {
+            audioEngine().stopAll();
+          },
         }
       : null;
 

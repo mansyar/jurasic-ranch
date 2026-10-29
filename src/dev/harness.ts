@@ -22,7 +22,13 @@ import {
   overlayTransforms,
   DEV_STEP_DT_SECONDS,
 } from './harness-state.js';
-import { buildSnapshot, type DevSnapshot, type SnapshotDino } from './snapshot.js';
+import type { AudioAssetId } from '../audio/catalog.js';
+import {
+  buildSnapshot,
+  type DevSnapshot,
+  type SnapshotAudio,
+  type SnapshotDino,
+} from './snapshot.js';
 
 /** True activation flag; the harness is inert without `?dev=1`. */
 export { parseDevQuery } from './dev-options.js';
@@ -86,10 +92,28 @@ export interface DevBridge {
   forceSleepy(): void;
   forceHint(): void;
   getSleepyState(): SleepyState;
+  /** Live audio state; the same block the snapshot carries (FR-10). */
+  getAudioState(): SnapshotAudio;
+  /** Toggle mute through the kid-facing control path (label, aria, storage). */
+  mute(muted: boolean): void;
+  /** Move the master volume through the same path the parent slider uses. */
+  setVolume(volume: number): void;
+  /** Play any catalog id on its own bus; unknown ids are ignored. */
+  play(id: AudioAssetId): void;
+  /** Stop music, voice, and every SFX instance. */
+  stopAll(): void;
 }
 
 /** Per-frame hook: `dt` out is the delta the simulation may advance by. */
 export type DevFrameHook = (dt: number, now: number) => number;
+
+/** `window.__ranch.audio` (FR-10): live state plus the four actions. */
+export interface DevAudioApi extends SnapshotAudio {
+  mute(muted: boolean): void;
+  setVolume(volume: number): void;
+  play(id: AudioAssetId): void;
+  stopAll(): void;
+}
 
 /** Machine-readable surface published as `window.__ranch` (FR-7). */
 export interface DevRanchApi {
@@ -104,6 +128,7 @@ export interface DevRanchApi {
   dust(): void;
   sleepy(): void;
   hint(): void;
+  audio: DevAudioApi;
 }
 
 declare global {
@@ -536,6 +561,59 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     syncOverlaysButton();
   });
 
+  // FR-10: one live audio surface drives both `window.__ranch.audio` and the
+  // panel's Sound row, so the machine and human paths can never diverge.
+  const audioApi: DevAudioApi = {
+    get unlocked(): boolean {
+      return bridge.getAudioState().unlocked;
+    },
+    get muted(): boolean {
+      return bridge.getAudioState().muted;
+    },
+    get volume(): number {
+      return bridge.getAudioState().volume;
+    },
+    get musicPlaying(): boolean {
+      return bridge.getAudioState().musicPlaying;
+    },
+    get activeLine(): string | null {
+      return bridge.getAudioState().activeLine;
+    },
+    get lastStartLatencyMs(): number {
+      return bridge.getAudioState().lastStartLatencyMs;
+    },
+    mute: (muted: boolean): void => {
+      bridge.mute(muted);
+      syncSoundButton();
+    },
+    setVolume: (volume: number): void => {
+      bridge.setVolume(volume);
+    },
+    play: (id: AudioAssetId): void => {
+      bridge.play(id);
+    },
+    stopAll: (): void => {
+      bridge.stopAll();
+    },
+  };
+
+  const soundMuteButton = createButton('Mute');
+  const soundPlayButton = createButton('Play hello');
+  const soundStopButton = createButton('Stop');
+  const syncSoundButton = (): void => {
+    soundMuteButton.setAttribute('aria-pressed', audioApi.muted ? 'true' : 'false');
+  };
+  soundMuteButton.addEventListener('click', () => {
+    audioApi.mute(!audioApi.muted);
+  });
+  soundPlayButton.addEventListener('click', () => {
+    audioApi.play('hello');
+  });
+  soundStopButton.addEventListener('click', () => {
+    audioApi.stopAll();
+  });
+  syncSoundButton();
+
   body.append(
     createRow('Dino visibility', visibilityRowButtons),
     createRow('Solo', soloRowButtons),
@@ -544,6 +622,7 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     createRow('Forced states', [blinkButton, dustButton, sleepyButton, hintButton]),
     createRow('Viewpoint', povButtons),
     createRow('Diagnostics', [overlaysButton]),
+    createRow('Sound', [soundMuteButton, soundPlayButton, soundStopButton]),
   );
   panel.append(toggleButton, body);
   document.body.append(panel);
@@ -576,6 +655,7 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
       sleepy: bridge.getSleepyState(),
       fps,
       dinos,
+      audio: bridge.getAudioState(),
     });
   };
 
@@ -597,6 +677,7 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     hint: () => {
       bridge.forceHint();
     },
+    audio: audioApi,
   };
   window.__ranch = api;
 

@@ -179,6 +179,102 @@
         font-size: 14px;
         font-weight: 700;
       }
+      /* FR-6, FR-8: bottom-right sound stack, kept clear of #pov and Walk. */
+      #audio-controls {
+        position: fixed;
+        right: max(12px, env(safe-area-inset-right));
+        bottom: max(24px, env(safe-area-inset-bottom));
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+      }
+      #audio-controls button,
+      #audio-panel button {
+        min-width: 72px;
+        min-height: 72px;
+        padding: 8px 14px;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+        border: 3px solid transparent;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        color: #2f4a2f;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+      #audio-mute[aria-pressed='true'],
+      #audio-panel-mute[aria-pressed='true'] {
+        border-color: #2f7d3b;
+        background: #fff;
+      }
+      #audio-controls button:focus-visible,
+      #audio-panel button:focus-visible,
+      #audio-panel input:focus-visible {
+        outline: 4px solid #ffd54f;
+        outline-offset: 2px;
+      }
+      #audio-parent {
+        --hold-progress: 0;
+        position: relative;
+        isolation: isolate;
+      }
+      /* NFR-4: progress fills a static conic ring; no animation, no motion. */
+      #audio-parent::before {
+        content: '';
+        position: absolute;
+        inset: -3px;
+        border-radius: inherit;
+        background: conic-gradient(
+          #2f7d3b calc(var(--hold-progress) * 1turn),
+          rgba(47, 125, 59, 0.18) 0
+        );
+        -webkit-mask: radial-gradient(
+          farthest-side,
+          transparent calc(100% - 6px),
+          #000 calc(100% - 6px)
+        );
+        mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px));
+        pointer-events: none;
+      }
+      /* FR-8: the panel sits above the 72 px stack, never over the buttons. */
+      #audio-panel {
+        position: fixed;
+        right: max(12px, env(safe-area-inset-right));
+        bottom: calc(max(24px, env(safe-area-inset-bottom)) + 180px);
+        z-index: 3;
+        display: grid;
+        gap: 12px;
+        width: min(320px, calc(100vw - 24px));
+        margin: 0;
+        padding: 16px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.96);
+        color: #2f4a2f;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      }
+      #audio-panel[hidden] {
+        display: none;
+      }
+      #audio-panel h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+      #audio-panel label {
+        font-size: 16px;
+        font-weight: 700;
+      }
+      #audio-panel input[type='range'] {
+        width: 100%;
+        min-height: 72px;
+      }
+      #audio-volume-value {
+        font-size: 18px;
+        font-weight: 700;
+      }
     </style>
   </head>
   <body>
@@ -202,6 +298,27 @@
           🌼<span>Garden</span>
         </button>
       </nav>
+      <div id="audio-controls" role="group" aria-label="Sound">
+        <button id="audio-mute" type="button" aria-pressed="false">🔊 Sound</button>
+        <button
+          id="audio-parent"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="audio-panel"
+          aria-label="Parent volume settings"
+        >
+          ⚙️ Volume
+        </button>
+      </div>
+      <section id="audio-panel" role="dialog" aria-labelledby="audio-panel-title" hidden>
+        <h2 id="audio-panel-title">Volume</h2>
+        <label for="audio-volume">Sound level</label>
+        <input id="audio-volume" type="range" min="0" max="100" step="1" value="80" />
+        <output id="audio-volume-value" for="audio-volume">80%</output>
+        <button id="audio-panel-mute" type="button" aria-pressed="false">🔊 Sound</button>
+        <button id="audio-panel-close" type="button">Close</button>
+      </section>
       <p id="rotate-hint" hidden>🔄 Turn your tablet sideways</p>
     </main>
     <script type="module" src="/src/viewer/main.ts"></script>

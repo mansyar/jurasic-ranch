@@ -1,0 +1,65 @@
+# Voice line generation
+
+The eight spoken lines (`hello`, `nom`, `all-done`, `count-1` … `count-5`) are
+pre-rendered at build time with [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)
+through the ONNX runtime. Nothing is synthesized at runtime and no network
+request is made by the game.
+
+- Voice: `af_bella`, speed `0.85`, `en-us`
+- Text: `lines.json` — the single source of truth for the eight ids and texts
+- Output: `public/audio/voice/<id>.mp3`, mono 44.1 kHz, 128 kbps, ≤ 2 s
+  including a 0.3 s tail, normalized to −16 LUFS
+
+## One-time setup
+
+```bash
+python -m venv .conductor/kokoro-venv
+.conductor/kokoro-venv/Scripts/python.exe -m pip install kokoro-onnx==0.6.1 onnxruntime numpy phonemizer
+ffmpeg -version
+```
+
+Both `ffmpeg` and `ffprobe` must be on `PATH` (the pipeline uses `ebur128`,
+`volume`, `alimiter`, `apad`, and `libmp3lame`).
+
+Download the model files into `.conductor/kokoro-models/` (gitignored, roughly
+325 MB, never committed):
+
+```bash
+curl.exe -L --fail --output .conductor/kokoro-models/kokoro-v1.0.onnx \
+  https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
+curl.exe -L --fail --output .conductor/kokoro-models/voices-v1.0.bin \
+  https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
+```
+
+## Generate
+
+```bash
+.conductor/kokoro-venv/Scripts/python.exe scripts/voice/generate.py
+```
+
+The script synthesizes one line at a time, trims silence, pads the 0.3 s tail
+into a 16-bit PCM copy, measures that padded wav with `ebur128`, applies a fixed
+gain plus a −1.5 dBFS limiter, and encodes the mp3 — the padded wav is the
+measurement basis on both sides, so one correction converges. It then re-measures
+the file and repeats the gain step once if the result is more than 1.2 dB off
+−16 LUFS, failing loudly if the second attempt misses or if any line exceeds the
+2 s budget. That tolerance is whole-clip by design: the mandatory 0.3 s tail is
+a third of a sub-second line, so a short word can measure about 1 dB low even
+when its speech level matches the others (the shipped spread is 0.7 dB). The
+measured gain keeps sub-second lines on target, where `loudnorm`'s dynamic mode
+undershoots. It writes a measurement report to
+`.conductor/evidence/voice-report.json`, deletes the padded copy, and leaves no
+wav intermediates behind.
+
+Useful flags: `--manifest`, `--model-dir`, `--out-dir`, `--keep-intermediates`.
+
+## License notes
+
+- **Kokoro-82M** model and voices: Apache-2.0. The generated audio is a model
+  output and is shipped with the game; the model weights are downloaded for the
+  build only and are not redistributed in this repository.
+- **kokoro-onnx** (the runtime wrapper): MIT.
+- Voice text in `lines.json` is original to this project.
+- Regenerating overwrites `public/audio/voice/*.mp3`; the committed files are
+  the reviewed, shipped pack. Re-run `pnpm audio:check` (or `pnpm verify`) after
+  regenerating.

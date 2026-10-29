@@ -145,6 +145,14 @@ describe('snapshot reuse (FR-7)', () => {
       sleepy: 'awake',
       fps: 60,
       dinos,
+      audio: {
+        unlocked: false,
+        muted: false,
+        volume: 0.8,
+        musicPlaying: false,
+        activeLine: null,
+        lastStartLatencyMs: 0,
+      },
     });
     expect(snapshot.dinos.map((dino) => dino.visible)).toEqual([false, false, true]);
     expect(snapshot.pairs).toHaveLength(3);

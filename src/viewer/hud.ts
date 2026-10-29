@@ -1,5 +1,6 @@
 import type { PerspectiveCamera } from 'three';
 import { IDLE_AFTER_MS, SleepyController, type SleepyState } from '../ranch/sleepy.js';
+import type { AudioControls } from './audio-controls.js';
 import {
   HINT_IDLE_MS,
   applyPovPreset,
@@ -46,6 +47,8 @@ export interface SleepyStage {
 
 /** Handles boot keeps after the DOM chrome is wired. */
 export interface Hud {
+  /** Bottom-right mute button and parent volume panel; null if the shell lacks it. */
+  readonly audio: AudioControls | null;
   /** Sleepy cues plus the hint-glow timer the render loop reads. */
   readonly sleepy: SleepyStage;
   /** Whether the Walk toggle is on. */
@@ -71,9 +74,11 @@ export interface HudOptions {
   camera: PerspectiveCamera;
   button: HTMLButtonElement;
   status: HTMLElement | null;
+  /** Already-wired sound controls; null when the shell omitted them. */
+  audio: AudioControls | null;
   /** Saved Walk state restored from storage (FR-7). */
   initialWalking: boolean;
-  /** Apply a new Walk state to the players, audio unlock and storage. */
+  /** Apply a new Walk state to the players and storage. */
   onWalkChange(walking: boolean): void;
 }
 
@@ -84,7 +89,7 @@ export interface HudOptions {
  * them (NFR-2).
  */
 export function createHud(options: HudOptions): Hud {
-  const { camera, button, status, initialWalking, onWalkChange } = options;
+  const { camera, button, status, audio, initialWalking, onWalkChange } = options;
   let walking = initialWalking;
   const syncWalkChrome = (): void => {
     button.textContent = walking ? 'Stop' : 'Walk';
@@ -205,6 +210,7 @@ export function createHud(options: HudOptions): Hud {
   };
 
   return {
+    audio,
     sleepy,
     isWalking: (): boolean => walking,
     setWalking,
