@@ -92,7 +92,9 @@ describe('dressing layout invariants (FR-3, AC-3)', () => {
   it('scatters the valley backdrop: 3 trees plus boulder and stump', () => {
     const trees = DRESSING_MANIFEST.filter(
       (item) =>
-        item.file.includes('ginkgo') || item.file.includes('redwood') || item.file.includes('magnolia'),
+        item.file.includes('ginkgo') ||
+        item.file.includes('redwood') ||
+        item.file.includes('magnolia'),
     );
     expect(trees).toHaveLength(3);
     expect(DRESSING_MANIFEST.filter((item) => item.file.includes('boulder'))).toHaveLength(1);

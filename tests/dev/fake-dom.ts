@@ -10,9 +10,9 @@ export class FakeElement {
   readonly attributes = new Map<string, string>();
   readonly children: FakeElement[] = [];
   readonly listeners = new Map<string, Array<() => void>>();
-  textContent = "";
-  id = "";
-  type = "";
+  textContent = '';
+  id = '';
+  type = '';
   removed = false;
 
   constructor(tagName: string) {
@@ -42,7 +42,7 @@ export class FakeElement {
   }
 
   click(): void {
-    for (const listener of this.listeners.get("click") ?? []) {
+    for (const listener of this.listeners.get('click') ?? []) {
       listener();
     }
   }
@@ -63,7 +63,7 @@ export class FakeElement {
   findButton(label: string): FakeElement | null {
     return (
       this.queryAll(
-        (element) => element.tagName === "button" && element.textContent === label,
+        (element) => element.tagName === 'button' && element.textContent === label,
       )[0] ?? null
     );
   }
@@ -79,20 +79,20 @@ export interface FakeDom {
 
 /** Replace `document`/`window` for one test and return a restore handle. */
 export function installFakeDom(): FakeDom {
-  const head = new FakeElement("head");
-  const body = new FakeElement("body");
+  const head = new FakeElement('head');
+  const body = new FakeElement('body');
   const fakeDocument = {
     head,
     body,
     createElement: (tagName: string): FakeElement => new FakeElement(tagName),
   };
   const fakeWindow: Record<string, unknown> = { innerWidth: 1024 };
-  Object.defineProperty(globalThis, "document", {
+  Object.defineProperty(globalThis, 'document', {
     value: fakeDocument,
     configurable: true,
     writable: true,
   });
-  Object.defineProperty(globalThis, "window", {
+  Object.defineProperty(globalThis, 'window', {
     value: fakeWindow,
     configurable: true,
     writable: true,
@@ -102,8 +102,8 @@ export function installFakeDom(): FakeDom {
     head,
     window: fakeWindow,
     restore: (): void => {
-      Reflect.deleteProperty(globalThis, "document");
-      Reflect.deleteProperty(globalThis, "window");
+      Reflect.deleteProperty(globalThis, 'document');
+      Reflect.deleteProperty(globalThis, 'window');
     },
   };
 }

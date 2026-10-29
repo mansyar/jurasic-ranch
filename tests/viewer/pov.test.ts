@@ -44,7 +44,11 @@ describe('POV presets', () => {
     const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
     camera.position.set(9, 9, 9);
     applyPovPreset(camera, 'nest');
-    expect(Array.from(camera.position.toArray())).toEqual([POV_PRESETS['nest'].position[0], POV_PRESETS['nest'].position[1], POV_PRESETS['nest'].position[2]]);
+    expect(Array.from(camera.position.toArray())).toEqual([
+      POV_PRESETS['nest'].position[0],
+      POV_PRESETS['nest'].position[1],
+      POV_PRESETS['nest'].position[2],
+    ]);
     const direction = camera.getWorldDirection(new THREE.Vector3());
     const target = new THREE.Vector3(...POV_PRESETS['nest'].lookAt);
     const expected = target.sub(camera.position).normalize();
@@ -93,7 +97,7 @@ describe('POV shell wiring', () => {
   });
 
   it('wires instant POV cuts, hint reset, and zoom guards in the viewer', async () => {
-    const source = await readText('src/viewer/main.ts');
+    const source = await readText('src/viewer/hud.ts');
     expect(source).toContain('applyPovPreset');
     expect(source).toContain('shouldShowHint');
     expect(source).toContain('isPortraitViewport');

@@ -1,18 +1,13 @@
-import * as THREE from "three";
-import { describe, expect, it } from "vitest";
+import * as THREE from 'three';
+import { describe, expect, it } from 'vitest';
 import {
   AVOIDANCE_NUDGE_RADIANS,
   trioAvoidanceNudges,
   trioSpawnPositions,
-} from "../../src/ranch/avoidance.js";
-import {
-  BRACHIO_GAIT,
-  DinoPlayer,
-  STEGO_GAIT,
-  TRIKE_GAIT,
-} from "../../src/ranch/dino-player.js";
-import { DustPool } from "../../src/ranch/dust.js";
-import { TURN_RATE_RADIANS_PER_SECOND } from "../../src/ranch/waddle.js";
+} from '../../src/ranch/avoidance.js';
+import { BRACHIO_GAIT, DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from '../../src/ranch/dino-player.js';
+import { DustPool } from '../../src/ranch/dust.js';
+import { TURN_RATE_RADIANS_PER_SECOND } from '../../src/ranch/waddle.js';
 
 /**
  * Trio ranch coexistence (FR-5, FR-6, FR-9, AC-3, AC-6): Trike + Stego +
@@ -48,9 +43,9 @@ function createRig(name: string): THREE.Group {
   const root = new THREE.Group();
   root.name = name;
   const hips = new THREE.Group();
-  hips.name = "Hips";
+  hips.name = 'Hips';
   const head = new THREE.Group();
-  head.name = "Head";
+  head.name = 'Head';
   root.add(hips);
   root.add(head);
   return root;
@@ -58,11 +53,11 @@ function createRig(name: string): THREE.Group {
 
 function createWaddleClip(loopSeconds: number): THREE.AnimationClip {
   const track = new THREE.VectorKeyframeTrack(
-    "Hips.position",
+    'Hips.position',
     [0, loopSeconds / 2, loopSeconds],
     [0, 0, 0, 0, 0.05, 0, 0, 0, 0],
   );
-  return new THREE.AnimationClip("Waddle", loopSeconds, [track]);
+  return new THREE.AnimationClip('Waddle', loopSeconds, [track]);
 }
 
 interface TrioSeeds {
@@ -97,7 +92,7 @@ function runTrioWander(
   avoidanceFrames: number;
 } {
   const spawn = trioSpawnPositions();
-  const rigs = [createRig("TrikeRoot"), createRig("StegoRoot"), createRig("BrachioRoot")];
+  const rigs = [createRig('TrikeRoot'), createRig('StegoRoot'), createRig('BrachioRoot')];
   const gaits = [TRIKE_GAIT, STEGO_GAIT, BRACHIO_GAIT];
   const shared = new DustPool({ random: prng(seeds.dust) });
   const streams = [prng(seeds.trike), prng(seeds.stego), prng(seeds.brachio)];
@@ -172,7 +167,7 @@ function runTrioWander(
         Math.min(headingStep, Math.PI * 2 - headingStep),
       );
       previousHeadings[index] = player.heading;
-      const head = rigs[index].getObjectByName("Head") ?? rigs[index];
+      const head = rigs[index].getObjectByName('Head') ?? rigs[index];
       dips[index].push(head.rotation.x);
     });
     now += DT;
@@ -207,8 +202,8 @@ function runTrioWander(
   };
 }
 
-describe("trio wander coexistence (FR-5, FR-6, AC-3)", () => {
-  it("starts from a 120 deg triangle with every pair clear of the trigger", () => {
+describe('trio wander coexistence (FR-5, FR-6, AC-3)', () => {
+  it('starts from a 120 deg triangle with every pair clear of the trigger', () => {
     const spawn = trioSpawnPositions();
     expect(spawn).toHaveLength(3);
     for (const [first, second] of [
@@ -221,7 +216,7 @@ describe("trio wander coexistence (FR-5, FR-6, AC-3)", () => {
     }
   });
 
-  it("keeps all three in-frame over 30 s with >0.25 m separation", () => {
+  it('keeps all three in-frame over 30 s with >0.25 m separation', () => {
     const { stats, avoidanceFrames } = runTrioWander(true);
     // The run must actually exercise avoidance, not stroll three empty lanes.
     expect(avoidanceFrames).toBeGreaterThan(0);
@@ -233,7 +228,7 @@ describe("trio wander coexistence (FR-5, FR-6, AC-3)", () => {
       expect(stats.maxDistanceMetres).toBeGreaterThan(gait.wanderRadiusMetres - 0.3);
     }
     const bound = TRIKE_GAIT.wanderRadiusMetres + TRIKE_GAIT.strideMetres;
-    const names = ["trike", "stego", "brachio"];
+    const names = ['trike', 'stego', 'brachio'];
     stats.maxDistancePerPlayer.forEach((max, index) => {
       expect(max, `${names[index]} stays in-frame`).toBeLessThanOrEqual(bound);
     });
@@ -241,12 +236,10 @@ describe("trio wander coexistence (FR-5, FR-6, AC-3)", () => {
     // Differential proof: the same draw without avoidance must come closer,
     // so the locked seeds prove avoidance helps in-draw (not a lucky draw).
     expect(baseline.avoidanceFrames).toBeGreaterThan(0);
-    expect(stats.minSeparationMetres).toBeGreaterThan(
-      baseline.stats.minSeparationMetres,
-    );
+    expect(stats.minSeparationMetres).toBeGreaterThan(baseline.stats.minSeparationMetres);
   });
 
-  it("never stops, snaps, or bounces: walking holds and headings step smoothly", () => {
+  it('never stops, snaps, or bounces: walking holds and headings step smoothly', () => {
     const { stats } = runTrioWander(true);
     // Walking asserted every frame inside the run; headings must stay an
     // order below a snap: yaw caps (~PI rad/s) move ~0.05 rad/frame, and the
@@ -258,7 +251,7 @@ describe("trio wander coexistence (FR-5, FR-6, AC-3)", () => {
     );
   });
 
-  it("avoidance improves separation across fixed draws (dual review F1)", () => {
+  it('avoidance improves separation across fixed draws (dual review F1)', () => {
     // The absolute >0.25 m bar above applies to the locked draw; this holds
     // avoidance to a relative bar on every documented draw, so AC-3 rests on
     // more than one geometry. Extra draws carry no absolute bar — they only
@@ -273,19 +266,17 @@ describe("trio wander coexistence (FR-5, FR-6, AC-3)", () => {
       const baseline = runTrioWander(false, seeds);
       expect(avoided.avoidanceFrames).toBeGreaterThan(0);
       expect(baseline.avoidanceFrames).toBeGreaterThan(0);
-      expect(avoided.stats.minSeparationMetres).toBeGreaterThan(
-        baseline.stats.minSeparationMetres,
-      );
+      expect(avoided.stats.minSeparationMetres).toBeGreaterThan(baseline.stats.minSeparationMetres);
     }
   });
 
-  it("shares one DustPool that puffs for all three dinos (FR-9, AC-6)", () => {
+  it('shares one DustPool that puffs for all three dinos (FR-9, AC-6)', () => {
     const { stats } = runTrioWander();
     expect(stats.sharedDust).toBe(true);
     expect(stats.maxDustAlive).toBeGreaterThan(0);
   });
 
-  it("blinks all three dinos at least once per 6 s window while walking (AC-6)", () => {
+  it('blinks all three dinos at least once per 6 s window while walking (AC-6)', () => {
     const { dips } = runTrioWander();
     const windowSteps = 6 * 60;
     for (let start = 0; start < STEPS; start += windowSteps) {
@@ -296,8 +287,8 @@ describe("trio wander coexistence (FR-5, FR-6, AC-3)", () => {
     }
   });
 
-  it("drives all three through the generic DinoPlayer with no duplication (FR-10, AC-7)", () => {
-    const rigs = [createRig("A"), createRig("B"), createRig("C")];
+  it('drives all three through the generic DinoPlayer with no duplication (FR-10, AC-7)', () => {
+    const rigs = [createRig('A'), createRig('B'), createRig('C')];
     const gaits = [TRIKE_GAIT, STEGO_GAIT, BRACHIO_GAIT];
     const players = rigs.map(
       (rig, index) =>

@@ -12,7 +12,7 @@ export const FALLBACK_PIXEL_RATIO = 1;
  * above the cap returns the cap.
  */
 export function resolvePixelRatio(devicePixelRatio: unknown): number {
-  if (typeof devicePixelRatio !== "number") {
+  if (typeof devicePixelRatio !== 'number') {
     return FALLBACK_PIXEL_RATIO;
   }
   if (!Number.isFinite(devicePixelRatio) || devicePixelRatio < 1) {

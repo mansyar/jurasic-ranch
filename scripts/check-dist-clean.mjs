@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative, resolve, sep } from "node:path";
-import { pathToFileURL } from "node:url";
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, relative, resolve, sep } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 /**
  * Harness symbols that must never reach the production bundle (FR-9, AC-10).
@@ -9,13 +9,13 @@ import { pathToFileURL } from "node:url";
  * `installDevHarness` the module entry, `parseDevQuery` the URL parser.
  */
 export const HARNESS_MARKERS = Object.freeze([
-  "__ranch",
-  "data-dev-panel",
-  "installDevHarness",
-  "parseDevQuery",
+  '__ranch',
+  'data-dev-panel',
+  'installDevHarness',
+  'parseDevQuery',
 ]);
 
-const BUILD_HINT = "Run `pnpm build` first so dist/ exists.";
+const BUILD_HINT = 'Run `pnpm build` first so dist/ exists.';
 
 /** Fail loudly when the scan target is missing or not a directory. */
 function assertDirectory(rootDir) {
@@ -44,7 +44,7 @@ function* walkFiles(dir) {
 
 /** Root-relative, slash-separated path so reports read the same on every OS. */
 function displayPath(rootDir, file) {
-  return relative(rootDir, file).split(sep).join("/");
+  return relative(rootDir, file).split(sep).join('/');
 }
 
 /**
@@ -57,7 +57,7 @@ export function findHarnessMarkers(rootDir) {
   assertDirectory(root);
   const findings = [];
   for (const file of walkFiles(root)) {
-    const contents = readFileSync(file, "latin1");
+    const contents = readFileSync(file, 'latin1');
     for (const marker of HARNESS_MARKERS) {
       if (contents.includes(marker)) {
         findings.push({ file: displayPath(root, file), marker });
@@ -73,7 +73,7 @@ export function assertDistClean(rootDir) {
   if (findings.length === 0) {
     return;
   }
-  const detail = findings.map(({ file, marker }) => `  ${file}: ${marker}`).join("\n");
+  const detail = findings.map(({ file, marker }) => `  ${file}: ${marker}`).join('\n');
   throw new Error(
     `dev harness leaked into ${resolve(rootDir)} (${findings.length} marker(s)):\n${detail}`,
   );
@@ -81,11 +81,11 @@ export function assertDistClean(rootDir) {
 
 /** CLI entry: exit 1 on leaked markers or a missing dist, 0 when clean. */
 function main(argv) {
-  const target = argv[0] ?? "dist";
+  const target = argv[0] ?? 'dist';
   try {
     const findings = findHarnessMarkers(target);
     if (findings.length > 0) {
-      const detail = findings.map(({ file, marker }) => `  ${file}: ${marker}`).join("\n");
+      const detail = findings.map(({ file, marker }) => `  ${file}: ${marker}`).join('\n');
       process.stderr.write(
         `dev harness leaked into ${target} (${findings.length} marker(s)):\n${detail}\n`,
       );

@@ -1,21 +1,16 @@
-import * as THREE from "three";
-import { describe, expect, it } from "vitest";
+import * as THREE from 'three';
+import { describe, expect, it } from 'vitest';
 import {
   DEV_TRIO_ORDER,
   seededStreams,
   type DevSeededStreams,
-} from "../../src/dev/harness-state.js";
-import type { DevSpeciesId } from "../../src/dev/dev-options.js";
-import { seededRandom } from "../../src/dev/seeded-random.js";
-import { trioSpawnPositions } from "../../src/ranch/avoidance.js";
-import {
-  BRACHIO_GAIT,
-  DinoPlayer,
-  STEGO_GAIT,
-  TRIKE_GAIT,
-} from "../../src/ranch/dino-player.js";
-import { DustPool } from "../../src/ranch/dust.js";
-import type { GaitParams } from "../../src/ranch/waddle.js";
+} from '../../src/dev/harness-state.js';
+import type { DevSpeciesId } from '../../src/dev/dev-options.js';
+import { seededRandom } from '../../src/dev/seeded-random.js';
+import { trioSpawnPositions } from '../../src/ranch/avoidance.js';
+import { BRACHIO_GAIT, DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from '../../src/ranch/dino-player.js';
+import { DustPool } from '../../src/ranch/dust.js';
+import type { GaitParams } from '../../src/ranch/waddle.js';
 
 /**
  * Seeded determinism (FR-8, AC-9): one generator per consumer, derived from
@@ -38,9 +33,9 @@ function createRig(id: string): THREE.Group {
   const root = new THREE.Group();
   root.name = `${id}Root`;
   const hips = new THREE.Group();
-  hips.name = "Hips";
+  hips.name = 'Hips';
   const head = new THREE.Group();
-  head.name = "Head";
+  head.name = 'Head';
   root.add(hips);
   root.add(head);
   return root;
@@ -48,11 +43,11 @@ function createRig(id: string): THREE.Group {
 
 function createWaddleClip(loopSeconds: number): THREE.AnimationClip {
   const track = new THREE.VectorKeyframeTrack(
-    "Hips.position",
+    'Hips.position',
     [0, loopSeconds / 2, loopSeconds],
     [0, 0, 0, 0, 0.05, 0, 0, 0, 0],
   );
-  return new THREE.AnimationClip("Waddle", loopSeconds, [track]);
+  return new THREE.AnimationClip('Waddle', loopSeconds, [track]);
 }
 
 interface TrioRunOptions {
@@ -109,20 +104,20 @@ function runTrio(
   return poses;
 }
 
-describe("seeded determinism (FR-8, AC-9)", () => {
-  it("reproduces identical poses for two runs of the same seed", () => {
+describe('seeded determinism (FR-8, AC-9)', () => {
+  it('reproduces identical poses for two runs of the same seed', () => {
     const first = runTrio(seededStreams(42));
     const second = runTrio(seededStreams(42));
     expect(second).toEqual(first);
   });
 
-  it("keeps positions identical when one run draws extra blinks", () => {
+  it('keeps positions identical when one run draws extra blinks', () => {
     const baseline = runTrio(seededStreams(42));
     const blinking = runTrio(seededStreams(42), { blinkEvery: 10 });
     expect(blinking).toEqual(baseline);
   });
 
-  it("binds streams to the dino id, not the construction order", () => {
+  it('binds streams to the dino id, not the construction order', () => {
     const forward = runTrio(seededStreams(42));
     const reversed = runTrio(seededStreams(42), {
       order: [...DEV_TRIO_ORDER].reverse(),
@@ -130,7 +125,7 @@ describe("seeded determinism (FR-8, AC-9)", () => {
     expect(reversed).toEqual(forward);
   });
 
-  it("derives every consumer from the seed by fixed index", () => {
+  it('derives every consumer from the seed by fixed index', () => {
     const streams = seededStreams(42);
     for (const [index, id] of DEV_TRIO_ORDER.entries()) {
       expect(streams.movement[id]()).toBe(seededRandom(42 + 1 + index)());
@@ -139,7 +134,7 @@ describe("seeded determinism (FR-8, AC-9)", () => {
     expect(streams.dust()).toBe(seededRandom(42 ^ 0x9e3779b9)());
   });
 
-  it("never shares a stream between dust, movement and blink", () => {
+  it('never shares a stream between dust, movement and blink', () => {
     const streams = seededStreams(7);
     const dustFirst = streams.dust();
     const movementFirst = streams.movement.trike();
@@ -147,7 +142,7 @@ describe("seeded determinism (FR-8, AC-9)", () => {
     expect(new Set([dustFirst, movementFirst, blinkFirst]).size).toBe(3);
   });
 
-  it("does not move a run when only unrelated dinos blink", () => {
+  it('does not move a run when only unrelated dinos blink', () => {
     const baseline = runTrio(seededStreams(42));
     const extra = runTrio(seededStreams(42), { blinkEvery: 25 });
     expect(extra.trike).toEqual(baseline.trike);
@@ -155,7 +150,7 @@ describe("seeded determinism (FR-8, AC-9)", () => {
     expect(extra.brachio).toEqual(baseline.brachio);
   });
 
-  it("proves the extra-blink guard is not vacuous: a shared stream diverges", () => {
+  it('proves the extra-blink guard is not vacuous: a shared stream diverges', () => {
     const baseline = runTrio(seededStreams(42));
     const crossWired = seededStreams(42);
     const shared = runTrio({ ...crossWired, blink: crossWired.movement }, { blinkEvery: 10 });

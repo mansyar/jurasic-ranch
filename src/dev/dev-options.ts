@@ -5,7 +5,7 @@
  */
 
 /** Species ids a solo preset can isolate. */
-export type DevSpeciesId = "trike" | "stego" | "brachio";
+export type DevSpeciesId = 'trike' | 'stego' | 'brachio';
 
 /** Parsed harness options; the defaults are fully inert. */
 export interface DevOptions {
@@ -21,14 +21,14 @@ export interface DevOptions {
   overlays: boolean;
 }
 
-const SOLO_IDS: readonly DevSpeciesId[] = ["trike", "stego", "brachio"];
+const SOLO_IDS: readonly DevSpeciesId[] = ['trike', 'stego', 'brachio'];
 
 /** A seed is a whole base-10 integer, optionally negative — nothing else. */
 const SEED_PATTERN = /^-?\d+$/;
 
 /** Parse `seed` as a base-10 integer; empty and junk values mean "unseeded". */
 function parseSeed(params: URLSearchParams): number | null {
-  const raw = params.get("seed");
+  const raw = params.get('seed');
   if (raw === null || !SEED_PATTERN.test(raw)) {
     return null;
   }
@@ -40,7 +40,7 @@ function parseSeed(params: URLSearchParams): number | null {
 
 /** Match `solo` against the three species ids, case-insensitively. */
 function parseSolo(params: URLSearchParams): DevSpeciesId | null {
-  const raw = params.get("solo");
+  const raw = params.get('solo');
   if (raw === null) {
     return null;
   }
@@ -56,10 +56,10 @@ function parseSolo(params: URLSearchParams): DevSpeciesId | null {
 export function parseDevQuery(search: string): DevOptions {
   const params = new URLSearchParams(search);
   return {
-    enabled: params.get("dev") === "1",
+    enabled: params.get('dev') === '1',
     seed: parseSeed(params),
     solo: parseSolo(params),
-    paused: params.get("pause") === "1",
-    overlays: params.get("overlays") !== "0",
+    paused: params.get('pause') === '1',
+    overlays: params.get('overlays') !== '0',
   };
 }

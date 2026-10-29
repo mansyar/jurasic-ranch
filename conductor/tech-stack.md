@@ -13,6 +13,12 @@
 - Howler.js 2.2 (audio sprites, ducking, mute lock)
 - idb-keyval (IndexedDB stickers/settings wrapper)
 
+## Architecture Notes
+
+- Ranch players: `DinoPlayer` is the single player class — species behaviour is
+  a gait config (`TRIKE_GAIT`, `STEGO_GAIT`, `BRACHIO_GAIT`), never a species
+  subclass or shim (Trike alias retired in 20261029-ranch-housekeeping).
+
 ## Package Manager & Build
 
 - pnpm 12.15.0 + pnpm-lock.yaml
@@ -39,9 +45,9 @@
 ## Test / Typecheck / Lint / Format
 
 - Typecheck: tsrs (Oct 2026 Rust port, primary) with tsgo TS7 fallback `tsgo --noEmit`
-- Lint: oxlint v1.90.0 (`pnpm lint`, ignores `public/draco/**` + `scripts/vendor/**`)
-- Format: oxfmt v0.75.0 Prettier-compatible (`pnpm format --check`)
-- Unit: Vitest for counting/sort/sticker logic (`pnpm test`)
+- Lint: oxlint v1.90.0 (`pnpm lint`, ignores `scripts/vendor/**`)
+- Format: oxfmt v0.75.0 Prettier-compatible, configured by `.oxfmtrc.json`, gate covers `src/**/*.ts`, `tests/**/*.ts`, `scripts/**/*.ts` and the root configs (`pnpm format --check`)
+- Unit: Vitest for counting/sort/sticker logic (`pnpm test`), coverage via `@vitest/coverage-v8` (`pnpm coverage`, v8 provider, 60 % lines floor, `scripts/vendor/**` excluded)
 - Visual: manual tablet play + Polyfork preview_scene, pixelRatio cap 2
 
 ## Local Dev Env

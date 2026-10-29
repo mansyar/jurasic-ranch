@@ -1,35 +1,48 @@
-import * as THREE from "three";
-import { describe, expect, it } from "vitest";
-import { BlinkController, DinoPlayer, findBlinkTargets } from "../../src/ranch/dino-player.js";
-import { BLINK_MAX_SECONDS, BLINK_MIN_SECONDS, WADDLE_LOOP_SECONDS } from "../../src/ranch/waddle.js";
+import * as THREE from 'three';
+import { describe, expect, it } from 'vitest';
+import { BlinkController, DinoPlayer, findBlinkTargets } from '../../src/ranch/dino-player.js';
+import {
+  BLINK_MAX_SECONDS,
+  BLINK_MIN_SECONDS,
+  WADDLE_LOOP_SECONDS,
+} from '../../src/ranch/waddle.js';
 
 /** Minimal rig: Hips (clip target) + Head (blink fallback), no eye meshes. */
 function createTestRig(): THREE.Group {
   const root = new THREE.Group();
   const hips = new THREE.Group();
-  hips.name = "Hips";
+  hips.name = 'Hips';
   const head = new THREE.Group();
-  head.name = "Head";
+  head.name = 'Head';
   root.add(hips);
   root.add(head);
   return root;
 }
 
 function createWaddleClip(): THREE.AnimationClip {
-  const track = new THREE.VectorKeyframeTrack("Hips.position", [0, 0.4, 0.8], [0, 0, 0, 0, 0.05, 0, 0, 0, 0]);
-  return new THREE.AnimationClip("Waddle", WADDLE_LOOP_SECONDS, [track]);
+  const track = new THREE.VectorKeyframeTrack(
+    'Hips.position',
+    [0, 0.4, 0.8],
+    [0, 0, 0, 0, 0.05, 0, 0, 0, 0],
+  );
+  return new THREE.AnimationClip('Waddle', WADDLE_LOOP_SECONDS, [track]);
 }
 
 function findHead(root: THREE.Object3D): THREE.Object3D {
-  const head = root.getObjectByName("Head");
+  const head = root.getObjectByName('Head');
   if (head === undefined) {
-    throw new Error("test rig is missing its Head node");
+    throw new Error('test rig is missing its Head node');
   }
   return head;
 }
 
 /** Timestamps of every visible blink frame between `from` and `to` seconds. */
-function visibleBlinkTimes(blink: BlinkController, targets: ReturnType<typeof findBlinkTargets>, from: number, to: number): number[] {
+function visibleBlinkTimes(
+  blink: BlinkController,
+  targets: ReturnType<typeof findBlinkTargets>,
+  from: number,
+  to: number,
+): number[] {
   const times: number[] = [];
   for (let now = from; now <= to; now += 1 / 60) {
     if (blink.update(now, targets)) {
@@ -39,8 +52,8 @@ function visibleBlinkTimes(blink: BlinkController, targets: ReturnType<typeof fi
   return times;
 }
 
-describe("forced blink (FR-5)", () => {
-  it("starts a blink on the very next update", () => {
+describe('forced blink (FR-5)', () => {
+  it('starts a blink on the very next update', () => {
     const targets = findBlinkTargets(createTestRig());
     const blink = new BlinkController(() => 0, 0);
     // The natural schedule would not fire for 3 s.
@@ -49,7 +62,7 @@ describe("forced blink (FR-5)", () => {
     expect(blink.update(1.016, targets)).toBe(true);
   });
 
-  it("restores the lids and re-arms the normal 3-5 s schedule after the forced blink", () => {
+  it('restores the lids and re-arms the normal 3-5 s schedule after the forced blink', () => {
     const targets = findBlinkTargets(createTestRig());
     const blink = new BlinkController(() => 0, 0);
     blink.forceBlink();
@@ -59,13 +72,18 @@ describe("forced blink (FR-5)", () => {
     expect(blink.update(closeAt, targets)).toBe(false);
     // The next scheduled blink is 3 s after the forced one closed (random 0).
     expect(blink.update(closeAt + BLINK_MIN_SECONDS - 0.1, targets)).toBe(false);
-    const following = visibleBlinkTimes(blink, targets, closeAt + BLINK_MIN_SECONDS, closeAt + BLINK_MAX_SECONDS + 0.1);
+    const following = visibleBlinkTimes(
+      blink,
+      targets,
+      closeAt + BLINK_MIN_SECONDS,
+      closeAt + BLINK_MAX_SECONDS + 0.1,
+    );
     expect(following.length).toBeGreaterThan(0);
     expect(following[0]).toBeGreaterThanOrEqual(closeAt + BLINK_MIN_SECONDS);
     expect(following[0]).toBeLessThanOrEqual(closeAt + BLINK_MAX_SECONDS);
   });
 
-  it("keeps blinking on the 3-5 s cadence after a forced blink", () => {
+  it('keeps blinking on the 3-5 s cadence after a forced blink', () => {
     const targets = findBlinkTargets(createTestRig());
     const blink = new BlinkController(() => 0.5, 0);
     blink.forceBlink();
@@ -80,7 +98,7 @@ describe("forced blink (FR-5)", () => {
     }
   });
 
-  it("does not disturb a blink that is already in flight", () => {
+  it('does not disturb a blink that is already in flight', () => {
     const targets = findBlinkTargets(createTestRig());
     const blink = new BlinkController(() => 0, 0);
     expect(blink.update(3.04, targets)).toBe(true);
@@ -90,7 +108,7 @@ describe("forced blink (FR-5)", () => {
     expect(blink.update(3.2, targets)).toBe(false);
   });
 
-  it("delegates from DinoPlayer and dips the head bone", () => {
+  it('delegates from DinoPlayer and dips the head bone', () => {
     const rig = createTestRig();
     const player = new DinoPlayer(rig, { clip: createWaddleClip(), random: () => 0 });
     player.forceBlink();
@@ -99,7 +117,7 @@ describe("forced blink (FR-5)", () => {
     expect(findHead(rig).rotation.x).toBeGreaterThan(0);
   });
 
-  it("is a no-op, not a throw, when the model has no blink target", () => {
+  it('is a no-op, not a throw, when the model has no blink target', () => {
     const player = new DinoPlayer(new THREE.Group(), {
       clip: createWaddleClip(),
       random: () => 0,

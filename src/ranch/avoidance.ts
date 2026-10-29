@@ -1,4 +1,4 @@
-import { wrapAngle } from "./waddle.js";
+import { wrapAngle } from './waddle.js';
 
 /**
  * Soft-steer pair avoidance (FR-6): when Trike + Stego drift closer than the

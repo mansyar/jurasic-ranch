@@ -1,6 +1,6 @@
-import * as THREE from "three";
-import { DustPool } from "./dust.js";
-import { SLEEPY_DROOP_LID, yawnScaleFor } from "./sleepy.js";
+import * as THREE from 'three';
+import { DustPool } from './dust.js';
+import { SLEEPY_DROOP_LID, yawnScaleFor } from './sleepy.js';
 import {
   BLINK_CLOSE_SECONDS,
   createWaddlePose,
@@ -15,7 +15,7 @@ import {
   updateWaddlePoseWithGait,
   wrapAngle,
   type WaddlePose,
-} from "./waddle.js";
+} from './waddle.js';
 
 /**
  * Generic dino playback controller (FR-1: gait configs, FR-5 turn-then-walk,

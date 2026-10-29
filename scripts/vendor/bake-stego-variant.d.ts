@@ -53,4 +53,6 @@ export interface BakeStegoVariantSummary {
 }
 
 /** Run the full bake (procedural variant + rebuilt Waddle + Blender Draco pass). */
-export declare function bakeStegoVariant(options?: BakeStegoVariantOptions): Promise<BakeStegoVariantSummary>;
+export declare function bakeStegoVariant(
+  options?: BakeStegoVariantOptions,
+): Promise<BakeStegoVariantSummary>;

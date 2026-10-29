@@ -5,14 +5,14 @@
  * unit-testable without WebGL.
  */
 
-import { seededRandom } from "./seeded-random.js";
-import type { DevSpeciesId } from "./dev-options.js";
+import { seededRandom } from './seeded-random.js';
+import type { DevSpeciesId } from './dev-options.js';
 
 /** Fixed simulation delta per stepped frame (1/60 s, spec assumption). */
 export const DEV_STEP_DT_SECONDS = 1 / 60;
 
 /** Fixed dino order every seeded stream index is derived from. */
-export const DEV_TRIO_ORDER: readonly DevSpeciesId[] = ["trike", "stego", "brachio"];
+export const DEV_TRIO_ORDER: readonly DevSpeciesId[] = ['trike', 'stego', 'brachio'];
 
 /** Seed offset mixed into the dust stream so it never aliases a dino stream. */
 const DUST_SEED_OFFSET = 0x9e3779b9;
@@ -43,14 +43,14 @@ export function seededStreams(seed: number): DevSeededStreams {
   return {
     dust: seededRandom(seed ^ DUST_SEED_OFFSET),
     movement: {
-      trike: movementStream(seed, "trike"),
-      stego: movementStream(seed, "stego"),
-      brachio: movementStream(seed, "brachio"),
+      trike: movementStream(seed, 'trike'),
+      stego: movementStream(seed, 'stego'),
+      brachio: movementStream(seed, 'brachio'),
     },
     blink: {
-      trike: blinkStream(seed, "trike"),
-      stego: blinkStream(seed, "stego"),
-      brachio: blinkStream(seed, "brachio"),
+      trike: blinkStream(seed, 'trike'),
+      stego: blinkStream(seed, 'stego'),
+      brachio: blinkStream(seed, 'brachio'),
     },
   };
 }
@@ -151,7 +151,7 @@ export function overlayTransforms(dinos: readonly OverlayDino[]): OverlayTransfo
  */
 export function formatHud(fps: number, drawCalls: number, triangles: number): string {
   const safeFps = Number.isFinite(fps) && fps > 0 ? fps : 0;
-  const frameMs = safeFps > 0 ? (1000 / safeFps).toFixed(1) : "—";
+  const frameMs = safeFps > 0 ? (1000 / safeFps).toFixed(1) : '—';
   const calls = Number.isFinite(drawCalls) ? Math.round(drawCalls) : 0;
   const tris = Number.isFinite(triangles) ? Math.round(triangles) : 0;
   return `${Math.round(safeFps)} fps · ${frameMs} ms · ${calls} calls · ${tris} tris`;

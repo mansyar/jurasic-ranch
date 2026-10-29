@@ -1,23 +1,15 @@
-import { readFile } from "node:fs/promises";
-import * as THREE from "three";
-import { describe, expect, it } from "vitest";
+import { readFile } from 'node:fs/promises';
+import * as THREE from 'three';
+import { describe, expect, it } from 'vitest';
 import {
   buildRetargetedClip,
   createVariantGroup,
   extractAnimationTracks,
-} from "../../scripts/bake-trike-variant.js";
-import {
-  WADDLE_STRIDE_METRES,
-  WALK_SPEED_METRES_PER_SECOND,
-} from "../../src/ranch/waddle.js";
+} from '../../scripts/bake-trike-variant.js';
+import { WADDLE_STRIDE_METRES, WALK_SPEED_METRES_PER_SECOND } from '../../src/ranch/waddle.js';
 
-const SHIPPED_GLB = new URL("../../public/models/trike.glb", import.meta.url);
-const FEET = [
-  "LeftFrontFoot",
-  "RightFrontFoot",
-  "LeftHindFoot",
-  "RightHindFoot",
-] as const;
+const SHIPPED_GLB = new URL('../../public/models/trike.glb', import.meta.url);
+const FEET = ['LeftFrontFoot', 'RightFrontFoot', 'LeftHindFoot', 'RightHindFoot'] as const;
 const SAMPLES = 121;
 /** Height above a foot's lowest sample that still counts as ground contact. */
 const CONTACT_METRES = 0.01;
@@ -110,10 +102,7 @@ async function measureGait(): Promise<{ reports: Record<string, FootReport> }> {
       start %= points.length;
     }
     let runLength = 0;
-    while (
-      runLength < points.length &&
-      contact[(start + runLength) % points.length]
-    ) {
+    while (runLength < points.length && contact[(start + runLength) % points.length]) {
       runLength += 1;
     }
     // Replay root motion on unwrapped time: the stance run may straddle the
@@ -169,25 +158,23 @@ async function measureGait(): Promise<{ reports: Record<string, FootReport> }> {
   return { reports };
 }
 
-describe("waddle stride (FR-6)", () => {
+describe('waddle stride (FR-6)', () => {
   it("matches the coded stride to the clip's measured foot travel", async () => {
     const { reports } = await measureGait();
     const travels = FEET.map((foot) => reports[foot].travel);
     const mean = travels.reduce((a, b) => a + b, 0) / travels.length;
     console.log(
-      `stride: ${FEET.map((foot) => `${foot}=${reports[foot].travel.toFixed(4)}`).join(" ")} mean=${mean.toFixed(4)} coded=${WADDLE_STRIDE_METRES}`,
+      `stride: ${FEET.map((foot) => `${foot}=${reports[foot].travel.toFixed(4)}`).join(' ')} mean=${mean.toFixed(4)} coded=${WADDLE_STRIDE_METRES}`,
     );
     for (const foot of FEET) {
       expect(Math.abs(reports[foot].travel - WADDLE_STRIDE_METRES)).toBeLessThanOrEqual(
         STRIDE_TOLERANCE_METRES,
       );
     }
-    expect(Math.abs(mean - WADDLE_STRIDE_METRES)).toBeLessThanOrEqual(
-      STRIDE_TOLERANCE_METRES,
-    );
+    expect(Math.abs(mean - WADDLE_STRIDE_METRES)).toBeLessThanOrEqual(STRIDE_TOLERANCE_METRES);
   });
 
-  it("keeps a walking duty cycle with real ground clearance", async () => {
+  it('keeps a walking duty cycle with real ground clearance', async () => {
     const { reports } = await measureGait();
     for (const foot of FEET) {
       expect(reports[foot].duty).toBeGreaterThanOrEqual(0.5);
@@ -198,8 +185,8 @@ describe("waddle stride (FR-6)", () => {
   });
 });
 
-describe("foot-slide tolerance (AC-6)", () => {
-  it("keeps planted feet within tolerance at the coded walk speed", async () => {
+describe('foot-slide tolerance (AC-6)', () => {
+  it('keeps planted feet within tolerance at the coded walk speed', async () => {
     const { reports } = await measureGait();
     for (const foot of FEET) {
       console.log(

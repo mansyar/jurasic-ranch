@@ -8,34 +8,34 @@
  * module owns the DOM/three glue and the frame hook.
  */
 
-import * as THREE from "three";
-import { TRIKE_GAIT, type DinoPlayer } from "../ranch/dino-player.js";
-import type { DustPool } from "../ranch/dust.js";
-import type { SleepyState } from "../ranch/sleepy.js";
-import { AVOIDANCE_TRIGGER_METRES } from "../ranch/avoidance.js";
-import { POV_ORDER, type PovPresetId } from "../viewer/pov.js";
-import { type DevOptions, type DevSpeciesId } from "./dev-options.js";
+import * as THREE from 'three';
+import { TRIKE_GAIT, type DinoPlayer } from '../ranch/dino-player.js';
+import type { DustPool } from '../ranch/dust.js';
+import type { SleepyState } from '../ranch/sleepy.js';
+import { AVOIDANCE_TRIGGER_METRES } from '../ranch/avoidance.js';
+import { POV_ORDER, type PovPresetId } from '../viewer/pov.js';
+import { type DevOptions, type DevSpeciesId } from './dev-options.js';
 import {
   applySolo,
   nextPausedFrame,
   formatHud,
   overlayTransforms,
   DEV_STEP_DT_SECONDS,
-} from "./harness-state.js";
-import { buildSnapshot, type DevSnapshot, type SnapshotDino } from "./snapshot.js";
+} from './harness-state.js';
+import { buildSnapshot, type DevSnapshot, type SnapshotDino } from './snapshot.js';
 
 /** True activation flag; the harness is inert without `?dev=1`. */
-export { parseDevQuery } from "./dev-options.js";
+export { parseDevQuery } from './dev-options.js';
 /** Seeded RNG for `?dev=1&seed=`, reused by the viewer's construction path. */
-export { seededRandom } from "./seeded-random.js";
+export { seededRandom } from './seeded-random.js';
 /** Per-consumer seeded streams (FR-8), reused by the viewer's construction path. */
-export { seededStreams } from "./harness-state.js";
+export { seededStreams } from './harness-state.js';
 
 /** Attribute marking the runtime panel root (Phase 3 scans `dist/` for it). */
-export const DEV_PANEL_ATTRIBUTE = "data-dev-panel";
+export const DEV_PANEL_ATTRIBUTE = 'data-dev-panel';
 
 /** Attribute marking the single injected stylesheet. */
-export const DEV_PANEL_STYLE_ATTRIBUTE = "data-dev-panel-style";
+export const DEV_PANEL_STYLE_ATTRIBUTE = 'data-dev-panel-style';
 
 /**
  * Shared wander circle the trio steers inside, in metres. Derived from the
@@ -57,7 +57,7 @@ const NARROW_VIEWPORT_PX = 720;
 const HUD_UPDATE_SECONDS = 0.2;
 
 /** Element id linking the collapse button to its body. */
-const PANEL_BODY_ID = "dev-panel-body";
+const PANEL_BODY_ID = 'dev-panel-body';
 
 /** One dino the panel can show, hide and inspect. */
 export interface DevDinoHandle {
@@ -182,18 +182,18 @@ let installed: { dispose(): void } | null = null;
 
 /** Build a plain button: real focusable element, no div-with-role shortcuts. */
 function createButton(label: string): HTMLButtonElement {
-  const button = document.createElement("button");
-  button.type = "button";
+  const button = document.createElement('button');
+  button.type = 'button';
   button.textContent = label;
   return button;
 }
 
 /** Named button group so screen readers announce what a row controls. */
 function createRow(label: string, buttons: HTMLButtonElement[]): HTMLDivElement {
-  const row = document.createElement("div");
-  row.setAttribute("data-dev-row", "");
-  row.setAttribute("role", "group");
-  row.setAttribute("aria-label", label);
+  const row = document.createElement('div');
+  row.setAttribute('data-dev-row', '');
+  row.setAttribute('role', 'group');
+  row.setAttribute('aria-label', label);
   row.append(...buttons);
   return row;
 }
@@ -208,7 +208,7 @@ function createOverlays(bridge: DevBridge): {
   update: (isVisible: (id: DevSpeciesId) => boolean) => void;
 } {
   const group = new THREE.Group();
-  group.name = "DevOverlays";
+  group.name = 'DevOverlays';
 
   const wanderRing = new THREE.Mesh(
     new THREE.RingGeometry(DEV_WANDER_RADIUS_METRES - 0.01, DEV_WANDER_RADIUS_METRES, 64),
@@ -220,7 +220,7 @@ function createOverlays(bridge: DevBridge): {
       depthWrite: false,
     }),
   );
-  wanderRing.name = "DevWanderRing";
+  wanderRing.name = 'DevWanderRing';
   wanderRing.rotation.x = -Math.PI / 2;
   wanderRing.position.y = 0.02;
   group.add(wanderRing);
@@ -326,34 +326,34 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
   let fps = 0;
   let lastHudSeconds = Number.NEGATIVE_INFINITY;
 
-  const style = document.createElement("style");
-  style.setAttribute(DEV_PANEL_STYLE_ATTRIBUTE, "");
+  const style = document.createElement('style');
+  style.setAttribute(DEV_PANEL_STYLE_ATTRIBUTE, '');
   style.textContent = DEV_PANEL_STYLE;
   document.head.append(style);
 
-  const panel = document.createElement("div");
-  panel.setAttribute(DEV_PANEL_ATTRIBUTE, "");
-  panel.setAttribute("role", "region");
-  panel.setAttribute("aria-label", "Dev harness");
+  const panel = document.createElement('div');
+  panel.setAttribute(DEV_PANEL_ATTRIBUTE, '');
+  panel.setAttribute('role', 'region');
+  panel.setAttribute('aria-label', 'Dev harness');
 
   const startCollapsed = window.innerWidth <= NARROW_VIEWPORT_PX;
-  panel.setAttribute("data-collapsed", startCollapsed ? "true" : "false");
+  panel.setAttribute('data-collapsed', startCollapsed ? 'true' : 'false');
 
-  const toggleButton = createButton("Dev");
-  toggleButton.setAttribute("aria-controls", PANEL_BODY_ID);
-  toggleButton.setAttribute("aria-expanded", startCollapsed ? "false" : "true");
-  const body = document.createElement("div");
+  const toggleButton = createButton('Dev');
+  toggleButton.setAttribute('aria-controls', PANEL_BODY_ID);
+  toggleButton.setAttribute('aria-expanded', startCollapsed ? 'false' : 'true');
+  const body = document.createElement('div');
   body.id = PANEL_BODY_ID;
-  body.setAttribute("data-dev-body", "");
+  body.setAttribute('data-dev-body', '');
 
   const setCollapsed = (collapsed: boolean): void => {
-    panel.setAttribute("data-collapsed", collapsed ? "true" : "false");
-    toggleButton.setAttribute("aria-expanded", collapsed ? "false" : "true");
-    toggleButton.textContent = collapsed ? "Dev ▸" : "Dev ▾";
+    panel.setAttribute('data-collapsed', collapsed ? 'true' : 'false');
+    toggleButton.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    toggleButton.textContent = collapsed ? 'Dev ▸' : 'Dev ▾';
   };
   setCollapsed(startCollapsed);
-  toggleButton.addEventListener("click", () => {
-    setCollapsed(panel.getAttribute("data-collapsed") !== "true");
+  toggleButton.addEventListener('click', () => {
+    setCollapsed(panel.getAttribute('data-collapsed') !== 'true');
   });
 
   const applyVisibility = (): void => {
@@ -371,16 +371,16 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
   const visibilityRowButtons: HTMLButtonElement[] = [];
   for (const dino of bridge.dinos) {
     const button = createButton(dino.label);
-    button.setAttribute("data-dev-show", dino.id);
+    button.setAttribute('data-dev-show', dino.id);
     visibilityButtons.set(dino.id, button);
     visibilityRowButtons.push(button);
   }
 
   // ...and the one-tap presets live in their own group, so a solo press never
   // doubles as an independent toggle.
-  const soloButtons = new Map<DevSpeciesId | "all", HTMLButtonElement>();
-  const allButton = createButton("All");
-  soloButtons.set("all", allButton);
+  const soloButtons = new Map<DevSpeciesId | 'all', HTMLButtonElement>();
+  const allButton = createButton('All');
+  soloButtons.set('all', allButton);
   const soloRowButtons = [allButton];
   for (const dino of bridge.dinos) {
     const button = createButton(dino.label);
@@ -390,19 +390,19 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
 
   const syncVisibilityButtons = (): void => {
     for (const [id, button] of visibilityButtons) {
-      button.setAttribute("aria-pressed", visibility[id] ? "true" : "false");
+      button.setAttribute('aria-pressed', visibility[id] ? 'true' : 'false');
     }
   };
 
   const syncSoloButtons = (): void => {
     const visibleIds = bridge.dinos.filter((dino) => visibility[dino.id]).map((dino) => dino.id);
     allButton.setAttribute(
-      "aria-pressed",
-      visibleIds.length === bridge.dinos.length ? "true" : "false",
+      'aria-pressed',
+      visibleIds.length === bridge.dinos.length ? 'true' : 'false',
     );
     for (const dino of bridge.dinos) {
       const alone = visibleIds.length === 1 && visibleIds[0] === dino.id;
-      soloButtons.get(dino.id)?.setAttribute("aria-pressed", alone ? "true" : "false");
+      soloButtons.get(dino.id)?.setAttribute('aria-pressed', alone ? 'true' : 'false');
     }
   };
 
@@ -421,23 +421,23 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
   };
 
   for (const [id, button] of visibilityButtons) {
-    button.addEventListener("click", () => {
+    button.addEventListener('click', () => {
       showDino(id, !visibility[id]);
     });
   }
   for (const [key, button] of soloButtons) {
-    button.addEventListener("click", () => {
-      setSolo(key === "all" ? null : key);
+    button.addEventListener('click', () => {
+      setSolo(key === 'all' ? null : key);
     });
   }
 
-  const pauseButton = createButton("Pause");
-  const stepOne = createButton("Step 1");
-  const stepTen = createButton("Step 10");
+  const pauseButton = createButton('Pause');
+  const stepOne = createButton('Step 1');
+  const stepTen = createButton('Step 10');
 
   const syncPauseButton = (): void => {
-    pauseButton.textContent = paused ? "Resume" : "Pause";
-    pauseButton.setAttribute("aria-pressed", paused ? "true" : "false");
+    pauseButton.textContent = paused ? 'Resume' : 'Pause';
+    pauseButton.setAttribute('aria-pressed', paused ? 'true' : 'false');
   };
   const setPaused = (next: boolean): void => {
     paused = next;
@@ -451,20 +451,20 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     stepFrames += Math.max(0, Math.floor(frames));
     syncPauseButton();
   };
-  pauseButton.addEventListener("click", () => {
+  pauseButton.addEventListener('click', () => {
     setPaused(!paused);
   });
-  stepOne.addEventListener("click", () => {
+  stepOne.addEventListener('click', () => {
     queueStep(1);
   });
-  stepTen.addEventListener("click", () => {
+  stepTen.addEventListener('click', () => {
     queueStep(10);
   });
 
   // Visual readout only: a 5 Hz `aria-live` region would flood a screen
   // reader, so the numbers are never announced (F6).
-  const hud = document.createElement("p");
-  hud.setAttribute("data-dev-hud", "");
+  const hud = document.createElement('p');
+  hud.setAttribute('data-dev-hud', '');
   hud.textContent = formatHud(0, 0, 0);
 
   const forceBlink = (): void => {
@@ -491,23 +491,23 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     bridge.dust.puff(centre, FORCED_DUST_PARTICLES);
   };
 
-  const blinkButton = createButton("Blink");
-  const dustButton = createButton("Dust");
-  const sleepyButton = createButton("Sleepy");
-  const hintButton = createButton("Hint");
-  blinkButton.addEventListener("click", forceBlink);
-  dustButton.addEventListener("click", forceDust);
-  sleepyButton.addEventListener("click", () => {
+  const blinkButton = createButton('Blink');
+  const dustButton = createButton('Dust');
+  const sleepyButton = createButton('Sleepy');
+  const hintButton = createButton('Hint');
+  blinkButton.addEventListener('click', forceBlink);
+  dustButton.addEventListener('click', forceDust);
+  sleepyButton.addEventListener('click', () => {
     bridge.forceSleepy();
   });
-  hintButton.addEventListener("click", () => {
+  hintButton.addEventListener('click', () => {
     bridge.forceHint();
   });
 
   const povButtons = POV_ORDER.map((id) => {
     const button = createButton(id.charAt(0).toUpperCase() + id.slice(1));
-    button.setAttribute("data-dev-pov", id);
-    button.addEventListener("click", () => {
+    button.setAttribute('data-dev-pov', id);
+    button.addEventListener('click', () => {
       setPov(id);
     });
     return button;
@@ -516,8 +516,8 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     const active = bridge.getPov();
     for (const button of povButtons) {
       button.setAttribute(
-        "aria-pressed",
-        button.getAttribute("data-dev-pov") === active ? "true" : "false",
+        'aria-pressed',
+        button.getAttribute('data-dev-pov') === active ? 'true' : 'false',
       );
     }
   };
@@ -526,24 +526,24 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     syncPovButtons();
   };
 
-  const overlaysButton = createButton("Overlays");
+  const overlaysButton = createButton('Overlays');
   const syncOverlaysButton = (): void => {
-    overlaysButton.setAttribute("aria-pressed", overlaysVisible ? "true" : "false");
+    overlaysButton.setAttribute('aria-pressed', overlaysVisible ? 'true' : 'false');
   };
-  overlaysButton.addEventListener("click", () => {
+  overlaysButton.addEventListener('click', () => {
     overlaysVisible = !overlaysVisible;
     overlayGroup.group.visible = overlaysVisible;
     syncOverlaysButton();
   });
 
   body.append(
-    createRow("Dino visibility", visibilityRowButtons),
-    createRow("Solo", soloRowButtons),
-    createRow("Simulation", [pauseButton, stepOne, stepTen]),
+    createRow('Dino visibility', visibilityRowButtons),
+    createRow('Solo', soloRowButtons),
+    createRow('Simulation', [pauseButton, stepOne, stepTen]),
     hud,
-    createRow("Forced states", [blinkButton, dustButton, sleepyButton, hintButton]),
-    createRow("Viewpoint", povButtons),
-    createRow("Diagnostics", [overlaysButton]),
+    createRow('Forced states', [blinkButton, dustButton, sleepyButton, hintButton]),
+    createRow('Viewpoint', povButtons),
+    createRow('Diagnostics', [overlaysButton]),
   );
   panel.append(toggleButton, body);
   document.body.append(panel);

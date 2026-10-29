@@ -1,21 +1,17 @@
-import * as THREE from "three";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { parseDevQuery } from "../../src/dev/dev-options.js";
-import { DustPool } from "../../src/ranch/dust.js";
-import {
-  BRACHIO_GAIT,
-  STEGO_GAIT,
-  TRIKE_GAIT,
-} from "../../src/ranch/dino-player.js";
-import { AVOIDANCE_TRIGGER_METRES } from "../../src/ranch/avoidance.js";
+import * as THREE from 'three';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { parseDevQuery } from '../../src/dev/dev-options.js';
+import { DustPool } from '../../src/ranch/dust.js';
+import { BRACHIO_GAIT, STEGO_GAIT, TRIKE_GAIT } from '../../src/ranch/dino-player.js';
+import { AVOIDANCE_TRIGGER_METRES } from '../../src/ranch/avoidance.js';
 import {
   DEV_PANEL_ATTRIBUTE,
   installDevHarness,
   type DevBridge,
   type DevDinoHandle,
-} from "../../src/dev/harness.js";
-import type { DevSpeciesId } from "../../src/dev/dev-options.js";
-import { type FakeDom, type FakeElement, installFakeDom } from "./fake-dom.js";
+} from '../../src/dev/harness.js';
+import type { DevSpeciesId } from '../../src/dev/dev-options.js';
+import { type FakeDom, type FakeElement, installFakeDom } from './fake-dom.js';
 
 /**
  * Panel wiring (FR-2, AC-2, F2/F6): species buttons toggle exactly one dino,
@@ -23,8 +19,8 @@ import { type FakeDom, type FakeElement, installFakeDom } from "./fake-dom.js";
  * it controls, and the HUD is not announced to screen readers.
  */
 
-const IDS: readonly DevSpeciesId[] = ["trike", "stego", "brachio"];
-const LABELS: Record<DevSpeciesId, string> = { trike: "Trike", stego: "Stego", brachio: "Brachio" };
+const IDS: readonly DevSpeciesId[] = ['trike', 'stego', 'brachio'];
+const LABELS: Record<DevSpeciesId, string> = { trike: 'Trike', stego: 'Stego', brachio: 'Brachio' };
 
 interface FakeBridge {
   bridge: DevBridge;
@@ -58,18 +54,18 @@ function createBridge(): FakeBridge {
     dinos,
     getWalking: () => true,
     setWalking: () => undefined,
-    getPov: () => "ranch",
+    getPov: () => 'ranch',
     setPov: () => undefined,
     forceSleepy: () => undefined,
     forceHint: () => undefined,
-    getSleepyState: () => "awake",
+    getSleepyState: () => 'awake',
   };
   return { bridge, models };
 }
 
 function findRow(body: FakeElement, label: string): FakeElement {
   const row = body.queryAll(
-    (element) => element.getAttribute("aria-label") === label && element.tagName === "div",
+    (element) => element.getAttribute('aria-label') === label && element.tagName === 'div',
   )[0];
   if (row === undefined) {
     throw new Error(`panel row "${label}" not found`);
@@ -86,10 +82,10 @@ function button(row: FakeElement, label: string): FakeElement {
 }
 
 function pressed(element: FakeElement): string {
-  return element.getAttribute("aria-pressed") ?? "missing";
+  return element.getAttribute('aria-pressed') ?? 'missing';
 }
 
-describe("panel visibility toggles (FR-2, AC-2)", () => {
+describe('panel visibility toggles (FR-2, AC-2)', () => {
   let dom: FakeDom;
 
   beforeEach(() => {
@@ -100,69 +96,69 @@ describe("panel visibility toggles (FR-2, AC-2)", () => {
     dom.restore();
   });
 
-  it("hides exactly the pressed dino and leaves the others walking", () => {
+  it('hides exactly the pressed dino and leaves the others walking', () => {
     const { bridge, models } = createBridge();
-    installDevHarness(bridge, parseDevQuery("?dev=1"));
-    const row = findRow(dom.body, "Dino visibility");
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+    const row = findRow(dom.body, 'Dino visibility');
 
-    button(row, "Stego").click();
+    button(row, 'Stego').click();
 
     expect(models.stego.visible).toBe(false);
     expect(models.trike.visible).toBe(true);
     expect(models.brachio.visible).toBe(true);
   });
 
-  it("shows the dino again on a second press", () => {
+  it('shows the dino again on a second press', () => {
     const { bridge, models } = createBridge();
-    installDevHarness(bridge, parseDevQuery("?dev=1"));
-    const row = findRow(dom.body, "Dino visibility");
-    const stego = button(row, "Stego");
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+    const row = findRow(dom.body, 'Dino visibility');
+    const stego = button(row, 'Stego');
 
     stego.click();
     stego.click();
 
     expect(models.stego.visible).toBe(true);
-    expect(pressed(stego)).toBe("true");
+    expect(pressed(stego)).toBe('true');
   });
 
   it("binds aria-pressed to that dino's own visibility", () => {
     const { bridge } = createBridge();
-    installDevHarness(bridge, parseDevQuery("?dev=1"));
-    const row = findRow(dom.body, "Dino visibility");
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+    const row = findRow(dom.body, 'Dino visibility');
 
-    button(row, "Trike").click();
+    button(row, 'Trike').click();
 
-    expect(pressed(button(row, "Trike"))).toBe("false");
-    expect(pressed(button(row, "Stego"))).toBe("true");
-    expect(pressed(button(row, "Brachio"))).toBe("true");
+    expect(pressed(button(row, 'Trike'))).toBe('false');
+    expect(pressed(button(row, 'Stego'))).toBe('true');
+    expect(pressed(button(row, 'Brachio'))).toBe('true');
   });
 
-  it("keeps solo presets in a separate group", () => {
+  it('keeps solo presets in a separate group', () => {
     const { bridge, models } = createBridge();
-    installDevHarness(bridge, parseDevQuery("?dev=1"));
-    const soloRow = findRow(dom.body, "Solo");
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+    const soloRow = findRow(dom.body, 'Solo');
 
-    button(soloRow, "Stego").click();
+    button(soloRow, 'Stego').click();
 
     expect(models.trike.visible).toBe(false);
     expect(models.stego.visible).toBe(true);
     expect(models.brachio.visible).toBe(false);
-    expect(pressed(button(soloRow, "Stego"))).toBe("true");
-    expect(pressed(button(soloRow, "Trike"))).toBe("false");
+    expect(pressed(button(soloRow, 'Stego'))).toBe('true');
+    expect(pressed(button(soloRow, 'Trike'))).toBe('false');
 
-    button(soloRow, "All").click();
+    button(soloRow, 'All').click();
     expect(models.trike.visible).toBe(true);
     expect(models.stego.visible).toBe(true);
     expect(models.brachio.visible).toBe(true);
   });
 
-  it("keeps independent toggles independent of the solo presets", () => {
+  it('keeps independent toggles independent of the solo presets', () => {
     const { bridge, models } = createBridge();
-    installDevHarness(bridge, parseDevQuery("?dev=1"));
-    const row = findRow(dom.body, "Dino visibility");
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+    const row = findRow(dom.body, 'Dino visibility');
 
-    button(row, "Stego").click();
-    button(row, "Brachio").click();
+    button(row, 'Stego').click();
+    button(row, 'Brachio').click();
 
     expect(models.trike.visible).toBe(true);
     expect(models.stego.visible).toBe(false);
@@ -170,7 +166,7 @@ describe("panel visibility toggles (FR-2, AC-2)", () => {
   });
 });
 
-describe("overlay metrics come from the simulation (F5)", () => {
+describe('overlay metrics come from the simulation (F5)', () => {
   let dom: FakeDom;
 
   beforeEach(() => {
@@ -188,21 +184,18 @@ describe("overlay metrics come from the simulation (F5)", () => {
     return geometry.parameters.outerRadius;
   }
 
-  it("draws the shared wander circle at the gait wander radius", () => {
+  it('draws the shared wander circle at the gait wander radius', () => {
     const { bridge } = createBridge();
-    installDevHarness(bridge, parseDevQuery("?dev=1"));
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
     // The trio shares one wander circle, so every gait must agree on it.
     expect(STEGO_GAIT.wanderRadiusMetres).toBe(TRIKE_GAIT.wanderRadiusMetres);
     expect(BRACHIO_GAIT.wanderRadiusMetres).toBe(TRIKE_GAIT.wanderRadiusMetres);
-    expect(overlayRadius(bridge, "DevWanderRing")).toBeCloseTo(
-      TRIKE_GAIT.wanderRadiusMetres,
-      5,
-    );
+    expect(overlayRadius(bridge, 'DevWanderRing')).toBeCloseTo(TRIKE_GAIT.wanderRadiusMetres, 5);
   });
 
-  it("draws each avoidance ring at the avoidance trigger distance", () => {
+  it('draws each avoidance ring at the avoidance trigger distance', () => {
     const { bridge } = createBridge();
-    installDevHarness(bridge, parseDevQuery("?dev=1"));
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
     for (const { id } of bridge.dinos) {
       expect(overlayRadius(bridge, `DevAvoidanceRing:${id}`)).toBeCloseTo(
         AVOIDANCE_TRIGGER_METRES,
@@ -212,7 +205,7 @@ describe("overlay metrics come from the simulation (F5)", () => {
   });
 });
 
-describe("HUD accessibility (FR-4, F6)", () => {
+describe('HUD accessibility (FR-4, F6)', () => {
   let dom: FakeDom;
 
   beforeEach(() => {
@@ -223,21 +216,19 @@ describe("HUD accessibility (FR-4, F6)", () => {
     dom.restore();
   });
 
-  it("does not announce the 5 Hz HUD to screen readers", () => {
+  it('does not announce the 5 Hz HUD to screen readers', () => {
     const { bridge } = createBridge();
-    installDevHarness(bridge, parseDevQuery("?dev=1"));
-    const hud = dom.body.queryAll((element) => element.tagName === "p")[0];
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+    const hud = dom.body.queryAll((element) => element.tagName === 'p')[0];
 
-    expect(hud.getAttribute("aria-live")).toBeNull();
-    expect(hud.textContent).toContain("fps");
+    expect(hud.getAttribute('aria-live')).toBeNull();
+    expect(hud.textContent).toContain('fps');
   });
 
-  it("still mounts one panel", () => {
+  it('still mounts one panel', () => {
     const { bridge } = createBridge();
-    installDevHarness(bridge, parseDevQuery("?dev=1"));
-    const panels = dom.body.queryAll(
-      (element) => element.getAttribute(DEV_PANEL_ATTRIBUTE) === "",
-    );
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+    const panels = dom.body.queryAll((element) => element.getAttribute(DEV_PANEL_ATTRIBUTE) === '');
     expect(panels).toHaveLength(1);
   });
 });

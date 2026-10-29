@@ -64,4 +64,6 @@ export interface BakeTrikeVariantSummary {
 }
 
 /** Run the full bake (procedural variant + retargeted Waddle + Blender Draco pass). */
-export declare function bakeTrikeVariant(options?: BakeTrikeVariantOptions): Promise<BakeTrikeVariantSummary>;
+export declare function bakeTrikeVariant(
+  options?: BakeTrikeVariantOptions,
+): Promise<BakeTrikeVariantSummary>;

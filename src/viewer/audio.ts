@@ -13,6 +13,6 @@ export function isAudioUnlocked(): boolean {
 
 /** Unlock audio on first tap; resolves once Howler is available offline. */
 export async function unlockAudio(): Promise<void> {
-  await import("howler");
+  await import('howler');
   unlocked = true;
 }

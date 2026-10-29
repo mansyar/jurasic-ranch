@@ -22,5 +22,5 @@ Cozy tablet PWA dino ranch for 4yo. Source of truth for product vision, stack, a
 ## Capabilities
 
 - PWA offline game, real skeletal waddle first, Kokoro voice, CC0 music
-- Commands: `pnpm verify` (oxlint + oxfmt + tsrs + vitest + build)
+- Commands: `pnpm verify` (oxlint + oxfmt + tsrs + coverage + build); `pnpm icons` rasterizes `public/icons/icon.svg` into the PWA and touch icons via `sharp`
 - Evidence: `conductor/tracks/<id>/verification/` + `.conductor/evidence/` (gitignored)

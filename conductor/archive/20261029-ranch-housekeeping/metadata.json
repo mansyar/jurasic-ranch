@@ -1,0 +1,32 @@
+{
+  "id": "20261029-ranch-housekeeping",
+  "title": "Ranch Housekeeping",
+  "type": "refactor",
+  "status": "complete",
+  "priority": "medium",
+  "depends_on": [],
+  "created_at": "2026-10-29T10:55:00Z",
+  "updated_at": "2026-10-29T20:40:00Z",
+  "spec": "spec.md",
+  "plan": "plan.md",
+  "branch": "refactor/20261029-ranch-housekeeping",
+  "base_branch": "main",
+  "base_sha": "cb123990caa72c10b7a99651e040a5e58eb50e62",
+  "progress": {
+    "phases_total": 9,
+    "phases_verified": 9,
+    "tasks_total": 28,
+    "tasks_done": 28
+  },
+  "last_checkpoint": "7ac0967",
+  "review_verdict": "PASS",
+  "review_rounds": 2,
+  "doc_sync": "synced",
+  "pr_url": "https://github.com/mansyar/jurasic-ranch/pull/8",
+  "pr_state": "OPEN",
+  "reverted_at": null,
+  "revert_commit": null,
+  "revert_pr_url": null,
+  "archived_at": "2026-10-29T16:15:00Z",
+  "archive_path": "conductor/archive/20261029-ranch-housekeeping"
+}

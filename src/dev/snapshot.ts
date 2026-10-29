@@ -4,7 +4,7 @@
  */
 
 /** Species ids the trio reports. */
-export type SpeciesId = "trike" | "stego" | "brachio";
+export type SpeciesId = 'trike' | 'stego' | 'brachio';
 
 /** One dino's externally observable state. */
 export interface SnapshotDino {
@@ -29,8 +29,8 @@ export interface SnapshotPair {
 export interface DevSnapshot {
   walking: boolean;
   paused: boolean;
-  pov: "ranch" | "nest" | "garden";
-  sleepy: "awake" | "drowsy" | "sleepy";
+  pov: 'ranch' | 'nest' | 'garden';
+  sleepy: 'awake' | 'drowsy' | 'sleepy';
   fps: number;
   dinos: SnapshotDino[];
   pairs: SnapshotPair[];
@@ -47,8 +47,8 @@ export interface DevSnapshot {
 export function buildSnapshot(input: {
   walking: boolean;
   paused: boolean;
-  pov: "ranch" | "nest" | "garden";
-  sleepy: "awake" | "drowsy" | "sleepy";
+  pov: 'ranch' | 'nest' | 'garden';
+  sleepy: 'awake' | 'drowsy' | 'sleepy';
   fps: number;
   dinos: SnapshotDino[];
 }): DevSnapshot {

@@ -1,7 +1,7 @@
 {
-  "name": "Jurasic Ranch — Trike Waddle Walk",
+  "name": "Jurasic Ranch",
   "short_name": "Jurasic Ranch",
-  "description": "Watch a baby Triceratops waddle. Offline-first PWA.",
+  "description": "Three baby dinos — Trike, Stego and Brachio — waddle around the ranch. Offline-first PWA.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
@@ -9,6 +9,30 @@
   "background_color": "#dff3d8",
   "theme_color": "#7ec850",
   "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon.svg",
       "sizes": "any",

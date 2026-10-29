@@ -1,7 +1,7 @@
-import { readFile } from "node:fs/promises";
-import * as THREE from "three";
-import { describe, expect, it } from "vitest";
-import { extractAnimationTracks } from "../../scripts/bake-trike-variant.js";
+import { readFile } from 'node:fs/promises';
+import * as THREE from 'three';
+import { describe, expect, it } from 'vitest';
+import { extractAnimationTracks } from '../../scripts/bake-trike-variant.js';
 import {
   BRACHIO_EXTRA_SCALE,
   BRACHIO_LOOP_SECONDS,
@@ -10,7 +10,7 @@ import {
   buildBrachioWaddleClip,
   createBrachioDefaultGroup,
   createBrachioVariantGroup,
-} from "../../scripts/vendor/bake-brachio-variant.js";
+} from '../../scripts/vendor/bake-brachio-variant.js';
 
 /**
  * Baked pastel baby Brachio variant (FR-3 / FR-4): asserts the pinned bake
@@ -22,13 +22,13 @@ import {
  */
 
 const PASTEL_HEXES = [
-  "#b8a9d6",
-  "#c3b2e0",
-  "#f2e9d8",
-  "#8a739e",
-  "#d8c9e8",
-  "#5a4a5e",
-  "#211b16",
+  '#b8a9d6',
+  '#c3b2e0',
+  '#f2e9d8',
+  '#8a739e',
+  '#d8c9e8',
+  '#5a4a5e',
+  '#211b16',
 ] as const;
 
 const COLOR_TOLERANCE = 1e-4;
@@ -37,7 +37,7 @@ const MIN_VERTS_PER_ZONE = 50;
 /** Count verts whose linear-space color matches the hex within tolerance. */
 function countMatchingVerts(geometry: THREE.BufferGeometry, hex: string): number {
   const expected = new THREE.Color(hex);
-  const colors = geometry.getAttribute("color") as THREE.BufferAttribute;
+  const colors = geometry.getAttribute('color') as THREE.BufferAttribute;
   let count = 0;
   for (let i = 0; i < colors.count; i += 1) {
     const close =
@@ -53,7 +53,7 @@ function countMatchingVerts(geometry: THREE.BufferGeometry, hex: string): number
 
 /** Distinct linear-space colors baked into a geometry's COLOR_0. */
 function distinctColors(geometry: THREE.BufferGeometry): Array<[number, number, number]> {
-  const colors = geometry.getAttribute("color") as THREE.BufferAttribute;
+  const colors = geometry.getAttribute('color') as THREE.BufferAttribute;
   const seen = new Map<string, [number, number, number]>();
   for (let i = 0; i < colors.count; i += 1) {
     const key = `${colors.getX(i).toFixed(6)},${colors.getY(i).toFixed(6)},${colors.getZ(i).toFixed(6)}`;
@@ -80,21 +80,21 @@ function worldBox(group: THREE.Group): THREE.Box3 {
   return new THREE.Box3().setFromObject(group);
 }
 
-describe("baked pastel baby brachio variant params", () => {
-  it("pins the exact Polyfork call from the spec", () => {
+describe('baked pastel baby brachio variant params', () => {
+  it('pins the exact Polyfork call from the spec', () => {
     expect(BRACHIO_VARIANT_PARAMS).toEqual({
       size: 0.6,
       neck: 0,
       head: 1,
       tail: 1,
-      colorway: "dusty-umber",
-      coat: "#b8a9d6",
-      flank: "#c3b2e0",
-      belly: "#f2e9d8",
-      mottle: "#8a739e",
-      muzzle: "#d8c9e8",
-      nail: "#5a4a5e",
-      eye: "#211b16",
+      colorway: 'dusty-umber',
+      coat: '#b8a9d6',
+      flank: '#c3b2e0',
+      belly: '#f2e9d8',
+      mottle: '#8a739e',
+      muzzle: '#d8c9e8',
+      nail: '#5a4a5e',
+      eye: '#211b16',
     });
     // Size 0.6 alone still stands ~5.0 m long with the head at 2.14 m on
     // this species (non-linear down there), so the bake applies one extra
@@ -109,19 +109,21 @@ describe("baked pastel baby brachio variant params", () => {
   });
 });
 
-describe("baked pastel baby brachio variant geometry", () => {
-  it("ships one flat-shaded vertex-colored mesh on a single material", () => {
+describe('baked pastel baby brachio variant geometry', () => {
+  it('ships one flat-shaded vertex-colored mesh on a single material', () => {
     const mesh = singleMesh(createBrachioVariantGroup());
     const material = mesh.material as THREE.MeshStandardMaterial;
-    expect(mesh.geometry.hasAttribute("color")).toBe(true);
+    expect(mesh.geometry.hasAttribute('color')).toBe(true);
     expect(material.vertexColors).toBe(true);
     expect(material.flatShading).toBe(true);
   });
 
-  it("bakes every lavender zone into COLOR_0 and keeps no default colorway color", () => {
+  it('bakes every lavender zone into COLOR_0 and keeps no default colorway color', () => {
     const mesh = singleMesh(createBrachioVariantGroup());
-    const counts = PASTEL_HEXES.map((hex) => [hex, countMatchingVerts(mesh.geometry, hex)] as const);
-    console.log(`brachio pastel zones: ${counts.map(([hex, n]) => `${hex}=${n}`).join(" ")}`);
+    const counts = PASTEL_HEXES.map(
+      (hex) => [hex, countMatchingVerts(mesh.geometry, hex)] as const,
+    );
+    console.log(`brachio pastel zones: ${counts.map(([hex, n]) => `${hex}=${n}`).join(' ')}`);
     for (const [, n] of counts) {
       expect(n).toBeGreaterThan(MIN_VERTS_PER_ZONE);
     }
@@ -129,18 +131,25 @@ describe("baked pastel baby brachio variant geometry", () => {
     // than hand-converted: no default-colorway color survives the pastel bake.
     const defaultColors = distinctColors(singleMesh(createBrachioDefaultGroup()).geometry);
     const variantColors = new Set(
-      distinctColors(mesh.geometry).map(([r, g, b]) => `${r.toFixed(6)},${g.toFixed(6)},${b.toFixed(6)}`),
+      distinctColors(mesh.geometry).map(
+        ([r, g, b]) => `${r.toFixed(6)},${g.toFixed(6)},${b.toFixed(6)}`,
+      ),
     );
     const surviving = defaultColors.filter(
-      ([r, g, b]) => !PASTEL_HEXES.some((hex) => {
-        const c = new THREE.Color(hex);
-        return Math.abs(r - c.r) < COLOR_TOLERANCE && Math.abs(g - c.g) < COLOR_TOLERANCE && Math.abs(b - c.b) < COLOR_TOLERANCE;
-      }) && variantColors.has(`${r.toFixed(6)},${g.toFixed(6)},${b.toFixed(6)}`),
+      ([r, g, b]) =>
+        !PASTEL_HEXES.some((hex) => {
+          const c = new THREE.Color(hex);
+          return (
+            Math.abs(r - c.r) < COLOR_TOLERANCE &&
+            Math.abs(g - c.g) < COLOR_TOLERANCE &&
+            Math.abs(b - c.b) < COLOR_TOLERANCE
+          );
+        }) && variantColors.has(`${r.toFixed(6)},${g.toFixed(6)},${b.toFixed(6)}`),
     );
     expect(surviving).toEqual([]);
   });
 
-  it("reads as a grazing baby under the 1.2 m head cap next to the adult default", () => {
+  it('reads as a grazing baby under the 1.2 m head cap next to the adult default', () => {
     const variantBox = worldBox(createBrachioVariantGroup());
     const adultBox = worldBox(createBrachioDefaultGroup());
     const variantLength = variantBox.max.z - variantBox.min.z;
@@ -164,35 +173,35 @@ describe("baked pastel baby brachio variant geometry", () => {
     expect(variantBox.max.y).toBeGreaterThan(0.9);
   });
 
-  it("keeps the Head bone the runtime blush pin targets, feet on y = 0", () => {
+  it('keeps the Head bone the runtime blush pin targets, feet on y = 0', () => {
     const group = createBrachioVariantGroup();
-    expect(group.getObjectByName("Head")).not.toBeNull();
+    expect(group.getObjectByName('Head')).not.toBeNull();
     const box = worldBox(group);
     expect(Math.abs(box.min.y)).toBeLessThan(0.01);
   });
 });
 
-describe("Brachio Waddle rebuild from the Trike donor", () => {
+describe('Brachio Waddle rebuild from the Trike donor', () => {
   /** Shipped Trike baby GLB: the 0.8 s Waddle donor for the Brachio bake. */
-  const DONOR_GLB = new URL("../../public/models/trike.glb", import.meta.url);
+  const DONOR_GLB = new URL('../../public/models/trike.glb', import.meta.url);
 
-  it("rebuilds the clip on the sauropod skeleton retimed to 1.0 s, dropping only ears", async () => {
+  it('rebuilds the clip on the sauropod skeleton retimed to 1.0 s, dropping only ears', async () => {
     const bytes = await readFile(DONOR_GLB);
     const animation = extractAnimationTracks(bytes);
-    expect(animation.name).toBe("Waddle");
+    expect(animation.name).toBe('Waddle');
     const group = createBrachioVariantGroup();
     const clip = buildBrachioWaddleClip(group, animation);
-    expect(clip.name).toBe("Waddle");
+    expect(clip.name).toBe('Waddle');
     // Against the shipped Trike donor every channel maps by name, so
     // nothing drops (the drop path is kept: a future donor with channels the
     // sauropod lacks would land in userData.dropped and the bake would log
     // them). All three paths pass through; unmapped extra bones (Neck1-7,
     // Tail1-4, elbows, hocks) hold bind pose.
-    expect([...(clip.userData["dropped"] as string[])].sort()).toEqual([]);
+    expect([...(clip.userData['dropped'] as string[])].sort()).toEqual([]);
     expect(clip.tracks.length).toBe(animation.channels.length);
     expect(clip.duration).toBeCloseTo(1.0, 5);
-    const sourceTranslation = animation.channels.find((channel) => channel.path === "translation");
-    const rebuiltTranslation = clip.tracks.find((track) => track.name.endsWith(".position"));
+    const sourceTranslation = animation.channels.find((channel) => channel.path === 'translation');
+    const rebuiltTranslation = clip.tracks.find((track) => track.name.endsWith('.position'));
     expect(sourceTranslation).toBeDefined();
     expect(rebuiltTranslation).toBeDefined();
     const sourceValues = (sourceTranslation as { values: Float32Array }).values;
@@ -201,8 +210,8 @@ describe("Brachio Waddle rebuild from the Trike donor", () => {
     for (let i = 0; i < rebuiltValues.length; i += 1) {
       expect(rebuiltValues[i]).toBeCloseTo(sourceValues[i] * BRACHIO_POSITION_TRACK_SCALE, 5);
     }
-    const sourceRotation = animation.channels.find((channel) => channel.path === "rotation");
-    const rebuiltRotation = clip.tracks.find((track) => track.name.endsWith(".quaternion"));
+    const sourceRotation = animation.channels.find((channel) => channel.path === 'rotation');
+    const rebuiltRotation = clip.tracks.find((track) => track.name.endsWith('.quaternion'));
     expect(Array.from((rebuiltRotation as THREE.KeyframeTrack).values)).toEqual(
       Array.from((sourceRotation as { values: Float32Array }).values),
     );
@@ -219,7 +228,10 @@ describe("Brachio Waddle rebuild from the Trike donor", () => {
       const keyCount = keyTrack.values.length / itemSize;
       let trackGap = 0;
       for (let k = 0; k < itemSize; k += 1) {
-        trackGap = Math.max(trackGap, Math.abs(keyTrack.values[k] - keyTrack.values[(keyCount - 1) * itemSize + k]));
+        trackGap = Math.max(
+          trackGap,
+          Math.abs(keyTrack.values[k] - keyTrack.values[(keyCount - 1) * itemSize + k]),
+        );
       }
       maxSeamGap = Math.max(maxSeamGap, trackGap);
     }
