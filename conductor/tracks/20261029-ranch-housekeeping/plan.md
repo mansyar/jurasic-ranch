@@ -121,7 +121,7 @@
 - **Covers:** FR-10, FR-11, FR-12, AC-10, AC-11, AC-12, NFR-1
 - **Touches:** `public/manifest.webmanifest`, `public/icons/**`, `index.html`, `scripts/build-icons.mjs`, `package.json`, `pnpm-lock.yaml`
 - **Verification:** `pnpm verify` plus a manifest parse and a script-rerun cleanliness check
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P5.T1: Generate the icon set** - covers: FR-12, NFR-1
   - [ ] **P5.T1.1:** Add `sharp` as a devDependency only, and confirm it appears nowhere in the client bundle
