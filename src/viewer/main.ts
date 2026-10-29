@@ -5,7 +5,7 @@ import { BRACHIO_GAIT, DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from "../ranch/dino-
 import { avoidanceNudges, trioAvoidanceNudges, trioSpawnPositions } from "../ranch/avoidance.js";
 import { buildDressing } from "../ranch/dressing.js";
 import { DustPool } from "../ranch/dust.js";
-import { SleepyController } from "../ranch/sleepy.js";
+import { IDLE_AFTER_MS, SleepyController, type SleepyState } from "../ranch/sleepy.js";
 import { ensureSleepyOverlay, hintSuppressedBySleepy, setSleepyVisible } from "./sleepy-ui.js";
 import { WADDLE_LOOP_SECONDS, wrapAngle, type GaitParams } from "../ranch/waddle.js";
 import { unlockAudio } from "./audio.js";
@@ -19,6 +19,7 @@ import {
   type PovPresetId,
 } from "./pov.js";
 import { readSetting, writeSetting } from "./storage.js";
+import type { DevBridge } from "../dev/harness.js";
 
 /**
  * Path of the baked Trike GLB (Phase 1 pastel baby variant, Draco, <150 KB).
@@ -435,6 +436,7 @@ async function loadDinoPlayer(
   species: string,
   gait: GaitParams,
   sharedDust?: DustPool,
+  random?: () => number,
 ): Promise<LoadedDino> {
   const draco = new DRACOLoader();
   draco.setDecoderPath(DRACO_DECODER_PATH);
@@ -450,7 +452,7 @@ async function loadDinoPlayer(
     // Baked pastel baby look: the GLB already carries the pastel palette in
     // its vertex colors, so no runtime recolor runs here. Only pin blush
     // cheeks to the blink Head bone. No-op on models without a Head node.
-    const player = new DinoPlayer(gltf.scene, { clip, gait, dust: sharedDust });
+    const player = new DinoPlayer(gltf.scene, { clip, gait, dust: sharedDust, random });
     attachBlushCheeks(player.head);
     return { model: gltf.scene, player };
   } finally {
@@ -459,18 +461,21 @@ async function loadDinoPlayer(
 }
 
 /** Load the baked Trike GLB with the Trike gait (FR-2 behaviour unchanged). */
-export function loadTrikePlayer(sharedDust?: DustPool): Promise<LoadedTrike> {
-  return loadDinoPlayer(TRIKE_MODEL_URL, "Trike", TRIKE_GAIT, sharedDust);
+export function loadTrikePlayer(sharedDust?: DustPool, random?: () => number): Promise<LoadedTrike> {
+  return loadDinoPlayer(TRIKE_MODEL_URL, "Trike", TRIKE_GAIT, sharedDust, random);
 }
 
 /** Load the baked Stego GLB with the Stego gait (FR-4). */
-export function loadStegoPlayer(sharedDust?: DustPool): Promise<LoadedDino> {
-  return loadDinoPlayer(STEGO_MODEL_URL, "Stego", STEGO_GAIT, sharedDust);
+export function loadStegoPlayer(sharedDust?: DustPool, random?: () => number): Promise<LoadedDino> {
+  return loadDinoPlayer(STEGO_MODEL_URL, "Stego", STEGO_GAIT, sharedDust, random);
 }
 
 /** Load the baked Brachio GLB with the Brachio shuffle gait (FR-1). */
-export function loadBrachioPlayer(sharedDust?: DustPool): Promise<LoadedDino> {
-  return loadDinoPlayer(BRACHIO_MODEL_URL, "Brachio", BRACHIO_GAIT, sharedDust);
+export function loadBrachioPlayer(
+  sharedDust?: DustPool,
+  random?: () => number,
+): Promise<LoadedDino> {
+  return loadDinoPlayer(BRACHIO_MODEL_URL, "Brachio", BRACHIO_GAIT, sharedDust, random);
 }
 
 /** One Walk button drives every loaded player together (FR-7, AC-4). */
@@ -572,6 +577,15 @@ export async function bootViewer(): Promise<void> {
   if (typeof document === "undefined" || typeof window === "undefined") {
     return;
   }
+  // FR-1/FR-10: the harness is a dev-build-only dynamic import. Production
+  // builds statically replace `import.meta.env.DEV` with false, so the chunk is
+  // dropped and the kid-facing DOM, RNG and bundle stay exactly as before.
+  const dev = import.meta.env.DEV ? await import("../dev/harness.js") : null;
+  const options = dev?.parseDevQuery(window.location.search) ?? null;
+  const random: () => number =
+    options?.enabled === true && options.seed !== null && dev !== null
+      ? dev.seededRandom(options.seed)
+      : Math.random;
   const canvas = document.getElementById(CANVAS_ID);
   const button = document.getElementById(WALK_BUTTON_ID);
   const status = document.getElementById(STATUS_ID);
@@ -644,7 +658,7 @@ export async function bootViewer(): Promise<void> {
   scene.add(brachio);
 
   // FR-9: one shared DustPool feeds all three players (single draw call).
-  const sharedDust = new DustPool();
+  const sharedDust = new DustPool({ random });
   scene.add(sharedDust.points);
 
   let walking = (await readSetting(WALK_SETTING_KEY)) === true;
@@ -727,6 +741,70 @@ export async function bootViewer(): Promise<void> {
     document.body.classList.add(hintModeFor(reducedMotionQuery.matches));
   }, 1000);
 
+  /** Last stage returned by `sleepy.update`, reported by the harness (FR-7). */
+  let sleepyState: SleepyState = sleepy.state;
+
+  // FR-1/FR-7: the bridge mirrors the kid-facing controls exactly, so a dev
+  // press can never leave `walking` or `activePov` out of sync with the chrome.
+  const devBridge: DevBridge | null =
+    dev !== null && options !== null && options.enabled
+      ? {
+          scene,
+          camera,
+          renderer,
+          dust: sharedDust,
+          dinos: [
+            {
+              id: "trike",
+              label: "Trike",
+              getModel: () => trikeModel,
+              getPlayer: () => trikePlayer,
+            },
+            {
+              id: "stego",
+              label: "Stego",
+              getModel: () => stegoModel,
+              getPlayer: () => stegoPlayer,
+            },
+            {
+              id: "brachio",
+              label: "Brachio",
+              getModel: () => brachioModel,
+              getPlayer: () => brachioPlayer,
+            },
+          ],
+          getWalking: () => walking,
+          setWalking: (next: boolean) => {
+            walking = next;
+            setAllWalking(players, next);
+            void writeSetting(WALK_SETTING_KEY, next);
+            markInteraction();
+            syncChrome();
+          },
+          getPov: () => activePov,
+          setPov: (id: PovPresetId) => {
+            activePov = id;
+            applyPovPreset(camera, activePov);
+            markInteraction();
+            syncPov();
+          },
+          forceSleepy: () => {
+            sleepy.markInteraction(performance.now() - IDLE_AFTER_MS - 1);
+          },
+          forceHint: () => {
+            lastInteractionMs = performance.now() - HINT_IDLE_MS - 1;
+            document.body.classList.add(hintModeFor(reducedMotionQuery.matches));
+          },
+          getSleepyState: () => sleepyState,
+        }
+      : null;
+
+  // NFR-1: stays null without `?dev=1`, so the only cost is one null check.
+  let devFrame: ((dt: number, now: number) => number) | null = null;
+  if (dev !== null && devBridge !== null && options !== null) {
+    devFrame = dev.installDevHarness(devBridge, options);
+  }
+
   // FR-6: no pinch/double-tap zoom on the tablet stage.
   document.addEventListener("gesturestart", (event: Event) => {
     event.preventDefault();
@@ -777,7 +855,7 @@ export async function bootViewer(): Promise<void> {
   // finishes. A failed load keeps its placeholder walking (offline
   // first-visit safety) and surfaces the reason in the console; the other
   // dinos are unaffected.
-  void loadTrikePlayer(sharedDust)
+  void loadTrikePlayer(sharedDust, random)
     .then((loaded) => {
       swapToRigged(trike, loaded, TRIO_SPAWN_HEADINGS_RADIANS[0], (player, model) => {
         trikePlayer = player;
@@ -788,7 +866,7 @@ export async function bootViewer(): Promise<void> {
       console.warn("Rigged trike unavailable; keeping the placeholder.", error);
     });
 
-  void loadStegoPlayer(sharedDust)
+  void loadStegoPlayer(sharedDust, random)
     .then((loaded) => {
       swapToRigged(stego, loaded, TRIO_SPAWN_HEADINGS_RADIANS[1], (player, model) => {
         stegoPlayer = player;
@@ -799,7 +877,7 @@ export async function bootViewer(): Promise<void> {
       console.warn("Rigged stego unavailable; keeping the placeholder.", error);
     });
 
-  void loadBrachioPlayer(sharedDust)
+  void loadBrachioPlayer(sharedDust, random)
     .then((loaded) => {
       swapToRigged(brachio, loaded, TRIO_SPAWN_HEADINGS_RADIANS[2], (player, model) => {
         brachioPlayer = player;
@@ -827,12 +905,19 @@ export async function bootViewer(): Promise<void> {
 
   const clock = new THREE.Clock();
   renderer.setAnimationLoop(() => {
-    const dt = Math.min(clock.getDelta(), 0.25);
+    const rawDt = Math.min(clock.getDelta(), 0.25);
     const now = clock.elapsedTime;
+    // FR-3: a paused harness frame still renders but advances nothing.
+    // NFR-1: with no harness `dt` is bit-identical to `rawDt`.
+    const dt = devFrame === null ? rawDt : devFrame(rawDt, now);
+    if (dt <= 0) {
+      renderer.render(scene, camera);
+      return;
+    }
     // FR-4: sleepy cues after ~90 s idle; any tap already reset the
     // controller via markInteraction. Sleepy owns the stage over the hint
     // glow (FR-5 precedence), and the ZZZ overlay only plays at full sleepy.
-    const sleepyState = sleepy.update(performance.now());
+    sleepyState = sleepy.update(performance.now());
     if (hintSuppressedBySleepy(sleepyState)) {
       document.body.classList.remove("hint-glow", "hint-static");
     }
