@@ -40,25 +40,29 @@
 - **Covers:** FR-3, FR-4, FR-17, AC-6, AC-7, AC-17
 - **Touches:** `src/ranch/ground.ts`, `src/viewer/scene.ts`, `src/viewer/sky.ts`, `src/viewer/main.ts`, `tests/ranch/ground.test.ts`, `tests/viewer/sky.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P2.T1: Meadow apron** - covers: FR-3
-  - [ ] **P2.T1.1:** `MEADOW_RADIUS_METRES` at least three times `GROUND_RADIUS_METRES`, and derive `CAMERA_FAR_METRES` from it
-  - [ ] **P2.T1.2:** two-tone ground (play disc, apron) with the seam hidden under the mid band
-- [ ] **P2.T2: Worn trefoil** - covers: FR-4
-  - [ ] **P2.T2.1:** one worn disc per dino, centred on `trioSpawnPositions()` with radius from the gait wander radius
-  - [ ] **P2.T2.2:** flush decal material with polygon offset, no z-fighting at any preset
-- [ ] **P2.T3: Gate path** - covers: FR-4
-  - [ ] **P2.T3.1:** dirt stub from the farm gate (260°) into the wear
-  - [ ] **P2.T3.2:** two trackway decals at the junction, rotated to the path
-- [ ] **P2.T4: Sky gradient** - covers: FR-17
-  - [ ] **P2.T4.1:** vertical gradient background, pale at the horizon, generated once at boot
-- [ ] **P2.T5: Clouds** - covers: FR-17
-  - [ ] **P2.T5.1:** four flat-shaded cloud groups above the ranch, drifting on the paused clock
-  - [ ] **P2.T5.2:** no shadow casting, and a hard stop under `prefers-reduced-motion`
-- [ ] **P2.T6: Tests** - covers: AC-6, AC-7, AC-17
-  - [ ] **P2.T6.1:** apron radius, far plane and edge-visibility assertions
-  - [ ] **P2.T6.2:** trefoil centre and radius equality against spawn and gait constants
+**Result:** verified
+**Checkpoint:** 90ac304
+**Evidence:** conductor/tracks/20261030-ranch-vista/verification/phase-2.md
+
+- [x] **P2.T1: Meadow apron** - covers: FR-3
+  - [x] **P2.T1.1:** `MEADOW_RADIUS_METRES` at least three times `GROUND_RADIUS_METRES`, and derive `CAMERA_FAR_METRES` from it
+  - [x] **P2.T1.2:** two-tone ground (play disc, apron) with the seam hidden under the mid band
+- [x] **P2.T2: Worn trefoil** - covers: FR-4
+  - [x] **P2.T2.1:** one worn disc per dino, centred on `trioSpawnPositions()` with radius from the gait wander radius
+  - [x] **P2.T2.2:** flush decal material with polygon offset, no z-fighting at any preset
+- [x] **P2.T3: Gate path** - covers: FR-4
+  - [x] **P2.T3.1:** dirt stub from the farm gate (260°) into the wear
+  - [x] **P2.T3.2:** two trackway decals at the junction, rotated to the path
+- [x] **P2.T4: Sky gradient** - covers: FR-17
+  - [x] **P2.T4.1:** vertical gradient background, pale at the horizon, generated once at boot
+- [x] **P2.T5: Clouds** - covers: FR-17
+  - [x] **P2.T5.1:** four flat-shaded cloud groups above the ranch, drifting on the paused clock
+  - [x] **P2.T5.2:** no shadow casting, and a hard stop under `prefers-reduced-motion`
+- [x] **P2.T6: Tests** - covers: AC-6, AC-7, AC-17
+  - [x] **P2.T6.1:** apron radius, far plane and edge-visibility assertions
+  - [x] **P2.T6.2:** trefoil centre and radius equality against spawn and gait constants
 
 ## Phase 3: Prop library and composition
 
