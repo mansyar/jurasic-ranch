@@ -125,37 +125,41 @@
 - [x] **P4.T8: Frame captures** - covers: AC-1, AC-3
   - [x] **P4.T8.1:** capture all four presets at 1280x800 into `.conductor/evidence/ranch-vista/after/`
 
-## Phase 5: Aliveness
+## Phase 5: Aliveness and composition polish
 
 - **Goal:** corn, reeds and litter sway quietly, any prop answers a tap with one sparkle, and the first four captures' composition defects are closed — subject heads in frame, the magnolia out of the Nest sightline, and a meadow dense enough to stop reading as a lawn.
 - **Depends on:** Phase 4
 - **Covers:** FR-11, FR-12, AC-1, AC-9, AC-10
 - **Touches:** `src/ranch/ambient.ts`, `src/viewer/main.ts`, `src/ranch/layout.ts`, `src/ranch/dressing.ts`, `src/ranch/ground.ts`, `src/viewer/pov.ts`, `tests/ranch/ambient.test.ts`, `tests/ranch/layout.test.ts`, `tests/ranch/dressing.test.ts`, `tests/ranch/ground.test.ts`, `tests/viewer/pov.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P5.T1: Sway driver** - covers: FR-11
-  - [ ] **P5.T1.1:** per-object sine phase from the seeded stream, driven by the loop's `dt`
-- [ ] **P5.T2: Reduced motion** - covers: FR-11
-  - [ ] **P5.T2.1:** sway inert under `prefers-reduced-motion: reduce`, including a live media-query change
-- [ ] **P5.T3: Tap raycast** - covers: FR-12
-  - [ ] **P5.T3.1:** raycast only into the `RanchDressing` group, after the DOM target check
-- [ ] **P5.T4: Sparkle response** - covers: FR-12
-  - [ ] **P5.T4.1:** one sparkle burst plus one `sparkle` SFX per prop per 250 ms
-  - [ ] **P5.T4.2:** no hearts, no voice, no counter change
-- [ ] **P5.T5: Guards** - covers: AC-9
-  - [ ] **P5.T5.1:** inert during the sleepy overlay and while the HUD owns the pointer; first tap unlocks audio then sparkles
-  - [ ] **P5.T5.2:** test that walk, POV, sleepy and mute state are untouched by a prop tap
-- [ ] **P5.T6: Subject framing** - covers: AC-1
-  - [ ] **P5.T6.1:** assert the subject's projected box, head included, sits inside the frame with margin in `ranch` and `nest`
-  - [ ] **P5.T6.2:** fix by aim and fov inside the FR-7 ranges, and record the numbers
-- [ ] **P5.T7: True footprints** - covers: AC-1
-  - [ ] **P5.T7.1:** measure the shipped twelve and put measured canopy footprints in the catalogue
-  - [ ] **P5.T7.2:** nudge the magnolia and anything the honest footprints reject out of the Nest sightline, updating the Phase 1 snapshot deliberately
-- [ ] **P5.T8: Meadow density** - covers: FR-6
-  - [ ] **P5.T8.1:** scatter the already-vendored treeline and understory GLBs across the apron, two to three times the current treeline count, with every band and lens corridor intact
-- [ ] **P5.T9: Soft decal edges** - covers: FR-4
-  - [ ] **P5.T9.1:** radial falloff on the worn discs, the path stub and the trackways so they stop reading as flat cardboard, with no texture above 256 px
+**Result:** verified, two composition reworks — see evidence
+**Checkpoint:** 07fda93
+**Evidence:** conductor/tracks/20261030-ranch-vista/verification/phase-5.md
+
+- [x] **P5.T1: Sway driver** - covers: FR-11
+  - [x] **P5.T1.1:** per-object sine phase from the seeded stream, driven by the loop's `dt`
+- [x] **P5.T2: Reduced motion** - covers: FR-11
+  - [x] **P5.T2.1:** sway inert under `prefers-reduced-motion: reduce`, including a live media-query change
+- [x] **P5.T3: Tap raycast** - covers: FR-12
+  - [x] **P5.T3.1:** raycast only into the `RanchDressing` group, after the DOM target check
+- [x] **P5.T4: Sparkle response** - covers: FR-12
+  - [x] **P5.T4.1:** one sparkle burst plus one `sparkle` SFX per prop per 250 ms
+  - [x] **P5.T4.2:** no hearts, no voice, no counter change
+- [x] **P5.T5: Guards** - covers: AC-9
+  - [x] **P5.T5.1:** inert during the sleepy overlay and while the HUD owns the pointer; first tap unlocks audio then sparkles
+  - [x] **P5.T5.2:** test that walk, POV, sleepy and mute state are untouched by a prop tap
+- [x] **P5.T6: Subject framing** - covers: AC-1
+  - [x] **P5.T6.1:** assert the subject's projected box, head included, sits inside the frame with margin in `ranch` and `nest`
+  - [x] **P5.T6.2:** fix by aim and fov inside the FR-7 ranges, and record the numbers
+- [x] **P5.T7: True footprints** - covers: AC-1
+  - [x] **P5.T7.1:** measure the shipped twelve and put measured canopy footprints in the catalogue
+  - [x] **P5.T7.2:** nudge the magnolia and anything the honest footprints reject out of the Nest sightline, updating the Phase 1 snapshot deliberately
+- [x] **P5.T8: Meadow density** - covers: FR-6
+  - [x] **P5.T8.1:** scatter the already-vendored treeline and understory GLBs across the apron, two to three times the current treeline count, with every band and lens corridor intact
+- [x] **P5.T9: Soft decal edges** - covers: FR-4
+  - [x] **P5.T9.1:** radial falloff on the worn discs, the path stub and the trackways so they stop reading as flat cardboard, with no texture above 256 px
 
 ## Phase 6: Evidence, docs and PR
 
