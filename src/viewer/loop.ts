@@ -5,6 +5,7 @@ import { wrapAngle } from '../ranch/waddle.js';
 import type { Hud } from './hud.js';
 import { updatePlaceholderWalk } from './placeholders.js';
 import { hintSuppressedBySleepy } from './sleepy-ui.js';
+import type { SkyDrift } from './sky.js';
 
 /** One Walk button drives every loaded player together (FR-7, AC-4). */
 export function setAllWalking(players: DinoPlayer[], walking: boolean): void {
@@ -123,11 +124,17 @@ export interface LoopView {
   brachio: THREE.Group;
   /** Dev-harness pause/step hook; absent in production. */
   devFrame?: RenderDtHook | null;
+  /**
+   * Optional sky drift (FR-17). It is advanced by the same clamped `dt` as the
+   * dinos — so the paused clock stops the clouds with everything else — and it
+   * is a no-op under reduced motion, which it is told about every frame.
+   */
+  sky?: SkyDrift | null;
 }
 
 /** Start the rAF loop: the one place that decides which subsystem sees `dt`. */
 export function startLoop(view: LoopView): void {
-  const { renderer, scene, camera, hud, stage, trike, stego, brachio, devFrame } = view;
+  const { renderer, scene, camera, hud, stage, trike, stego, brachio, devFrame, sky } = view;
   const clock = new THREE.Clock();
   renderer.setAnimationLoop(() => {
     const rawDt = Math.min(clock.getDelta(), 0.25);
@@ -200,6 +207,9 @@ export function startLoop(view: LoopView): void {
     } else if (hud.isWalking()) {
       updatePlaceholderWalk(brachio, now);
     }
+    // FR-17: cloud drift rides the same `dt` as the dinos, so a paused harness
+    // frame freezes it and reduced motion stops it outright.
+    sky?.update(dt, reducedMotion);
     renderer.render(scene, camera);
   });
 }

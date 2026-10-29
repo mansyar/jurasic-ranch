@@ -40,6 +40,7 @@ import {
   createPlaceholderTrike,
 } from './placeholders.js';
 import { createViewerScene, enableShadows } from './scene.js';
+import { createSky } from './sky.js';
 import { readSetting, writeSetting } from './storage.js';
 import type { DevBridge } from '../dev/harness.js';
 
@@ -79,6 +80,12 @@ export async function bootViewer(): Promise<void> {
     return;
   }
   const { renderer, scene, camera } = viewer;
+
+  // FR-17: the sky is built once at boot — dome plus four clouds — and added
+  // before anything else so it is behind every later layer. Its drift is wired
+  // through `startLoop`, not a second render path.
+  const sky = createSky();
+  scene.add(sky.group);
 
   let audio: AudioControls | null = null;
   const audioReadyControl = { resolve: (): void => {} };
@@ -358,6 +365,7 @@ export async function bootViewer(): Promise<void> {
     stego,
     brachio,
     devFrame,
+    sky,
   });
 }
 
