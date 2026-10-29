@@ -32,7 +32,7 @@
 - **Covers:** FR-1, FR-3, FR-4, FR-5, FR-9, NFR-1, NFR-3, NFR-6
 - **Touches:** `public/audio/**`, `scripts/voice/**`, `scripts/check-audio-pack.mjs`, `CREDITS.md`, `vite.config.ts`, `package.json`, `tests/scripts/check-audio-pack.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P2.T1: Build the Kokoro voice generation pipeline** — covers: FR-5, NFR-3, NFR-6
   - [ ] **P2.T1.1:** Add `scripts/voice/lines.json` with the eight ids, final text, `af_bella`, speed `0.85`, and tail `0.3`.
