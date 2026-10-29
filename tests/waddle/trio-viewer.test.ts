@@ -14,6 +14,7 @@ import {
   loadBrachioPlayer,
   loadStegoPlayer,
   loadTrikePlayer,
+  type LoadedDino,
 } from '../../src/viewer/loaders.js';
 import {
   setAllWalking,
@@ -450,5 +451,54 @@ describe('trio ranch shell (NFR-4, FR-7, FR-8, FR-9)', () => {
   it('warns and keeps walking when the brachio GLB fails', async () => {
     const source = await readText('src/viewer/main.ts');
     expect(source).toContain('Rigged brachio unavailable; keeping the placeholder.');
+  });
+});
+
+describe('world stride at the loader boundary (FR-5, AC-5)', () => {
+  const DT = 1 / 60;
+
+  /** Summed per-frame path length over two seconds, after the 0.2 s blend. */
+  function walkedSpeedMetresPerSecond(loaded: LoadedDino): number {
+    loaded.model.position.set(0, 0, 0);
+    loaded.player.setWalking(true);
+    let now = 0;
+    for (let frame = 0; frame < 60; frame += 1) {
+      now += DT;
+      loaded.player.update(DT, now);
+    }
+    let travelled = 0;
+    for (let frame = 0; frame < 120; frame += 1) {
+      const before = loaded.model.position.clone();
+      now += DT;
+      loaded.player.update(DT, now);
+      travelled += loaded.model.position.distanceTo(before);
+    }
+    return travelled / 2;
+  }
+
+  it('walks the loaded Stego at the stride its clip plays on the scaled group', async () => {
+    // The round-1 defect lived at the one place gait meets player: the stride
+    // was authored metres while the root advanced world metres, so the feet
+    // covered 1.059 m per 2.4 s loop while the body moved 1.788 m. This test
+    // never calls worldGait - it walks the loaded player and times it, so
+    // dropping the conversion at the call site fails here.
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [new THREE.AnimationClip('Walk', 2.4, [])],
+    });
+    const stego = await loadStegoPlayer();
+    const speed = walkedSpeedMetresPerSecond(stego);
+    expect(speed).toBeCloseTo(0.4413, 2);
+    // The authored stride would read 0.745 m/s: 0.30 m/s of skating.
+    expect(speed).toBeLessThan(0.6);
+  });
+
+  it('leaves the Trike at its own stride, because it is drawn at scale 1', async () => {
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [new THREE.AnimationClip('Waddle', 0.8, [])],
+    });
+    const trike = await loadTrikePlayer();
+    expect(walkedSpeedMetresPerSecond(trike)).toBeCloseTo(0.3625, 2);
   });
 });

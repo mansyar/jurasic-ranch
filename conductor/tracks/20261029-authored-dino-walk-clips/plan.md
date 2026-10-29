@@ -206,3 +206,23 @@ subagent's shell could not drive a browser), and AC-7 needed one more fix.
 **Result:** verified - the shipped stride is the one the clip plays, and the bake docs describe what ships.
 **Checkpoint:** cc689c9
 **Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-R1.md
+
+## Phase R2: Review Fixes, Round 2
+
+- **Goal:** the fix commit's own claim is enforced by a test, and the three comments that still described gaits the viewer does not run now describe the shipped ones.
+- **Depends on:** Phase R1
+- **Covers:** F2.1, F2.2, F2.3, F2.4
+- **Touches:** `tests/waddle/trio-viewer.test.ts`, `tests/waddle/brachio-gait.test.ts`, `tests/waddle/trio-wander.test.ts`, `src/ranch/dino-player.ts`, `conductor/tracks/20261029-authored-dino-walk-clips/verification/*`
+- **Verification:** `pnpm verify`
+- **Status:** verified
+- **Tasks:**
+  - [x] **R2.T1: Guard the production call site** - covers: F2.1
+    - [x] **R2.T1.1:** load the shipped Stego and Trike through the loader and time the root
+    - [x] **R2.T1.2:** probe that removing `worldGait` at the call site fails the new test
+  - [x] **R2.T2: Say what the shipped Brachio arc costs** - covers: F2.2
+  - [x] **R2.T3: Simulate the shipped gaits** - covers: F2.3
+  - [x] **R2.T4: Correct the integrated evidence** - covers: F2.4
+
+**Result:** verified - the round-2 Medium is closed by a test that reads 0.745 m/s without the conversion and 0.4413 with it.
+**Checkpoint:** _(set after squash)_
+**Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-R2.md

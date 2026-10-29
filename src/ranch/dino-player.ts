@@ -224,9 +224,11 @@ export const STEGO_GAIT: GaitParams = {
  * feet. In world metres it still walks slower than the Trike (0.275 m/s vs
  * 0.3625 m/s) because it is drawn 0.59x and takes a longer, slower step.
  * The turn numbers are re-checked, not re-measured (a walk clip carries no
- * yaw): 1.8 rad/s cap, 4.5 rad/m curvature (the cap now binds), so the 90 deg
- * arc takes ~0.87 s. The shared waddle math stays untouched. See phase-1
- * evidence for the curvature call.
+ * yaw): 1.8 rad/s cap, 4.5 rad/m curvature. At the authored 0.465 m/s the cap
+ * binds (2.09 rad/s of demand) and the 90 deg arc takes ~0.87 s; at the shipped
+ * 0.2754 m/s the curvature binds instead (4.5 x 0.2754 = 1.24 rad/s, under the
+ * 1.8 cap), so the shipped arc takes ~1.27 s plus the 0.2 s blend ramp. The
+ * shared waddle math stays untouched. See `verification/phase-R2.md`.
  */
 export const BRACHIO_GAIT: GaitParams = {
   strideMetres: 1.767,

@@ -12,9 +12,9 @@
 | format | `pnpm format --check` | pass - 67 files correct |
 | lint | `pnpm lint` | pass |
 | typecheck | `pnpm typecheck` (`tsrs`) | pass |
-| unit | `pnpm test` | pass - 36 files / **349 tests** |
-| coverage | `pnpm coverage` | pass - **71.03 % lines** (1106/1557), floor 60 |
-| build | `pnpm build` | pass - precache 30 entries / **4,221.80 KiB** |
+| unit | `pnpm test` | pass - 36 files / **354 tests** (after the R2 fixes; 349 at phase 6) |
+| coverage | `pnpm coverage` | pass - **71.07 % lines** (1108/1559), floor 60 |
+| build | `pnpm build` | pass - precache 30 entries / **4,221.88 KiB** |
 | dist hygiene | `node scripts/check-dist-clean.mjs` | pass - no dev-harness markers |
 | verify | `pnpm verify` | **exit 0** |
 
@@ -27,7 +27,7 @@
 | FR-3 | Phase 3 - displacement gate ≤ 25 % of rest offset to parent, switchable to any GLB directory | `scripts/check-dino-clips.test.ts` | covered |
 | FR-4 | Phase 4 - `IN_GAME_BODY_LENGTH_METRES`, one uniform group scale | `tests/waddle/trio-viewer.test.ts` (in-game size per species) | covered |
 | FR-5 | Phase 4 - stride swept from the clips (Stego 1.788 m / 2.4 s, Brachio 1.767 m / 3.8 s) | stride suites + constants test forbidding a copy of `TRIKE_GAIT` | covered |
-| FR-6 | Phase 5 - one `LARGEST_DINO_BODY_LENGTH_METRES` drives walk circle, spawn ring, clearance, trigger, far plane | `tests/waddle/dual-wander.test.ts`, `tests/waddle/trio-wander.test.ts`, `tests/viewer/pov.test.ts` | covered |
+| FR-6 | Phase 5 - one `LARGEST_DINO_BODY_LENGTH_METRES` drives walk circle, spawn ring, clearance, trigger, far plane | `tests/waddle/dual-wander.test.ts`, `tests/waddle/trio-wander.test.ts` (shipped world gaits), `tests/waddle/avoidance.test.ts` (trigger derived from the gaits), `tests/viewer/pov.test.ts` (far plane) | covered |
 | FR-7 | Phase 5 - dressing placed by bearing + radius, asserted outside wander + overshoot + half a body | `tests/ranch/dressing.test.ts` | covered |
 | FR-8 | Phase 5 - each preset aims at its named animal's placement; prop and animal sightlines asserted | `tests/viewer/pov.test.ts` (three tests) | covered |
 | FR-9 | Phases 2 + 6 - CREDITS and bake docblocks name the official GLB as the clip source | `CREDITS.md`, `scripts/vendor/bake-*.js` | covered |
@@ -73,3 +73,16 @@
 - The Stego and Brachio bakes are keyed to the published clip names; a Polyfork rename fails the bake loudly (by design) rather than degrading.
 - `THREE.Clock` deprecation warning is still in the render loop (pre-existing).
 - Coverage of `src/dev/harness.ts` is low by nature; it is exercised end-to-end by `tests/dev/*` and by the screenshots in Phase 5 and 6.
+## Review fixes (R1 + R2)
+
+| Round | Finding | Fix | Guard added |
+| --- | --- | --- | --- |
+| R1 | **F1 High** - stride measured at authored size but applied to a group drawn at `DINO_GROUP_SCALE`, so the root advanced 1.788 m while the feet covered 1.059 m (0.304 m/s Stego skid, 0.190 Brachio) | `loaders.ts worldGait` scales the stride on the one path every species takes; `MAX_CLOSING_SPEED_METRES_PER_SECOND` 1.21 -> 0.804 and the trigger 1.842 -> 1.639 m re-derived from the world gaits | coupling assertions in both stride suites (`slideAt(v/S) * S`), and R2's loader-boundary timing test |
+| R1 | **F2 Medium** - bake docblocks still described the withdrawn `Idle`/`Run` | both vendor headers, both `build*Clips` contracts, both `.py` twins, both gate titles | `check-*` tests pin `['Walk']` and assert `Idle`/`Run` absent |
+| R1 | **F3/F4/F5 Low** - stale `TRIKE_GAIT` and `POV_FOCUS_SPECIES` comments, three evidence paths pointing at tests that did not assert them | comments rewritten, the orphaned docblock deleted, FR-4/FR-6/FR-7 re-pointed | - |
+| R2 | **Medium** - the production call site had no test: every guard called `worldGait` itself, so deleting it restored the High invisibly | `tests/waddle/trio-viewer.test.ts` "world stride at the loader boundary" walks the loaded player and times it (removing the call site reads 0.745 m/s and fails) | 0.4413 m/s Stego, 0.3625 m/s Trike |
+| R2 | **Low** - Brachio turn claim said the yaw cap binds, but at the shipped 0.2754 m/s the curvature binds (1.24 rad/s) | docblock states both arcs; new shipped-arc test asserts 1.2-1.8 s | `brachio-gait.test.ts` shipped 90 deg arc |
+| R2 | **Low** - the trio wander sim built authored gaits while claiming to mirror the viewer (1.69x too fast) | sim runs `worldGait` for all three; the separation comment now names 0.804 m/s against a 1.639 m trigger | `trio-wander.test.ts` `SIM_GAITS` |
+| R2 | **Low** - this file's gate table and FR-6 row drifted from the fix run | figures updated to the post-fix gate; FR-6 also cites `avoidance.test.ts` | - |
+
+**Cross-phase invariants after the fixes:** rig parity 24/24 and 35/35 joints at 0.0000 m; Walk frame-0 displacement 0.0987 m (Stego) / 0.0523 m (Brachio), none over the bound; world speeds 0.3625 / 0.4413 / 0.2754 m/s; in-game lengths 3.708 / 3.845 / 7.423 m; precache 3,426 -> 6,873 -> 4,222 KiB; `dist` 4,341,330 B.

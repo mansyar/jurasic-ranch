@@ -13,13 +13,28 @@ import {
   WALK_BLEND_SECONDS,
 } from '../../src/ranch/waddle.js';
 import type { GaitParams } from '../../src/ranch/waddle.js';
+import { DINO_GROUP_SCALE, worldGait } from '../../src/viewer/loaders.js';
 
 /**
  * Trio ranch coexistence (FR-5, FR-6, FR-9, AC-3, AC-6): Trike + Stego +
  * Brachio wander independently from a 120 deg triangle spawn with pairwise
  * soft-steer avoidance, share one DustPool, and all blink while walking.
- * Mirrors the viewer frame loop (avoid → update) at 60 fps for 30 s.
+ * Mirrors the viewer frame loop (avoid → update) at 60 fps for 30 s, on the
+ * gaits the viewer really feeds the players (see `SIM_GAITS`).
  */
+
+/**
+ * The strides the viewer actually hands `DinoPlayer`: `loaders.ts` runs every
+ * gait through `worldGait`, so the Stego and Brachio advance their authored
+ * measure x `DINO_GROUP_SCALE`. Simulating the authored numbers would run this
+ * test 1.69x faster than the shipped trio - a harsher world than production -
+ * and would hold the strategy against constants no player ever sees.
+ */
+const SIM_GAITS: GaitParams[] = [
+  worldGait(TRIKE_GAIT, 1),
+  worldGait(STEGO_GAIT, DINO_GROUP_SCALE),
+  worldGait(BRACHIO_GAIT, DINO_GROUP_SCALE),
+];
 
 /**
  * In-frame ceiling for one gait: the stay-in-frame circle plus the furthest a
@@ -40,11 +55,12 @@ const DT = 1 / 60;
 const STEPS = 30 * 60;
 /**
  * Design bar for the closest two bodies may come (FR-6). Phase 4 temporarily
- * asserted 0.1 m here: at the measured strides the closest pair closes at up to
- * 1.21 m/s (Stego 0.745 + Brachio 0.465), so the trike-tuned 0.4 m trigger
- * bought 0.33 s — well under the half turn a yaw-limited steer needs — and the
- * locked draw bottomed out at 0.106 m. Phase 5 made the trigger body-aware
- * (1.84 m), so the bar is back to the real one.
+ * asserted 0.1 m here: at the old authored strides the closest pair closed at
+ * up to 1.21 m/s (Stego 0.745 + Brachio 0.465), so the trike-tuned 0.4 m
+ * trigger bought 0.33 s - well under the half turn a yaw-limited steer needs -
+ * and the locked draw bottomed out at 0.106 m. Phase 5 made the trigger
+ * body-aware; the re-measured world strides close at 0.804 m/s (Stego 0.441 +
+ * Trike 0.3625) against a 1.639 m trigger, so the bar is back to the real one.
  */
 const MIN_SEPARATION_METRES = 0.25;
 /** Per-frame heading change above this reads as a snap/bounce, not a steer. */
@@ -121,7 +137,7 @@ function runTrioWander(
 } {
   const spawn = trioSpawnPositions();
   const rigs = [createRig('TrikeRoot'), createRig('StegoRoot'), createRig('BrachioRoot')];
-  const gaits = [TRIKE_GAIT, STEGO_GAIT, BRACHIO_GAIT];
+  const gaits = SIM_GAITS;
   const shared = new DustPool({ random: prng(seeds.dust) });
   const streams = [prng(seeds.trike), prng(seeds.stego), prng(seeds.brachio)];
   const players = rigs.map(
@@ -252,10 +268,10 @@ describe('trio wander coexistence (FR-5, FR-6, AC-3)', () => {
     const baseline = runTrioWander(false);
     // All reach out and roam (not parked), but never escape the circle: each
     // gait holds its own wander radius plus the ground it covers turning round.
-    for (const gait of [TRIKE_GAIT, STEGO_GAIT, BRACHIO_GAIT]) {
+    for (const gait of SIM_GAITS) {
       expect(stats.maxDistanceMetres).toBeGreaterThan(gait.wanderRadiusMetres - 0.3);
     }
-    const gaits = [TRIKE_GAIT, STEGO_GAIT, BRACHIO_GAIT];
+    const gaits = SIM_GAITS;
     const names = ['trike', 'stego', 'brachio'];
     stats.maxDistancePerPlayer.forEach((max, index) => {
       const ceiling = inFrameCeilingMetres(gaits[index]);
@@ -318,7 +334,7 @@ describe('trio wander coexistence (FR-5, FR-6, AC-3)', () => {
 
   it('drives all three through the generic DinoPlayer with no duplication (FR-10, AC-7)', () => {
     const rigs = [createRig('A'), createRig('B'), createRig('C')];
-    const gaits = [TRIKE_GAIT, STEGO_GAIT, BRACHIO_GAIT];
+    const gaits = SIM_GAITS;
     const players = rigs.map(
       (rig, index) =>
         new DinoPlayer(rig, {

@@ -16,6 +16,7 @@ import {
   TURN_ALIGN_RADIANS,
   wrapAngle,
 } from '../../src/ranch/waddle.js';
+import { DINO_GROUP_SCALE, worldGait } from '../../src/viewer/loaders.js';
 
 /**
  * Brachio gait tuning (FR-1, FR-5): the authored `Walk` clip's own stride
@@ -67,6 +68,15 @@ function createBrachioPlayer(rig: THREE.Group): DinoPlayer {
   });
 }
 
+/** The same player the viewer builds: loadDinoPlayer applies worldGait. */
+function createShippedBrachioPlayer(rig: THREE.Group): DinoPlayer {
+  return new DinoPlayer(rig, {
+    clip: createBrachioClip(),
+    gait: worldGait(BRACHIO_GAIT, DINO_GROUP_SCALE),
+    random: () => 0.5,
+  });
+}
+
 describe('brachio gait config (FR-1, FR-5)', () => {
   it('ships the measured Brachio walk: 1.767 m stride, 3.8 s loop, 1.8 turn, 4.5 curve', () => {
     expect(BRACHIO_GAIT.strideMetres).toBe(1.767);
@@ -113,11 +123,12 @@ describe('brachio gait config (FR-1, FR-5)', () => {
       now += DT;
       elapsed += DT;
     }
-    // The walking arc converges (never stalls or orbits). At the measured
-    // 0.465 m/s curvature x speed is 4.5 x 0.465 = 2.09 rad/s, above the
-    // 1.8 rad/s cap, so the cap binds and the full 90 deg arc takes ~0.87 s
-    // plus the 0.2 s blend ramp. The old 0.24 m/s walk was curvature-bound
-    // (1.08 rad/s, ~1.45 s) — the measured walk turns a third faster.
+    // The walking arc converges (never stalls or orbits). This player runs the
+    // AUTHORED gait, where curvature x speed is 4.5 x 0.465 = 2.09 rad/s, above
+    // the 1.8 rad/s cap, so the cap binds and the full 90 deg arc takes ~0.87 s
+    // plus the 0.2 s blend ramp. The shipped player walks at 0.2754 m/s, where
+    // the curvature binds instead (~1.27 s + ramp) - see the shipped-arc test
+    // below. The old 0.24 m/s walk was curvature-bound (1.08 rad/s, ~1.45 s).
     expect(Math.abs(wrapAngle(player.heading - Math.PI / 2))).toBeLessThan(TURN_ALIGN_RADIANS);
     expect(elapsed).toBeLessThan(1.2);
     const before = rig.position.clone();
@@ -127,6 +138,28 @@ describe('brachio gait config (FR-1, FR-5)', () => {
     }
     expect(Math.abs(wrapAngle(player.heading - Math.PI / 2))).toBeLessThan(TURN_ALIGN_RADIANS);
     expect(rig.position.distanceTo(before)).toBeGreaterThan(0.05);
+  });
+
+  it('turns the shipped 90 deg arc on curvature, not the yaw cap', () => {
+    // loaders.ts hands the player worldGait(BRACHIO_GAIT, DINO_GROUP_SCALE), so
+    // the walked speed is 0.2754 m/s and 4.5 rad/m of curvature yields
+    // 1.24 rad/s - under the 1.8 cap. The shipped child-facing arc is therefore
+    // slower than the authored one asserted above.
+    const rig = createTestRig();
+    const player = createShippedBrachioPlayer(rig);
+    player.setWalking(true);
+    player.turnTo(Math.PI / 2);
+    let now = 0;
+    let elapsed = 0;
+    while (elapsed < 4 && Math.abs(wrapAngle(player.heading - Math.PI / 2)) >= TURN_ALIGN_RADIANS) {
+      player.update(DT, now);
+      now += DT;
+      elapsed += DT;
+    }
+    expect(Math.abs(wrapAngle(player.heading - Math.PI / 2))).toBeLessThan(TURN_ALIGN_RADIANS);
+    // ~1.27 s of arc plus the 0.2 s blend ramp; the authored arc took ~0.87 s.
+    expect(elapsed).toBeGreaterThan(1.2);
+    expect(elapsed).toBeLessThan(1.8);
   });
 
   it('walks the Brachio walk through the generic player with dust + squash', () => {
