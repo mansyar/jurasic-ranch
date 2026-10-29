@@ -70,6 +70,18 @@ The primary appends after acceptance:
 - [x] **P3.T3: Reduced-motion + interrupt guards** - covers: FR-8
 - [x] **P3.T4: Sleepy + interrupt tests** - covers: AC-4
 
+## Phase R1: Review Fixes
+
+- **Goal:** Resolve review findings F1, F2 (hint/sleepy precedence + matchMedia hoist)
+- **Depends on:** Phase 3
+- **Covers:** F1, F2
+- **Touches:** `src/viewer/main.ts`, `tests/ranch/sleepy-ui.test.ts`
+- **Verification:** `pnpm verify`
+- **Status:** pending
+
+- [ ] **R1.T1: Guard hint interval with sleepy state** - covers: F1
+- [ ] **R1.T2: Hoist matchMedia query off hot paths** - covers: F2
+
 <!--
 Review fixes are appended by `conductor-review` as:
 
