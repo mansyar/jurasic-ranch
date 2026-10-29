@@ -1,4 +1,4 @@
-import type { SleepyState } from "../ranch/sleepy.js";
+import type { SleepyState } from '../ranch/sleepy.js';
 
 /**
  * Sleepy ZZZ presentation (FR-4): a tablet-cheap DOM overlay floating three
@@ -14,17 +14,17 @@ export const SLEEPY_Z_COUNT = 3;
 export const SLEEPY_Z_LOOP_SECONDS = 2;
 
 /** DOM id of the injected sleepy overlay container. */
-export const SLEEPY_OVERLAY_ID = "sleepy-zzz";
+export const SLEEPY_OVERLAY_ID = 'sleepy-zzz';
 
 /** Overlay presentation: animated rise-and-fade, or a static highlight. */
-export type SleepyMode = "sleepy-animated" | "sleepy-static";
+export type SleepyMode = 'sleepy-animated' | 'sleepy-static';
 
 /**
  * Overlay mode for the motion preference (FR-8): the gentle loop by default,
  * a static highlight when reduced motion is preferred.
  */
 export function sleepyModeFor(reducedMotion: boolean): SleepyMode {
-  return reducedMotion ? "sleepy-static" : "sleepy-animated";
+  return reducedMotion ? 'sleepy-static' : 'sleepy-animated';
 }
 
 /**
@@ -32,7 +32,7 @@ export function sleepyModeFor(reducedMotion: boolean): SleepyMode {
  * get drowsy, sleepy owns the stage and the hint clears (FR-5 precedence).
  */
 export function hintSuppressedBySleepy(state: SleepyState): boolean {
-  return state !== "awake";
+  return state !== 'awake';
 }
 
 /** Inner markup of the overlay: one span per looping Z glyph. */
@@ -41,7 +41,7 @@ export function sleepyOverlayHtml(): string {
   for (let index = 0; index < SLEEPY_Z_COUNT; index += 1) {
     spans.push('<span class="sleepy-z" aria-hidden="true">Z</span>');
   }
-  return `<div id="${SLEEPY_OVERLAY_ID}" class="sleepy-animated" hidden>${spans.join("")}</div>`;
+  return `<div id="${SLEEPY_OVERLAY_ID}" class="sleepy-animated" hidden>${spans.join('')}</div>`;
 }
 
 /**
@@ -139,13 +139,13 @@ export function setSleepyVisible(
     sink.classList.add(sleepyModeFor(reducedMotion));
     sink.classList.remove(sleepyModeFor(!reducedMotion));
   } else {
-    sink.classList.remove("sleepy-animated");
-    sink.classList.remove("sleepy-static");
+    sink.classList.remove('sleepy-animated');
+    sink.classList.remove('sleepy-static');
   }
 }
 
 /** Style element marker so the overlay CSS injects exactly once. */
-const SLEEPY_STYLE_MARKER = "data-sleepy-style";
+const SLEEPY_STYLE_MARKER = 'data-sleepy-style';
 
 /**
  * Mount the overlay (plus its styles) into the document and return it.
@@ -157,17 +157,17 @@ export function ensureSleepyOverlay(doc: Document): HTMLElement {
     return existing;
   }
   if (doc.querySelector(`style[${SLEEPY_STYLE_MARKER}]`) === null) {
-    const style = doc.createElement("style");
-    style.setAttribute(SLEEPY_STYLE_MARKER, "");
+    const style = doc.createElement('style');
+    style.setAttribute(SLEEPY_STYLE_MARKER, '');
     style.textContent = SLEEPY_STYLE_CSS;
     doc.head.appendChild(style);
   }
-  const container = doc.createElement("div");
+  const container = doc.createElement('div');
   container.innerHTML = sleepyOverlayHtml();
   const overlay = container.firstElementChild;
   if (overlay instanceof HTMLElement) {
     doc.body.appendChild(overlay);
     return overlay;
   }
-  throw new Error("Sleepy overlay markup did not produce an element.");
+  throw new Error('Sleepy overlay markup did not produce an element.');
 }

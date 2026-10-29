@@ -1,6 +1,6 @@
-import * as THREE from "three";
-import { WADDLE_LOOP_SECONDS } from "../ranch/waddle.js";
-import { BLUSH_HEX } from "./loaders.js";
+import * as THREE from 'three';
+import { WADDLE_LOOP_SECONDS } from '../ranch/waddle.js';
+import { BLUSH_HEX } from './loaders.js';
 
 /**
  * The instant fallback dinos: boxy flat-shaded groups painted while the
@@ -10,7 +10,7 @@ import { BLUSH_HEX } from "./loaders.js";
  */
 
 /** Placeholder part that may bob; the legs stay planted (body-only bob). */
-export const PLACEHOLDER_BODY_NAME = "PlaceholderBody";
+export const PLACEHOLDER_BODY_NAME = 'PlaceholderBody';
 
 /** Baked pastel palette: the shipped GLB carries it in vertex colors, so no
  * runtime recolor; only the pink blush cheeks stay runtime. Matches the bake. */
@@ -47,7 +47,7 @@ export function createPlaceholderTrike(): THREE.Group {
   });
 
   const trike = new THREE.Group();
-  trike.name = "PlaceholderTrike";
+  trike.name = 'PlaceholderTrike';
 
   const upper = new THREE.Group();
   upper.name = PLACEHOLDER_BODY_NAME;
@@ -140,7 +140,7 @@ export function createPlaceholderStego(): THREE.Group {
   });
 
   const stego = new THREE.Group();
-  stego.name = "PlaceholderStego";
+  stego.name = 'PlaceholderStego';
 
   const upper = new THREE.Group();
   upper.name = PLACEHOLDER_BODY_NAME;
@@ -222,7 +222,7 @@ export function createPlaceholderBrachio(): THREE.Group {
   });
 
   const brachio = new THREE.Group();
-  brachio.name = "PlaceholderBrachio";
+  brachio.name = 'PlaceholderBrachio';
 
   const upper = new THREE.Group();
   upper.name = PLACEHOLDER_BODY_NAME;

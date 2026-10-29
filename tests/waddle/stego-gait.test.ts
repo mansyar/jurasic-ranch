@@ -1,13 +1,13 @@
-import { readFile } from "node:fs/promises";
-import * as THREE from "three";
-import { describe, expect, it } from "vitest";
-import { extractAnimationTracks } from "../../scripts/bake-trike-variant.js";
+import { readFile } from 'node:fs/promises';
+import * as THREE from 'three';
+import { describe, expect, it } from 'vitest';
+import { extractAnimationTracks } from '../../scripts/bake-trike-variant.js';
 import {
   buildStegoWaddleClip,
   createStegoVariantGroup,
-} from "../../scripts/vendor/bake-stego-variant.js";
-import { DinoPlayer, STEGO_GAIT } from "../../src/ranch/dino-player.js";
-import { TURN_ALIGN_RADIANS, wrapAngle } from "../../src/ranch/waddle.js";
+} from '../../scripts/vendor/bake-stego-variant.js';
+import { DinoPlayer, STEGO_GAIT } from '../../src/ranch/dino-player.js';
+import { TURN_ALIGN_RADIANS, wrapAngle } from '../../src/ranch/waddle.js';
 
 /**
  * Stego gait tuning (FR-4 / AC-2): the baked clip's measured foot travel sets
@@ -16,15 +16,10 @@ import { TURN_ALIGN_RADIANS, wrapAngle } from "../../src/ranch/waddle.js";
  */
 
 const DT = 1 / 60;
-const DONOR_GLB = new URL("../../public/models/trike.glb", import.meta.url);
+const DONOR_GLB = new URL('../../public/models/trike.glb', import.meta.url);
 /** Shipped Stego baby GLB: the clip driving the AC-2 player below. */
-const SHIPPED_GLB = new URL("../../public/models/stego.glb", import.meta.url);
-const FEET = [
-  "LeftFrontFoot",
-  "RightFrontFoot",
-  "LeftHindFoot",
-  "RightHindFoot",
-] as const;
+const SHIPPED_GLB = new URL('../../public/models/stego.glb', import.meta.url);
+const FEET = ['LeftFrontFoot', 'RightFrontFoot', 'LeftHindFoot', 'RightHindFoot'] as const;
 const SAMPLES = 121;
 /** Height above a foot's lowest sample that still counts as ground contact. */
 const CONTACT_METRES = 0.01;
@@ -59,7 +54,10 @@ interface FootReport {
  * fixed at the origin, then replay root motion at the gait walk speed to
  * measure how planted feet move in world space.
  */
-async function measureStegoGait(): Promise<{ reports: Record<string, FootReport>; duration: number }> {
+async function measureStegoGait(): Promise<{
+  reports: Record<string, FootReport>;
+  duration: number;
+}> {
   const bytes = await readFile(DONOR_GLB);
   const animation = extractAnimationTracks(bytes);
   const group = createStegoVariantGroup();
@@ -173,20 +171,23 @@ async function createStegoPlayer(): Promise<{ player: DinoPlayer; group: THREE.G
   return { player, group };
 }
 
-describe("stego gait config (FR-1, AC-2)", () => {
-  it("ships the Stego tuning: measured stride, 0.8 s loop, PI turn, tight curve, 0.8 m wander", () => {
+describe('stego gait config (FR-1, AC-2)', () => {
+  it('ships the Stego tuning: measured stride, 0.8 s loop, PI turn, tight curve, 0.8 m wander', () => {
     expect(STEGO_GAIT.loopSeconds).toBe(0.8);
     expect(STEGO_GAIT.turnRateRadiansPerSecond).toBe(Math.PI);
     expect(STEGO_GAIT.curvatureRadiansPerMetre).toBe(20);
     expect(STEGO_GAIT.wanderRadiusMetres).toBe(0.8);
   });
 
-  it("turns a commanded 90 deg inside 0.6 s, then walks straight", async () => {
+  it('turns a commanded 90 deg inside 0.6 s, then walks straight', async () => {
     const { player, group } = await createStegoPlayer();
     player.setWalking(true);
     player.turnTo(Math.PI / 2);
     let elapsed = 0;
-    while (elapsed < 0.6 && Math.abs(wrapAngle(player.heading - Math.PI / 2)) >= TURN_ALIGN_RADIANS) {
+    while (
+      elapsed < 0.6 &&
+      Math.abs(wrapAngle(player.heading - Math.PI / 2)) >= TURN_ALIGN_RADIANS
+    ) {
       player.update(DT, elapsed);
       elapsed += DT;
     }
@@ -202,13 +203,13 @@ describe("stego gait config (FR-1, AC-2)", () => {
   });
 });
 
-describe("stego stride (FR-4, AC-2 no skate)", () => {
+describe('stego stride (FR-4, AC-2 no skate)', () => {
   it("matches the coded stride to the clip's measured foot travel", async () => {
     const { reports } = await measureStegoGait();
     const travels = FEET.map((foot) => reports[foot].travel);
     const mean = travels.reduce((a, b) => a + b, 0) / travels.length;
     console.log(
-      `stego stride: ${FEET.map((foot) => `${foot}=${reports[foot].travel.toFixed(4)}`).join(" ")} mean=${mean.toFixed(4)} coded=${STEGO_GAIT.strideMetres}`,
+      `stego stride: ${FEET.map((foot) => `${foot}=${reports[foot].travel.toFixed(4)}`).join(' ')} mean=${mean.toFixed(4)} coded=${STEGO_GAIT.strideMetres}`,
     );
     expect(mean).toBeGreaterThan(0.2);
     expect(mean).toBeLessThan(0.4);
@@ -219,7 +220,7 @@ describe("stego stride (FR-4, AC-2 no skate)", () => {
     }
   });
 
-  it("keeps a walking duty cycle with real ground clearance", async () => {
+  it('keeps a walking duty cycle with real ground clearance', async () => {
     const { reports } = await measureStegoGait();
     for (const foot of FEET) {
       expect(reports[foot].duty).toBeGreaterThanOrEqual(0.5);
@@ -229,14 +230,16 @@ describe("stego stride (FR-4, AC-2 no skate)", () => {
     }
   });
 
-  it("keeps planted feet within tolerance at the gait walk speed", async () => {
+  it('keeps planted feet within tolerance at the gait walk speed', async () => {
     const { reports } = await measureStegoGait();
     for (const foot of FEET) {
       expect(reports[foot].excursion).toBeLessThanOrEqual(STANCE_EXCURSION_METRES);
       expect(reports[foot].corePeakSlide).toBeLessThanOrEqual(
         STANCE_SUSTAINED_PEAK_SLIDE_METRES_PER_SECOND,
       );
-      expect(reports[foot].coreMeanSlide).toBeLessThanOrEqual(STANCE_CORE_MEAN_SLIDE_METRES_PER_SECOND);
+      expect(reports[foot].coreMeanSlide).toBeLessThanOrEqual(
+        STANCE_CORE_MEAN_SLIDE_METRES_PER_SECOND,
+      );
     }
   });
 });

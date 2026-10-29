@@ -1,5 +1,5 @@
-import * as THREE from "three";
-import { resolvePixelRatio } from "./pixel-ratio.js";
+import * as THREE from 'three';
+import { resolvePixelRatio } from './pixel-ratio.js';
 
 /**
  * The fixed daylight stage the render loop draws: renderer, scene, lights,

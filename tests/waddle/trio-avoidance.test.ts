@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 import {
   AVOIDANCE_NUDGE_RADIANS,
   AVOIDANCE_TRIGGER_METRES,
@@ -6,8 +6,8 @@ import {
   TRIO_SPAWN_RADIUS_METRES,
   trioAvoidanceNudges,
   trioSpawnPositions,
-} from "../../src/ranch/avoidance.js";
-import { wrapAngle } from "../../src/ranch/waddle.js";
+} from '../../src/ranch/avoidance.js';
+import { wrapAngle } from '../../src/ranch/waddle.js';
 
 /**
  * Trio avoidance (FR-6): the pairwise soft-steer extends to three dinos by
@@ -26,8 +26,8 @@ function clampNudge(radians: number): number {
   return radians;
 }
 
-describe("trio spawn (FR-5)", () => {
-  it("starts the trio on a 0.4 m triangle so all three clear the trigger", () => {
+describe('trio spawn (FR-5)', () => {
+  it('starts the trio on a 0.4 m triangle so all three clear the trigger', () => {
     expect(TRIO_SPAWN_RADIUS_METRES).toBe(0.4);
     const spawn = trioSpawnPositions();
     expect(spawn).toHaveLength(3);
@@ -41,7 +41,7 @@ describe("trio spawn (FR-5)", () => {
     }
   });
 
-  it("spaces the triangle at 120 deg offsets on the spawn circle", () => {
+  it('spaces the triangle at 120 deg offsets on the spawn circle', () => {
     const spawn = trioSpawnPositions();
     for (const point of spawn) {
       expect(Math.hypot(point.x, point.z)).toBeCloseTo(TRIO_SPAWN_RADIUS_METRES, 12);
@@ -59,8 +59,8 @@ describe("trio spawn (FR-5)", () => {
   });
 });
 
-describe("trio avoidance direction (FR-6)", () => {
-  it("returns zero nudges when all three are far apart", () => {
+describe('trio avoidance direction (FR-6)', () => {
+  it('returns zero nudges when all three are far apart', () => {
     expect(trioAvoidanceNudges(0, 0, 0, 5, 0, 0, 0, 5, Math.PI)).toEqual({
       aNudge: 0,
       bNudge: 0,
@@ -68,7 +68,7 @@ describe("trio avoidance direction (FR-6)", () => {
     });
   });
 
-  it("nudges only the close pair, leaving the far third alone", () => {
+  it('nudges only the close pair, leaving the far third alone', () => {
     // A and B abreast 0.3 m apart walking +Z; C far away.
     const trio = trioAvoidanceNudges(-0.15, 0, 0, 0.15, 0, 0, 5, 5, 0);
     expect(trio.aNudge).toBeLessThan(0);
@@ -76,40 +76,30 @@ describe("trio avoidance direction (FR-6)", () => {
     expect(trio.cNudge).toBe(0);
   });
 
-  it("matches the clamped sum of the three pairwise nudges", () => {
+  it('matches the clamped sum of the three pairwise nudges', () => {
     const a = { x: 0.1, z: 0.2, heading: 0.5 };
     const b = { x: -0.1, z: 0.05, heading: -0.4 };
     const c = { x: 0.05, z: -0.15, heading: 2.1 };
     const ab = avoidanceNudges(a.x, a.z, a.heading, b.x, b.z, b.heading);
     const ac = avoidanceNudges(a.x, a.z, a.heading, c.x, c.z, c.heading);
     const bc = avoidanceNudges(b.x, b.z, b.heading, c.x, c.z, c.heading);
-    const trio = trioAvoidanceNudges(
-      a.x,
-      a.z,
-      a.heading,
-      b.x,
-      b.z,
-      b.heading,
-      c.x,
-      c.z,
-      c.heading,
-    );
+    const trio = trioAvoidanceNudges(a.x, a.z, a.heading, b.x, b.z, b.heading, c.x, c.z, c.heading);
     expect(trio.aNudge).toBeCloseTo(clampNudge(ab.aNudge + ac.aNudge), 12);
     expect(trio.bNudge).toBeCloseTo(clampNudge(ab.bNudge + bc.aNudge), 12);
     expect(trio.cNudge).toBeCloseTo(clampNudge(ac.bNudge + bc.bNudge), 12);
   });
 
-  it("keeps every nudge within the snap-free cap when all three crowd", () => {
+  it('keeps every nudge within the snap-free cap when all three crowd', () => {
     const trio = trioAvoidanceNudges(0, 0, 0, 0.1, 0, 1, -0.1, 0.05, 2);
     for (const nudge of [trio.aNudge, trio.bNudge, trio.cNudge]) {
       expect(Math.abs(nudge)).toBeLessThanOrEqual(AVOIDANCE_NUDGE_RADIANS);
     }
-    expect(
-      Math.abs(trio.aNudge) + Math.abs(trio.bNudge) + Math.abs(trio.cNudge),
-    ).toBeGreaterThan(0);
+    expect(Math.abs(trio.aNudge) + Math.abs(trio.bNudge) + Math.abs(trio.cNudge)).toBeGreaterThan(
+      0,
+    );
   });
 
-  it("stays defined at coincidence: finite splits, no NaN", () => {
+  it('stays defined at coincidence: finite splits, no NaN', () => {
     const trio = trioAvoidanceNudges(0, 0, 0, 0, 0, Math.PI, 5, 5, 0);
     for (const nudge of [trio.aNudge, trio.bNudge]) {
       expect(Number.isFinite(nudge)).toBe(true);
@@ -117,7 +107,7 @@ describe("trio avoidance direction (FR-6)", () => {
     expect(trio.cNudge).toBe(0);
   });
 
-  it("biases a head-on pair apart inside the trio, never toward the foe", () => {
+  it('biases a head-on pair apart inside the trio, never toward the foe', () => {
     const foeBearingA = Math.atan2(0.35, 0);
     const trio = trioAvoidanceNudges(0, 0, Math.PI / 2, 0.35, 0, -Math.PI / 2, 5, 5, 0);
     expect(Math.abs(trio.aNudge)).toBeGreaterThan(0);

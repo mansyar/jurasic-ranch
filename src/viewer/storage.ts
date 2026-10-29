@@ -1,4 +1,4 @@
-import { del, get, set } from "idb-keyval";
+import { del, get, set } from 'idb-keyval';
 
 /**
  * Minimal IndexedDB settings stub. Reads and writes survive reloads when

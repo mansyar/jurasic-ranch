@@ -59,4 +59,6 @@ export interface BakeBrachioVariantSummary {
 }
 
 /** Run the full bake (procedural variant + rebuilt Waddle + Blender Draco pass). */
-export declare function bakeBrachioVariant(options?: BakeBrachioVariantOptions): Promise<BakeBrachioVariantSummary>;
+export declare function bakeBrachioVariant(
+  options?: BakeBrachioVariantOptions,
+): Promise<BakeBrachioVariantSummary>;

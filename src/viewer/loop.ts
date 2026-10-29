@@ -1,10 +1,10 @@
-import * as THREE from "three";
-import { avoidanceNudges, trioAvoidanceNudges } from "../ranch/avoidance.js";
-import type { DinoPlayer } from "../ranch/dino-player.js";
-import { wrapAngle } from "../ranch/waddle.js";
-import type { Hud } from "./hud.js";
-import { updatePlaceholderWalk } from "./placeholders.js";
-import { hintSuppressedBySleepy } from "./sleepy-ui.js";
+import * as THREE from 'three';
+import { avoidanceNudges, trioAvoidanceNudges } from '../ranch/avoidance.js';
+import type { DinoPlayer } from '../ranch/dino-player.js';
+import { wrapAngle } from '../ranch/waddle.js';
+import type { Hud } from './hud.js';
+import { updatePlaceholderWalk } from './placeholders.js';
+import { hintSuppressedBySleepy } from './sleepy-ui.js';
 
 /** One Walk button drives every loaded player together (FR-7, AC-4). */
 export function setAllWalking(players: DinoPlayer[], walking: boolean): void {
@@ -127,13 +127,13 @@ export function startLoop(view: LoopView): void {
     // glow (FR-5 precedence), and the ZZZ overlay only plays at full sleepy.
     const sleepyState = hud.sleepy.controller.update(performance.now());
     if (hintSuppressedBySleepy(sleepyState)) {
-      document.body.classList.remove("hint-glow", "hint-static");
+      document.body.classList.remove('hint-glow', 'hint-static');
     }
     const reducedMotion = hud.sleepy.reducedMotionQuery.matches;
     for (const player of stage.players) {
       player.setSleepyWeight(hud.sleepy.controller.sleepyWeight);
     }
-    const showSleepy = sleepyState === "sleepy";
+    const showSleepy = sleepyState === 'sleepy';
     if (showSleepy !== hud.sleepy.shown) {
       hud.sleepy.setShown(showSleepy);
     }

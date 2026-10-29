@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from 'three';
 
 /**
  * Cheap dust puffs (FR-7): one preallocated THREE.Points draw call, a fixed
@@ -60,7 +60,7 @@ export class DustPool {
     }
     this.random = options.random ?? Math.random;
     this.geometry = new THREE.BufferGeometry();
-    this.geometry.setAttribute("position", new THREE.BufferAttribute(this.positions, 3));
+    this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
     const material = new THREE.PointsMaterial({
       size: DUST_POINT_SIZE,
       map: options.texture ?? createDustTexture(),
@@ -99,7 +99,7 @@ export class DustPool {
       this.velocities[i * 3 + 2] = Math.sin(angle) * 0.12;
       this.ages[i] = 0;
     }
-    this.geometry.attributes["position"].needsUpdate = true;
+    this.geometry.attributes['position'].needsUpdate = true;
   }
 
   /** Integrate live particles; retire them at end of life. */
@@ -128,7 +128,7 @@ export class DustPool {
       );
       this.positions[i * 3 + 2] += this.velocities[i * 3 + 2] * dtSeconds;
     }
-    this.geometry.attributes["position"].needsUpdate = true;
+    this.geometry.attributes['position'].needsUpdate = true;
   }
 
   dispose(): void {

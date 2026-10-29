@@ -1,9 +1,9 @@
-import * as THREE from "three";
-import type { DinoPlayer } from "../ranch/dino-player.js";
-import { trioSpawnPositions } from "../ranch/avoidance.js";
-import { buildDressing } from "../ranch/dressing.js";
-import { DustPool } from "../ranch/dust.js";
-import { unlockAudio } from "./audio.js";
+import * as THREE from 'three';
+import type { DinoPlayer } from '../ranch/dino-player.js';
+import { trioSpawnPositions } from '../ranch/avoidance.js';
+import { buildDressing } from '../ranch/dressing.js';
+import { DustPool } from '../ranch/dust.js';
+import { unlockAudio } from './audio.js';
 import {
   CANVAS_ID,
   STATUS_ID,
@@ -11,30 +11,20 @@ import {
   WALK_SETTING_KEY,
   createHud,
   setStatus,
-} from "./hud.js";
-import {
-  loadBrachioPlayer,
-  loadStegoPlayer,
-  loadTrikePlayer,
-  type LoadedDino,
-} from "./loaders.js";
-import {
-  TRIO_SPAWN_HEADINGS_RADIANS,
-  setAllWalking,
-  startLoop,
-  type LoopStage,
-} from "./loop.js";
+} from './hud.js';
+import { loadBrachioPlayer, loadStegoPlayer, loadTrikePlayer, type LoadedDino } from './loaders.js';
+import { TRIO_SPAWN_HEADINGS_RADIANS, setAllWalking, startLoop, type LoopStage } from './loop.js';
 import {
   createPlaceholderBrachio,
   createPlaceholderStego,
   createPlaceholderTrike,
-} from "./placeholders.js";
-import { createViewerScene, enableShadows } from "./scene.js";
-import { readSetting, writeSetting } from "./storage.js";
+} from './placeholders.js';
+import { createViewerScene, enableShadows } from './scene.js';
+import { readSetting, writeSetting } from './storage.js';
 
 /** Boot the offline viewer: daylight scene, fixed camera, 72px Walk button. */
 export async function bootViewer(): Promise<void> {
-  if (typeof document === "undefined" || typeof window === "undefined") {
+  if (typeof document === 'undefined' || typeof window === 'undefined') {
     return;
   }
   const canvas = document.getElementById(CANVAS_ID);
@@ -49,7 +39,7 @@ export async function bootViewer(): Promise<void> {
 
   const viewer = createViewerScene(canvas);
   if (viewer === null) {
-    setStatus(status, "WebGL is unavailable on this device.");
+    setStatus(status, 'WebGL is unavailable on this device.');
     return;
   }
   const { renderer, scene, camera } = viewer;
@@ -126,7 +116,7 @@ export async function bootViewer(): Promise<void> {
       });
     })
     .catch((error: unknown) => {
-      console.warn("Rigged trike unavailable; keeping the placeholder.", error);
+      console.warn('Rigged trike unavailable; keeping the placeholder.', error);
     });
 
   void loadStegoPlayer(sharedDust)
@@ -137,7 +127,7 @@ export async function bootViewer(): Promise<void> {
       });
     })
     .catch((error: unknown) => {
-      console.warn("Rigged stego unavailable; keeping the placeholder.", error);
+      console.warn('Rigged stego unavailable; keeping the placeholder.', error);
     });
 
   void loadBrachioPlayer(sharedDust)
@@ -148,17 +138,17 @@ export async function bootViewer(): Promise<void> {
       });
     })
     .catch((error: unknown) => {
-      console.warn("Rigged brachio unavailable; keeping the placeholder.", error);
+      console.warn('Rigged brachio unavailable; keeping the placeholder.', error);
     });
 
   // FR-3: Valley + Farm dressing loads in parallel with the dinos; any GLB
   // failure falls back silently (offline first-visit safety) without
   // blocking boot, and the ground stays playable bare.
   void buildDressing(scene).catch((error: unknown) => {
-    console.warn("Ranch dressing unavailable; ground stays playable.", error);
+    console.warn('Ranch dressing unavailable; ground stays playable.', error);
   });
 
-  window.addEventListener("resize", () => {
+  window.addEventListener('resize', () => {
     viewer.resize();
     hud.syncRotateHint();
   });
@@ -177,5 +167,5 @@ export async function bootViewer(): Promise<void> {
 
 bootViewer().catch((error: unknown) => {
   // Boot failures must surface instead of failing silently.
-  console.error("Viewer failed to boot:", error);
+  console.error('Viewer failed to boot:', error);
 });

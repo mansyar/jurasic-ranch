@@ -1,13 +1,13 @@
-import { readFile } from "node:fs/promises";
-import * as THREE from "three";
-import { describe, expect, it } from "vitest";
-import { DUST_POOL_SIZE } from "../../src/ranch/dust.js";
+import { readFile } from 'node:fs/promises';
+import * as THREE from 'three';
+import { describe, expect, it } from 'vitest';
+import { DUST_POOL_SIZE } from '../../src/ranch/dust.js';
 import {
   BlinkController,
   DinoPlayer,
   findBlinkTargets,
   TRIKE_GAIT,
-} from "../../src/ranch/dino-player.js";
+} from '../../src/ranch/dino-player.js';
 import {
   TURN_ARC_CURVATURE_RADIANS_PER_METRE,
   TURN_RATE_RADIANS_PER_SECOND,
@@ -16,23 +16,23 @@ import {
   WADDLE_STRIDE_METRES,
   WALK_SPEED_METRES_PER_SECOND,
   wrapAngle,
-} from "../../src/ranch/waddle.js";
+} from '../../src/ranch/waddle.js';
 
 const DT = 1 / 60;
-const ROOT_URL = new URL("../../", import.meta.url);
+const ROOT_URL = new URL('../../', import.meta.url);
 
 async function readRanchSource(fileName: string): Promise<string> {
-  return readFile(new URL(`src/ranch/${fileName}`, ROOT_URL), "utf8");
+  return readFile(new URL(`src/ranch/${fileName}`, ROOT_URL), 'utf8');
 }
 
 /** Minimal rig: Hips (clip target) + Head (blink fallback), no eye meshes. */
 function createTestRig(): THREE.Group {
   const root = new THREE.Group();
-  root.name = "TrikeRoot";
+  root.name = 'TrikeRoot';
   const hips = new THREE.Group();
-  hips.name = "Hips";
+  hips.name = 'Hips';
   const head = new THREE.Group();
-  head.name = "Head";
+  head.name = 'Head';
   root.add(hips);
   root.add(head);
   return root;
@@ -41,13 +41,13 @@ function createTestRig(): THREE.Group {
 /** Rig with separate eye meshes plus a Head bone. */
 function createEyedRig(): THREE.Group {
   const root = createTestRig();
-  const head = root.getObjectByName("Head") ?? root;
+  const head = root.getObjectByName('Head') ?? root;
   const eyeGeo = new THREE.SphereGeometry(0.03, 6, 6);
   const eyeMat = new THREE.MeshBasicMaterial();
   const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-  eyeL.name = "Eye_L";
+  eyeL.name = 'Eye_L';
   const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-  eyeR.name = "Eye_R";
+  eyeR.name = 'Eye_R';
   head.add(eyeL);
   head.add(eyeR);
   return root;
@@ -55,11 +55,11 @@ function createEyedRig(): THREE.Group {
 
 function createWaddleClip(): THREE.AnimationClip {
   const track = new THREE.VectorKeyframeTrack(
-    "Hips.position",
+    'Hips.position',
     [0, 0.4, 0.8],
     [0, 0, 0, 0, 0.05, 0, 0, 0, 0],
   );
-  return new THREE.AnimationClip("Waddle", WADDLE_LOOP_SECONDS, [track]);
+  return new THREE.AnimationClip('Waddle', WADDLE_LOOP_SECONDS, [track]);
 }
 
 function createPlayer(rig: THREE.Group): DinoPlayer {
@@ -67,15 +67,15 @@ function createPlayer(rig: THREE.Group): DinoPlayer {
 }
 
 function findHead(root: THREE.Object3D): THREE.Object3D {
-  const head = root.getObjectByName("Head");
+  const head = root.getObjectByName('Head');
   if (head === undefined) {
-    throw new Error("test rig is missing its Head node");
+    throw new Error('test rig is missing its Head node');
   }
   return head;
 }
 
-describe("gait config (FR-1)", () => {
-  it("ships the Trike tuning: 0.29 m stride, 0.8 s loop, PI turn, 4.5 curve, 0.8 m wander", () => {
+describe('gait config (FR-1)', () => {
+  it('ships the Trike tuning: 0.29 m stride, 0.8 s loop, PI turn, 4.5 curve, 0.8 m wander', () => {
     expect(TRIKE_GAIT.strideMetres).toBeCloseTo(0.29, 12);
     expect(TRIKE_GAIT.loopSeconds).toBeCloseTo(0.8, 12);
     expect(TRIKE_GAIT.turnRateRadiansPerSecond).toBeCloseTo(Math.PI, 12);
@@ -83,14 +83,14 @@ describe("gait config (FR-1)", () => {
     expect(TRIKE_GAIT.wanderRadiusMetres).toBeCloseTo(0.8, 12);
   });
 
-  it("matches the waddle math constants so Trike behaviour is identical", () => {
+  it('matches the waddle math constants so Trike behaviour is identical', () => {
     expect(TRIKE_GAIT.strideMetres).toBe(WADDLE_STRIDE_METRES);
     expect(TRIKE_GAIT.loopSeconds).toBe(WADDLE_LOOP_SECONDS);
     expect(TRIKE_GAIT.turnRateRadiansPerSecond).toBe(TURN_RATE_RADIANS_PER_SECOND);
     expect(TRIKE_GAIT.curvatureRadiansPerMetre).toBe(TURN_ARC_CURVATURE_RADIANS_PER_METRE);
   });
 
-  it("defaults to the Trike gait when none is given", () => {
+  it('defaults to the Trike gait when none is given', () => {
     const a = createTestRig();
     const b = createTestRig();
     const def = new DinoPlayer(a, { clip: createWaddleClip(), random: () => 0.5 });
@@ -113,7 +113,7 @@ describe("gait config (FR-1)", () => {
     expect(def.heading).toBe(explicit.heading);
   });
 
-  it("honours a custom stride: double stride covers double distance per loop", () => {
+  it('honours a custom stride: double stride covers double distance per loop', () => {
     const a = createTestRig();
     const b = createTestRig();
     const trike = new DinoPlayer(a, {
@@ -150,7 +150,7 @@ describe("gait config (FR-1)", () => {
     expect(longStride).toBeCloseTo(trikeStride * 2, 6);
   });
 
-  it("honours a custom wander radius: a far spawn steers only inside it", () => {
+  it('honours a custom wander radius: a far spawn steers only inside it', () => {
     const near = createTestRig();
     const far = createTestRig();
     const trike = new DinoPlayer(near, {
@@ -180,8 +180,8 @@ describe("gait config (FR-1)", () => {
   });
 });
 
-describe("dino mixer", () => {
-  it("loops the 0.8 s Waddle clip and starts stopped", () => {
+describe('dino mixer', () => {
+  it('loops the 0.8 s Waddle clip and starts stopped', () => {
     const rig = createTestRig();
     const player = createPlayer(rig);
     expect(player.clipDurationSeconds).toBeCloseTo(0.8, 5);
@@ -190,7 +190,7 @@ describe("dino mixer", () => {
     expect(rig.position.length()).toBe(0);
   });
 
-  it("bends a 90 deg turn into a walk arc, then walks one stride per loop", () => {
+  it('bends a 90 deg turn into a walk arc, then walks one stride per loop', () => {
     const rig = createTestRig();
     const player = createPlayer(rig);
     player.turnTo(Math.PI / 2);
@@ -225,7 +225,7 @@ describe("dino mixer", () => {
     expect(rig.position.distanceTo(start)).toBeCloseTo(WALK_SPEED_METRES_PER_SECOND, 6);
   });
 
-  it("resolves a 180 deg reversal while walking as a wide in-frame arc", () => {
+  it('resolves a 180 deg reversal while walking as a wide in-frame arc', () => {
     const rig = createTestRig();
     const player = createPlayer(rig);
     player.setWalking(true);
@@ -262,7 +262,7 @@ describe("dino mixer", () => {
     expect(maxDistance).toBeLessThanOrEqual(TRIKE_GAIT.wanderRadiusMetres + WADDLE_CYCLE_METRES);
   });
 
-  it("toggles walk/stop and freezes on stop", () => {
+  it('toggles walk/stop and freezes on stop', () => {
     const rig = createTestRig();
     const player = createPlayer(rig);
     expect(player.toggleWalk()).toBe(true);
@@ -284,7 +284,7 @@ describe("dino mixer", () => {
     expect(rig.position.distanceTo(parked)).toBe(0);
   });
 
-  it("preserves the 1.0x baby root scale while squashing on plants", () => {
+  it('preserves the 1.0x baby root scale while squashing on plants', () => {
     const rig = createTestRig();
     rig.scale.set(1, 1, 1);
     const player = createPlayer(rig);
@@ -303,8 +303,8 @@ describe("dino mixer", () => {
   });
 });
 
-describe("stop deadband (FR-5, AC-5)", () => {
-  it("freezes heading with a pending turn and halts dead after settling", () => {
+describe('stop deadband (FR-5, AC-5)', () => {
+  it('freezes heading with a pending turn and halts dead after settling', () => {
     const rig = createTestRig();
     const player = createPlayer(rig);
     player.setWalking(true);
@@ -346,8 +346,8 @@ describe("stop deadband (FR-5, AC-5)", () => {
     expect(rig.rotation.y).toBe(parkedHeading);
   });
 
-  it("keeps turn and deadband math allocation-free (NFR-3)", async () => {
-    const source = await readRanchSource("dino-player.ts");
+  it('keeps turn and deadband math allocation-free (NFR-3)', async () => {
+    const source = await readRanchSource('dino-player.ts');
     // Only the two constructor scratch temps; the per-frame update path
     // reuses them and allocates nothing.
     const vectors = source.match(/new THREE\.Vector3/g) ?? [];
@@ -355,8 +355,8 @@ describe("stop deadband (FR-5, AC-5)", () => {
   });
 });
 
-describe("blink", () => {
-  it("finds eye meshes when present, else the head bone", () => {
+describe('blink', () => {
+  it('finds eye meshes when present, else the head bone', () => {
     const eyed = findBlinkTargets(createEyedRig());
     expect(eyed.eyes.length).toBe(2);
     expect(eyed.head).not.toBeNull();
@@ -368,7 +368,7 @@ describe("blink", () => {
     expect(empty.head).toBeNull();
   });
 
-  it("scales eye meshes through a 3-5 s blink", () => {
+  it('scales eye meshes through a 3-5 s blink', () => {
     const rig = createEyedRig();
     const targets = findBlinkTargets(rig);
     const blink = new BlinkController(() => 0);
@@ -376,7 +376,7 @@ describe("blink", () => {
     expect(blink.update(2.9, targets)).toBe(false);
     expect(blink.update(3.0, targets)).toBe(true);
     expect(blink.update(3.06, targets)).toBe(true);
-    const eyeL = rig.getObjectByName("Eye_L") ?? rig;
+    const eyeL = rig.getObjectByName('Eye_L') ?? rig;
     expect(eyeL.scale.y).toBeLessThan(0.5);
     expect(findHead(rig).rotation.x).toBe(0);
     expect(blink.update(3.2, targets)).toBe(false);
@@ -384,7 +384,7 @@ describe("blink", () => {
     expect(blink.update(6.0, targets)).toBe(false);
   });
 
-  it("dips the head when no eye meshes exist (single-mesh GLB)", () => {
+  it('dips the head when no eye meshes exist (single-mesh GLB)', () => {
     const rig = createTestRig();
     const targets = findBlinkTargets(rig);
     const blink = new BlinkController(() => 0);
@@ -395,7 +395,7 @@ describe("blink", () => {
     expect(findHead(rig).rotation.x).toBe(0);
   });
 
-  it("blinks at least once per 5 s while walking the shipped shape", () => {
+  it('blinks at least once per 5 s while walking the shipped shape', () => {
     const rig = createTestRig();
     const player = new DinoPlayer(rig, { clip: createWaddleClip(), random: () => 1 });
     player.setWalking(true);
@@ -410,8 +410,8 @@ describe("blink", () => {
   });
 });
 
-describe("dust pool", () => {
-  it("puffs on plants while walking and clears after stopping", () => {
+describe('dust pool', () => {
+  it('puffs on plants while walking and clears after stopping', () => {
     const rig = createTestRig();
     const player = createPlayer(rig);
     player.setWalking(true);
@@ -431,8 +431,8 @@ describe("dust pool", () => {
   });
 });
 
-describe("stay-in-frame wander", () => {
-  it("keeps a 30 s walk inside the radius plus one stride, steering at least once", () => {
+describe('stay-in-frame wander', () => {
+  it('keeps a 30 s walk inside the radius plus one stride, steering at least once', () => {
     const rig = createTestRig();
     const player = createPlayer(rig);
     player.setWalking(true);
@@ -452,7 +452,7 @@ describe("stay-in-frame wander", () => {
     expect(player.walking).toBe(true);
   });
 
-  it("steers a far spawn back toward center and still halts on stop", () => {
+  it('steers a far spawn back toward center and still halts on stop', () => {
     const rig = createTestRig();
     const player = createPlayer(rig);
     rig.position.set(2, 0, 0);
@@ -477,9 +477,9 @@ describe("stay-in-frame wander", () => {
   });
 });
 
-describe("no TrikePlayer duplication (AC-7)", () => {
-  it("wires only DinoPlayer into the viewer", async () => {
-    const viewer = await readFile(new URL("src/viewer/loaders.ts", ROOT_URL), "utf8");
+describe('no TrikePlayer duplication (AC-7)', () => {
+  it('wires only DinoPlayer into the viewer', async () => {
+    const viewer = await readFile(new URL('src/viewer/loaders.ts', ROOT_URL), 'utf8');
     // The Trike loader keeps its species name (loadTrikePlayer), but the
     // player class it wires must be the generic one.
     expect(viewer).toMatch(/DinoPlayer/);
@@ -491,9 +491,9 @@ describe("no TrikePlayer duplication (AC-7)", () => {
   });
 });
 
-describe("silent cheap walk (FR-7, FR-8)", () => {
-  it("never touches audio in the ranch playback path", async () => {
-    for (const file of ["waddle.ts", "dust.ts", "dino-player.ts"]) {
+describe('silent cheap walk (FR-7, FR-8)', () => {
+  it('never touches audio in the ranch playback path', async () => {
+    for (const file of ['waddle.ts', 'dust.ts', 'dino-player.ts']) {
       const source = await readRanchSource(file);
       expect(source).not.toMatch(/howler/i);
       expect(source).not.toMatch(/AudioContext/i);
@@ -501,18 +501,18 @@ describe("silent cheap walk (FR-7, FR-8)", () => {
     }
   });
 
-  it("keeps dust cheap: a single points draw, no post-processing", async () => {
-    const source = await readRanchSource("dust.ts");
+  it('keeps dust cheap: a single points draw, no post-processing', async () => {
+    const source = await readRanchSource('dust.ts');
     expect(source).toMatch(/THREE\.Points/);
     expect(source).not.toMatch(/EffectComposer/);
     expect(source).not.toMatch(/RenderPass|ShaderPass|UnrealBloom/);
     expect(source).not.toMatch(/post-?processing/i);
-    const playerSource = await readRanchSource("dino-player.ts");
+    const playerSource = await readRanchSource('dino-player.ts');
     expect(playerSource).not.toMatch(/EffectComposer/);
   });
 
-  it("does not touch the shared viewer chrome", async () => {
-    const playerSource = await readRanchSource("dino-player.ts");
+  it('does not touch the shared viewer chrome', async () => {
+    const playerSource = await readRanchSource('dino-player.ts');
     expect(playerSource).not.toMatch(/walk-button/);
     expect(playerSource).not.toMatch(/unlockAudio/);
   });

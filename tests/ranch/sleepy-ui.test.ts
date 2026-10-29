@@ -126,6 +126,8 @@ describe('sleepy versus hint-glow precedence (P3.T3)', () => {
     const viewer = await readFile(new URL('src/viewer/hud.ts', ROOT_URL), 'utf8');
     const interval = viewer.slice(viewer.indexOf('window.setInterval'));
     expect(interval).toContain('hintSuppressedBySleepy');
-    expect(interval.slice(0, interval.indexOf('classList.add'))).toContain('hintSuppressedBySleepy');
+    expect(interval.slice(0, interval.indexOf('classList.add'))).toContain(
+      'hintSuppressedBySleepy',
+    );
   });
 });

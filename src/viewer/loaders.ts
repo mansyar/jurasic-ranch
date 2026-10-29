@@ -1,9 +1,9 @@
-import * as THREE from "three";
-import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { BRACHIO_GAIT, DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from "../ranch/dino-player.js";
-import type { DustPool } from "../ranch/dust.js";
-import type { GaitParams } from "../ranch/waddle.js";
+import * as THREE from 'three';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { BRACHIO_GAIT, DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from '../ranch/dino-player.js';
+import type { DustPool } from '../ranch/dust.js';
+import type { GaitParams } from '../ranch/waddle.js';
 
 /**
  * Model loading and the rigged-vs-placeholder swap targets: every baked Draco
@@ -44,7 +44,7 @@ export const BRACHIO_MODEL_URL = `${BASE_URL}models/brachio.glb`;
 const DRACO_DECODER_PATH = `${BASE_URL}draco/`;
 
 /** Name of the baked seamless loop inside the Trike GLB. */
-const WADDLE_CLIP_NAME = "Waddle";
+const WADDLE_CLIP_NAME = 'Waddle';
 
 /** Blush pink for the runtime cheek spheres. */
 export const BLUSH_HEX = 0xf2a0ac;
@@ -68,7 +68,7 @@ export function attachBlushCheeks(head: THREE.Object3D | null): THREE.Mesh[] {
   }
   // Snapshot: removing cheeks mutates the live children array mid-loop.
   for (const old of head.children.slice()) {
-    if (old.name === "Blush_L" || old.name === "Blush_R") {
+    if (old.name === 'Blush_L' || old.name === 'Blush_R') {
       head.remove(old);
     }
   }
@@ -79,7 +79,7 @@ export function attachBlushCheeks(head: THREE.Object3D | null): THREE.Mesh[] {
   const geometry = new THREE.SphereGeometry(BLUSH_CHEEK_RADIUS_METRES, 12, 8);
   return BLUSH_CHEEK_OFFSETS.map(([x, y, z], index) => {
     const cheek = new THREE.Mesh(geometry, material);
-    cheek.name = index === 0 ? "Blush_L" : "Blush_R";
+    cheek.name = index === 0 ? 'Blush_L' : 'Blush_R';
     cheek.position.set(x, y, z);
     head.add(cheek);
     return cheek;
@@ -132,15 +132,15 @@ async function loadDinoPlayer(
 
 /** Load the baked Trike GLB with the Trike gait (FR-2 behaviour unchanged). */
 export function loadTrikePlayer(sharedDust?: DustPool): Promise<LoadedTrike> {
-  return loadDinoPlayer(TRIKE_MODEL_URL, "Trike", TRIKE_GAIT, sharedDust);
+  return loadDinoPlayer(TRIKE_MODEL_URL, 'Trike', TRIKE_GAIT, sharedDust);
 }
 
 /** Load the baked Stego GLB with the Stego gait (FR-4). */
 export function loadStegoPlayer(sharedDust?: DustPool): Promise<LoadedDino> {
-  return loadDinoPlayer(STEGO_MODEL_URL, "Stego", STEGO_GAIT, sharedDust);
+  return loadDinoPlayer(STEGO_MODEL_URL, 'Stego', STEGO_GAIT, sharedDust);
 }
 
 /** Load the baked Brachio GLB with the Brachio shuffle gait (FR-1). */
 export function loadBrachioPlayer(sharedDust?: DustPool): Promise<LoadedDino> {
-  return loadDinoPlayer(BRACHIO_MODEL_URL, "Brachio", BRACHIO_GAIT, sharedDust);
+  return loadDinoPlayer(BRACHIO_MODEL_URL, 'Brachio', BRACHIO_GAIT, sharedDust);
 }

@@ -1,9 +1,9 @@
-import * as THREE from "three";
-import { describe, expect, it } from "vitest";
-import { avoidanceNudges } from "../../src/ranch/avoidance.js";
-import { DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from "../../src/ranch/dino-player.js";
-import { DustPool } from "../../src/ranch/dust.js";
-import { WADDLE_CYCLE_METRES, WADDLE_LOOP_SECONDS } from "../../src/ranch/waddle.js";
+import * as THREE from 'three';
+import { describe, expect, it } from 'vitest';
+import { avoidanceNudges } from '../../src/ranch/avoidance.js';
+import { DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from '../../src/ranch/dino-player.js';
+import { DustPool } from '../../src/ranch/dust.js';
+import { WADDLE_CYCLE_METRES, WADDLE_LOOP_SECONDS } from '../../src/ranch/waddle.js';
 
 /**
  * Dual ranch coexistence (FR-5, FR-6, FR-9, AC-3, AC-6): Trike + Stego wander
@@ -39,9 +39,9 @@ function createRig(name: string): THREE.Group {
   const root = new THREE.Group();
   root.name = name;
   const hips = new THREE.Group();
-  hips.name = "Hips";
+  hips.name = 'Hips';
   const head = new THREE.Group();
-  head.name = "Head";
+  head.name = 'Head';
   root.add(hips);
   root.add(head);
   return root;
@@ -49,11 +49,11 @@ function createRig(name: string): THREE.Group {
 
 function createWaddleClip(): THREE.AnimationClip {
   const track = new THREE.VectorKeyframeTrack(
-    "Hips.position",
+    'Hips.position',
     [0, 0.4, 0.8],
     [0, 0, 0, 0, 0.05, 0, 0, 0, 0],
   );
-  return new THREE.AnimationClip("Waddle", WADDLE_LOOP_SECONDS, [track]);
+  return new THREE.AnimationClip('Waddle', WADDLE_LOOP_SECONDS, [track]);
 }
 
 interface DualStats {
@@ -76,8 +76,8 @@ function runDualWander(
   stegoDip: number[];
   avoidanceFrames: number;
 } {
-  const trikeRig = createRig("TrikeRoot");
-  const stegoRig = createRig("StegoRoot");
+  const trikeRig = createRig('TrikeRoot');
+  const stegoRig = createRig('StegoRoot');
   trikeRig.position.set(-SPAWN_OFFSET_METRES, 0, 0);
   stegoRig.position.set(SPAWN_OFFSET_METRES, 0, 0);
   const shared = new DustPool({ random: prng(seeds.dust) });
@@ -148,8 +148,8 @@ function runDualWander(
       trikeRig.position.distanceTo(stegoRig.position),
     );
     maxDustAlive = Math.max(maxDustAlive, shared.aliveCount);
-    const trikeHead = trikeRig.getObjectByName("Head") ?? trikeRig;
-    const stegoHead = stegoRig.getObjectByName("Head") ?? stegoRig;
+    const trikeHead = trikeRig.getObjectByName('Head') ?? trikeRig;
+    const stegoHead = stegoRig.getObjectByName('Head') ?? stegoRig;
     trikeDip.push(trikeHead.rotation.x);
     stegoDip.push(stegoHead.rotation.x);
   }
@@ -166,16 +166,16 @@ function runDualWander(
   };
 }
 
-describe("dual wander coexistence (FR-5, FR-6, AC-3)", () => {
-  it("starts from a ±0.4 m spawn with independent poses", () => {
-    const a = createRig("A");
-    const b = createRig("B");
+describe('dual wander coexistence (FR-5, FR-6, AC-3)', () => {
+  it('starts from a ±0.4 m spawn with independent poses', () => {
+    const a = createRig('A');
+    const b = createRig('B');
     a.position.set(-SPAWN_OFFSET_METRES, 0, 0);
     b.position.set(SPAWN_OFFSET_METRES, 0, 0);
     expect(a.position.distanceTo(b.position)).toBeCloseTo(0.8, 12);
   });
 
-  it("keeps both dinos in-frame over 30 s with >0.25 m separation", () => {
+  it('keeps both dinos in-frame over 30 s with >0.25 m separation', () => {
     const { stats, avoidanceFrames } = runDualWander(true);
     // The run must actually exercise avoidance, not stroll two empty lanes.
     expect(avoidanceFrames).toBeGreaterThan(0);
@@ -191,7 +191,7 @@ describe("dual wander coexistence (FR-5, FR-6, AC-3)", () => {
     expect(stats.minSeparationMetres).toBeGreaterThan(baseline.stats.minSeparationMetres);
   });
 
-  it("avoidance improves separation across fixed draws (review F1)", () => {
+  it('avoidance improves separation across fixed draws (review F1)', () => {
     // The absolute >0.25 m bar above applies to the locked draw; this
     // property holds avoidance to a relative bar on every documented draw,
     // so AC-3 rests on more than one geometry. Extra draws carry no absolute
@@ -206,19 +206,17 @@ describe("dual wander coexistence (FR-5, FR-6, AC-3)", () => {
       const baseline = runDualWander(false, seeds);
       expect(avoided.avoidanceFrames).toBeGreaterThan(0);
       expect(baseline.avoidanceFrames).toBeGreaterThan(0);
-      expect(avoided.stats.minSeparationMetres).toBeGreaterThan(
-        baseline.stats.minSeparationMetres,
-      );
+      expect(avoided.stats.minSeparationMetres).toBeGreaterThan(baseline.stats.minSeparationMetres);
     }
   });
 
-  it("shares one DustPool that puffs for both dinos (FR-9, AC-6)", () => {
+  it('shares one DustPool that puffs for both dinos (FR-9, AC-6)', () => {
     const { stats } = runDualWander();
     expect(stats.sharedDust).toBe(true);
     expect(stats.maxDustAlive).toBeGreaterThan(0);
   });
 
-  it("blinks both dinos at least once per 6 s window while walking (AC-6)", () => {
+  it('blinks both dinos at least once per 6 s window while walking (AC-6)', () => {
     const { trikeDip, stegoDip } = runDualWander();
     const windowSteps = 6 * 60;
     for (let start = 0; start < STEPS; start += windowSteps) {

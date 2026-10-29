@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from 'three';
 
 /**
  * Fixed cozy viewpoints (FR-1). The camera never orbits or follows: every
@@ -8,7 +8,7 @@ import * as THREE from "three";
  */
 
 /** Fixed camera viewpoint id. */
-export type PovPresetId = "ranch" | "nest" | "garden";
+export type PovPresetId = 'ranch' | 'nest' | 'garden';
 
 /** Fixed camera preset: position plus look-at target, both in metres. */
 export interface PovPreset {
@@ -20,28 +20,28 @@ export interface PovPreset {
 }
 
 /** Tab order for the POV buttons; Ranch is the boot view. */
-export const POV_ORDER: readonly PovPresetId[] = ["ranch", "nest", "garden"];
+export const POV_ORDER: readonly PovPresetId[] = ['ranch', 'nest', 'garden'];
 
 /** Fixed camera presets. Ranch keeps the legacy fixed camera verbatim. */
 export const POV_PRESETS: Record<PovPresetId, PovPreset> = {
   ranch: {
-    id: "ranch",
-    label: "Ranch",
-    icon: "🏠",
+    id: 'ranch',
+    label: 'Ranch',
+    icon: '🏠',
     position: [2.4, 1.5, 3.0],
     lookAt: [0, 0.45, 0],
   },
   nest: {
-    id: "nest",
-    label: "Nest",
-    icon: "🪹",
+    id: 'nest',
+    label: 'Nest',
+    icon: '🪹',
     position: [-2.3, 1.2, 2.5],
     lookAt: [0, 0.4, 0],
   },
   garden: {
-    id: "garden",
-    label: "Garden",
-    icon: "🌼",
+    id: 'garden',
+    label: 'Garden',
+    icon: '🌼',
     position: [0.3, 1.9, 3.7],
     lookAt: [0, 0.35, 0],
   },
@@ -85,8 +85,8 @@ export function shouldShowHint(
  * Hint presentation for the motion preference (FR-8): a pulsing glow by
  * default, a static outline when reduced motion is preferred.
  */
-export function hintModeFor(reducedMotion: boolean): "hint-glow" | "hint-static" {
-  return reducedMotion ? "hint-static" : "hint-glow";
+export function hintModeFor(reducedMotion: boolean): 'hint-glow' | 'hint-static' {
+  return reducedMotion ? 'hint-static' : 'hint-glow';
 }
 
 /**
@@ -94,7 +94,7 @@ export function hintModeFor(reducedMotion: boolean): "hint-glow" | "hint-static"
  * zoom. Mirrored verbatim in the index.html viewport meta tag.
  */
 export const VIEWPORT_META_CONTENT =
-  "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover";
+  'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
 
 /** Whether a window size counts as portrait (shows the rotate hint). */
 export function isPortraitViewport(width: number, height: number): boolean {

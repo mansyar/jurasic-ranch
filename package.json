@@ -11,9 +11,9 @@
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "lint": "oxlint --ignore-pattern \"public/draco/**\" --ignore-pattern \"scripts/vendor/**\"",
-    "format": "oxfmt index.html package.json vite.config.ts tsconfig.json src public '!public/draco/**'",
+    "format": "oxfmt index.html package.json vite.config.ts tsconfig.json .oxfmtrc.json \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\"",
     "typecheck": "tsrs --noEmit",
-    "verify": "pnpm lint && pnpm format --check && pnpm typecheck && pnpm test && pnpm build"
+    "verify": "pnpm lint && pnpm format --check && pnpm typecheck && pnpm coverage && pnpm build"
   },
   "dependencies": {
     "howler": "^2.2.4",
@@ -24,6 +24,7 @@
     "@types/howler": "^2.2.12",
     "@types/node": "^26.0.0",
     "@types/three": "^0.186.0",
+    "@vitest/coverage-v8": "5.0.5",
     "oxfmt": "0.75.0",
     "oxlint": "1.90.0",
     "tsrs": "latest",

@@ -1,5 +1,5 @@
-import type { PerspectiveCamera } from "three";
-import { SleepyController } from "../ranch/sleepy.js";
+import type { PerspectiveCamera } from 'three';
+import { SleepyController } from '../ranch/sleepy.js';
 import {
   HINT_IDLE_MS,
   applyPovPreset,
@@ -7,16 +7,16 @@ import {
   isPortraitViewport,
   shouldShowHint,
   type PovPresetId,
-} from "./pov.js";
-import { ensureSleepyOverlay, hintSuppressedBySleepy, setSleepyVisible } from "./sleepy-ui.js";
+} from './pov.js';
+import { ensureSleepyOverlay, hintSuppressedBySleepy, setSleepyVisible } from './sleepy-ui.js';
 
 /** DOM ids the viewer boots against (index.html owns the markup). */
-export const CANVAS_ID = "scene";
-export const WALK_BUTTON_ID = "walk-button";
-export const STATUS_ID = "status";
+export const CANVAS_ID = 'scene';
+export const WALK_BUTTON_ID = 'walk-button';
+export const STATUS_ID = 'status';
 
 /** Setting key that remembers the Walk toggle across reloads. */
-export const WALK_SETTING_KEY = "walking";
+export const WALK_SETTING_KEY = 'walking';
 
 /** Set the status pill text when the element exists. */
 export function setStatus(status: HTMLElement | null, text: string): void {
@@ -27,7 +27,7 @@ export function setStatus(status: HTMLElement | null, text: string): void {
 
 /** Status pill copy: names all three species while walking (NFR-4 icon + word). */
 export function walkStatusText(walking: boolean): string {
-  return walking ? "🦕 Trike + 🦖 Stego + 🦴 Brachio walking" : "Tap Walk to waddle";
+  return walking ? '🦕 Trike + 🦖 Stego + 🦴 Brachio walking' : 'Tap Walk to waddle';
 }
 
 /**
@@ -75,8 +75,8 @@ export function createHud(options: HudOptions): Hud {
   const { camera, button, status, initialWalking, onWalkChange } = options;
   let walking = initialWalking;
   const syncWalkChrome = (): void => {
-    button.textContent = walking ? "Stop" : "Walk";
-    button.setAttribute("aria-pressed", walking ? "true" : "false");
+    button.textContent = walking ? 'Stop' : 'Walk';
+    button.setAttribute('aria-pressed', walking ? 'true' : 'false');
     setStatus(status, walkStatusText(walking));
   };
 
@@ -88,15 +88,15 @@ export function createHud(options: HudOptions): Hud {
   let sleepyShown = false;
   const markInteraction = (): void => {
     lastInteractionMs = performance.now();
-    document.body.classList.remove("hint-glow", "hint-static");
+    document.body.classList.remove('hint-glow', 'hint-static');
     controller.markInteraction(lastInteractionMs);
     if (sleepyShown) {
       setSleepyVisible(overlay, false, false);
       sleepyShown = false;
     }
   };
-  window.addEventListener("pointerdown", markInteraction, { passive: true });
-  button.addEventListener("click", () => {
+  window.addEventListener('pointerdown', markInteraction, { passive: true });
+  button.addEventListener('click', () => {
     walking = !walking;
     onWalkChange(walking);
     markInteraction();
@@ -106,21 +106,21 @@ export function createHud(options: HudOptions): Hud {
 
   // FR-1: fixed POV buttons cut the camera instantly (no tween, AC-1).
   // Ranch is the boot view; the preset owns the numbers.
-  let activePov: PovPresetId = "ranch";
+  let activePov: PovPresetId = 'ranch';
   applyPovPreset(camera, activePov);
-  const povButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("#pov [data-pov]"));
+  const povButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('#pov [data-pov]'));
   const syncPov = (): void => {
     for (const povButton of povButtons) {
       povButton.setAttribute(
-        "aria-pressed",
-        povButton.dataset["pov"] === activePov ? "true" : "false",
+        'aria-pressed',
+        povButton.dataset['pov'] === activePov ? 'true' : 'false',
       );
     }
   };
   for (const povButton of povButtons) {
-    povButton.addEventListener("click", () => {
-      const id = povButton.dataset["pov"];
-      if (id !== "ranch" && id !== "nest" && id !== "garden") {
+    povButton.addEventListener('click', () => {
+      const id = povButton.dataset['pov'];
+      if (id !== 'ranch' && id !== 'nest' && id !== 'garden') {
         return;
       }
       activePov = id;
@@ -131,7 +131,7 @@ export function createHud(options: HudOptions): Hud {
   }
   syncPov();
 
-  const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   window.setInterval(() => {
     if (!shouldShowHint(lastInteractionMs, performance.now(), HINT_IDLE_MS)) {
       return;
@@ -145,18 +145,18 @@ export function createHud(options: HudOptions): Hud {
   }, 1000);
 
   // FR-6: no pinch/double-tap zoom on the tablet stage.
-  document.addEventListener("gesturestart", (event: Event) => {
+  document.addEventListener('gesturestart', (event: Event) => {
     event.preventDefault();
   });
   document.addEventListener(
-    "dblclick",
+    'dblclick',
     (event: Event) => {
       event.preventDefault();
     },
     { passive: false },
   );
   document.addEventListener(
-    "touchmove",
+    'touchmove',
     (event: TouchEvent) => {
       if (event.touches.length > 1) {
         event.preventDefault();
@@ -166,7 +166,7 @@ export function createHud(options: HudOptions): Hud {
   );
 
   // FR-6: portrait shows the rotate hint.
-  const rotateHint = document.getElementById("rotate-hint");
+  const rotateHint = document.getElementById('rotate-hint');
   const syncRotateHint = (): void => {
     if (rotateHint) {
       rotateHint.hidden = !isPortraitViewport(window.innerWidth, window.innerHeight);
