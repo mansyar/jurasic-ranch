@@ -1,6 +1,6 @@
 ## Summary
 
-Behaviour-preserving cleanup before the next gameplay track. `src/viewer/main.ts` was 884 lines of renderer, DOM chrome, loaders, placeholders and the frame loop; it is now 171 lines of boot that composes five focused modules. The quality gates were repaired at the same time: the format check was silently inspecting 4 files and now inspects 49, coverage is a real gate at a 60 % line floor (77.47 % measured), the duplicate Draco decoder payload is gone (`dist/` 1,064,190 B smaller), and the PWA finally ships installable raster, maskable and touch icons for all three dinos.
+Behaviour-preserving cleanup before the next gameplay track. `src/viewer/main.ts` was 884 lines of renderer, DOM chrome, loaders, placeholders and the frame loop; it is now 171 lines of boot that composes five focused modules. The quality gates were repaired at the same time: the format check was silently inspecting 4 files and now inspects 65, coverage is a real gate at a 60 % line floor (76.91 % measured), the duplicate Draco decoder payload is gone (`dist/` 1,064,190 B smaller), and the PWA finally ships installable raster, maskable and touch icons for all three dinos. The dev harness track landed on `main` mid-flight; the merge is resolved on this branch so the harness works inside the split viewer.
 
 No gameplay, gait, colour, camera or render-order value changed. Nest and Garden POV screenshots are byte-identical to the branch base; the transient Ranch difference was UI glow, and the steady-state comparison is SSIM 0.999490 with the 3D canvas diffing to black.
 
@@ -23,7 +23,8 @@ No gameplay, gait, colour, camera or render-order value changed. Nest and Garden
 | 5: Tell the truth about the ranch | manifest, title and icons name the trio | verified | `608de48` | four deterministic PNGs from an SVG source via `sharp` (dev-only) |
 | R1: Review fixes | F1–F4 | verified | `c8328c5` | apple-touch manifest entry, `.mjs` under the gate, evidence re-keyed, AC-9 restated |
 | R2: Review fixes | F5–F7 | verified | `de27e2f` | task counter, precache figure, FR-9 row |
-| R3: CI install fix | `pnpm install` must succeed on CI | verified | `4fa5251` | pnpm 12 ignores `onlyBuiltDependencies`; replaced with `allowBuilds` |
+| R3: CI install fix | `pnpm install` under pnpm 12 | verified | `4fa5251` | `onlyBuiltDependencies` is the pnpm 10 spelling; pnpm 12 reads `allowBuilds` |
+| R4: Merge origin/main | keep the dev harness working in the split viewer | verified | `7ac0967` | three conflicts; harness wiring ported to `main.ts`/`hud.ts`/`loop.ts`/`loaders.ts` |
 
 ## Requirements
 
@@ -62,13 +63,14 @@ No gameplay, gait, colour, camera or render-order value changed. Nest and Garden
 
 | Layer | Command | Result | Evidence |
 | --- | --- | --- | --- |
-| static | `pnpm lint && pnpm format --check && pnpm typecheck` | pass, 49 files formatted | `verification/integrated.md` |
-| unit | `pnpm test` | pass, 23 files / 232 tests | `verification/integrated.md` |
-| coverage | `pnpm coverage` | pass, 77.47 % lines, floor 60 | `verification/phase-3.md` |
-| build | `pnpm build` | pass, 373 ms, precache 30 entries / 3,425.89 KiB | `verification/integrated.md` |
+| static | `pnpm lint && pnpm format --check && pnpm typecheck` | pass, 65 files formatted | `verification/phase-R4.md` |
+| unit | `pnpm test` | pass, 32 files / 311 tests | `verification/phase-R4.md` |
+| coverage | `pnpm coverage` | pass, 77.47 % lines at review time; 76.91 % after the dev-harness merge, floor 60 | `verification/phase-3.md`, `verification/phase-R4.md` |
+| build | `pnpm build` | pass, 355 ms, precache 30 entries / 3,426.56 KiB | `verification/phase-R4.md` |
 | visual | before/after POV screenshots | 1.000000 / 1.000000 / 0.999490 SSIM | `verification/phase-2.md` |
 | offline | reload with the preview server dead | 23 requests, 0 failures | `verification/phase-4.md` |
 | install | manifest + icon fetch in the built app | 200 on every icon, SW controls the page | `verification/phase-5.md` |
+| dev harness | `?dev=1` panel and `window.__ranch` | pause/step/pov/walk all mirror the chrome; 0 failed requests | `verification/phase-R4.md` |
 
 ## Media
 
@@ -90,6 +92,7 @@ The track's only user-visible change is the app identity, so the media is the ic
 - `loop.ts` gained a mutable `LoopStage` handle; the only textual change inside the loop was qualifying reads through it, and the statement order was verified line by line against the base.
 - Source-reading guards were widened from `main.ts` to unions of the modules that now hold the symbols. The guard is weaker as a result; it is recorded as debt.
 - `scripts/vendor/**` is excluded from coverage and the format gate. They are vendored base pipelines, already excluded from lint.
+- PR #9 (dev harness) merged into `main` while this PR was open, so `git merge` was required before the squash merge. The harness wiring was ported into the split modules rather than re-introducing the pre-split `main.ts`, and `tests/viewer/dev-harness-gate.test.ts` guards were widened from double-quoted literals to `['"]` — they predate the `singleQuote: true` rule this track locked in. Details in `verification/phase-R4.md`.
 - `dist/` still carries ~970 kB of decoder assets three emits and never fetches. Removing them needs a build-level decision, out of scope here.
 - `metadata.json` reports 23 top-level tasks because the two review-fix phases added seven; the original plan had 16.
 
