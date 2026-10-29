@@ -152,17 +152,17 @@ The primary appends after acceptance:
 **Evidence:** conductor/tracks/20261029-ranch-housekeeping/verification/phase-<n>.md
 -->
 
-<!--
-Review fixes are appended by `conductor-review` as:
-
 ## Phase R1: Review Fixes
 
-- **Goal:** Resolve review findings ...
+- **Goal:** Resolve review findings F1, F2, F3 and F4 — the apple-touch manifest entry, the `.mjs` gap in the format gate, the evidence and counter drift, and the unsatisfiable AC-9 wording.
 - **Depends on:** Phase 5
-- **Covers:** review findings
-- **Touches:** ...
-- **Verification:** ...
-- **Status:** pending
+- **Covers:** F1, F2, F3, F4
+- **Touches:** `public/manifest.webmanifest`, `src/viewer/viewer.test.ts`, `package.json`, `conductor/tracks/20261029-ranch-housekeeping/spec.md`, `conductor/tracks/20261029-ranch-housekeeping/verification/integrated.md`, `conductor/tracks/20261029-ranch-housekeeping/metadata.json`
+- **Verification:** `pnpm verify`
+- **Status:** in_progress
 
-- [ ] **R1.T1: Resolve <finding ID>** - covers: <finding ID>
--->
+- [ ] **R1.T1: Declare the apple-touch icon in the manifest** - covers: F1
+- [ ] **R1.T2: Put `.mjs` under the format gate** - covers: F2
+- [ ] **R1.T3: Correct the evidence and counters** - covers: F3
+- [ ] **R1.T4: Restate AC-9 as a rule, not a count** - covers: F4
+
