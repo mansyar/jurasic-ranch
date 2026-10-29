@@ -60,6 +60,42 @@ pr:
 CI runs `pnpm verify` on pull requests to `main` and on pushes to `main` (see `.github/workflows/ci.yml`).
 Changes touching only `conductor/**` are excluded from CI via `paths-ignore`; mixed code+docs PRs still run.
 
+### PR Media
+
+`media: "always"` means a track that changes what the child can see or hear
+carries pictures in its PR. Binaries never enter the repo: captures stay in the
+gitignored `.conductor/evidence/<track-id>/`, and `gh` uploads them at PR time.
+
+```bash
+gh pr create --base main \
+  --attach '.conductor/evidence/<track-id>/pov-ranch.jpg#Ranch view: low foreground, open midground, treeline backdrop' \
+  --attach '.conductor/evidence/<track-id>/pov-nest.jpg#Nest view' \
+  --attach '.conductor/evidence/<track-id>/pov-garden.jpg#Garden view' \
+  --attach '.conductor/evidence/<track-id>/pov-sky.jpg#Sky view: the whole paddock from above'
+```
+
+- **Requires `gh >= 2.103`.** `--attach` exists on `gh pr create` and
+  `gh pr comment`; an older CLI fails with `unknown flag`. Check `gh --version`
+  first, and when it is older, link the evidence path in the body instead of
+  attaching.
+- **Syntax is `<file>#<alt text>`**, and alt text is written for a parent
+  reading on a phone, not for the diff. Without it `gh` uses the filename, which
+  explains nothing.
+- **Up to 50 files per command.** A file the body already references
+  (`![alt](./pov-sky.jpg)` relative to `--body-file`) is rewritten to the upload
+  rather than appended, so a fixed shot order belongs in the body file.
+- **Later rounds go on the PR**: `gh pr comment <n> --attach '<file>#<alt text>'`
+  for a re-shoot after review, not an amended body.
+- **What is required**: a visible change shows before and after; a change that
+  alters more than one `#pov` camera shows one shot per camera; a change with no
+  visible surface (a refactor whose frame is identical) says so in the body and
+  attaches nothing.
+- **A partial upload does not fail the PR.** `gh` creates the PR with the files
+  that succeeded and exits non-zero; re-upload the missing shot with
+  `gh pr comment` rather than reopening the PR.
+- **Capture recipe**: dev harness at `/?dev=1&seed=42&pause=1`, 1280x800 tablet
+  landscape, JPEG.
+
 ## Development Commands
 
 ### Setup
@@ -266,7 +302,9 @@ A track is complete when:
 4. Post-review documentation sync is complete.
 5. The registry and `metadata.json` show the track as complete.
 6. When a remote exists, the branch is pushed. When `pr.enabled` is true, a PR
-   is open or `pr_state: "unavailable"` records that PR creation could not run.
+   is open or `pr_state: "unavailable"` records that PR creation could not run;
+   when the track changed anything visible or audible, the shots are attached
+   per [PR Media](#pr-media).
    When `pr.enabled` is false, no PR is expected.
 
 ## Emergency Procedures
