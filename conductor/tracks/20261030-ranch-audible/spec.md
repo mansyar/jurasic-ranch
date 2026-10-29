@@ -77,7 +77,7 @@ Who feels it: the four-year-old, immediately, on their first press.
 | ID | Requirement |
 | --- | --- |
 | NFR-1 | No new audio assets, runtime dependencies or network calls; the 15-entry audio catalog is unchanged and precache grows ≤ 2 KiB for markup only. |
-| NFR-2 | Dispatch-to-Howler latency ≤ 100 ms, measured through the existing dev-harness latency field; no new timers, intervals or rAF loops are added. |
+| NFR-2 | Dispatch-to-Howler latency ≤ 100 ms, measured through the existing dev-harness latency field; dispatch stays synchronous — no timer, interval or rAF loop is added to the tap path — and the single one-shot greeting scheduler plus the existing HUD interval are the only timers, neither of which repeats per press. |
 | NFR-3 | The pure feedback module is ≥ 90 % line-covered and `hud.ts` rises above 50 %; the global 60 % floor holds. |
 | NFR-4 | No audible change when muted or on the iOS silent switch, and sound is never disabled by reduced-motion — it is the only feedback for these presses. |
 | NFR-5 | `pnpm verify` is green and `pnpm build` stays free of dev-harness markers. |

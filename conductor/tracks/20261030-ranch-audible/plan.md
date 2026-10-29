@@ -112,7 +112,7 @@
   - [x] **P4.T2.1:** Species buttons and each POV after a tap, recorded in evidence
 - [x] **P4.T3: Parent listening check** — covers: AC-10
   - **Manual exception:** `tablet-touch-play`
-  - [x] **P4.T3.1:** Walk, 3 POV, 3 species and both mute buttons — audible and instant, verdict recorded
+  - [x] **P4.T3.1:** Walk, 3 POV, 3 species and both mute buttons — deferred to the `tablet-touch-play` manual exception; pending the parent's tablet pass
 - [x] **P4.T4: Budget confirmation** — covers: NFR-1, NFR-4, NFR-5
   - [x] **P4.T4.1:** Precache delta ≤ 2 KiB, no new dependency, catalog still 15 entries
   - [x] **P4.T4.2:** Muted and reduced-motion runs produce no audible change beyond the intended silence
@@ -124,14 +124,17 @@
 - **Covers:** F1, F3, F4, F5, F6
 - **Touches:** `src/viewer/audio.ts`, `src/viewer/main.ts`, `src/viewer/audio-controls.ts`, `tests/viewer/audio-routing.test.ts`, `tests/viewer/hud-audio.test.ts`, `conductor/tracks/20261030-ranch-audible/spec.md`, `conductor/tracks/20261030-ranch-audible/verification/phase-4.md`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
+- **Result:** F1 closed by explicit unlock provenance; F4 takes the mute tap from `sfxForSurface`; F5's vacuous block removed; F3 fixed by narrowing NFR-2 to the dispatch path; F6 corrected in the phase 4 record and P4.T3.1. `pnpm verify` exit 0 at 46 test files / 544 tests.
+- **Checkpoint:** `c7a18cc`
+- **Evidence:** `verification/phase-R1.md`
 
-- [ ] **R1.T1: Record unlock provenance** - covers: F1
-  - [ ] **R1.T1.1:** `afterUnlock({ viaMuteControl })` OR-ed into `firstGestureWasMute`; `main.ts` passes `true` from the mute `onUnlock` and no flag from the gesture
-  - [ ] **R1.T1.2:** Tests: unmute-first (not muted at unlock, flagged as a mute control) stays silent; Walk while muted and unmuted inside the fade greets
-- [ ] **R1.T2: Surface table owns the mute decision** - covers: F4
-  - [ ] **R1.T2.1:** `audio-controls.ts` dispatches `sfxForSurface('mute')` instead of the literal `'tap'`
-- [ ] **R1.T3: Remove the vacuous FR-8 test** - covers: F5
-- [ ] **R1.T4: Narrow NFR-2 and correct the records** - covers: F3, F6
-  - [ ] **R1.T4.1:** NFR-2 narrowed to the dispatch path, with the one-shot greeting scheduler named as allowed
-  - [ ] **R1.T4.2:** P4.T3.1 marked pending on the human pass; the Phase 4 AC-5 row corrected; a comment in `toggleMute` records why a locked mute press is silent (F2, accepted)
+- [x] **R1.T1: Record unlock provenance** - covers: F1
+  - [x] **R1.T1.1:** `afterUnlock({ viaMuteControl })` OR-ed into `firstGestureWasMute`; `main.ts` passes `true` from the mute `onUnlock` and no flag from the gesture
+  - [x] **R1.T1.2:** Tests: unmute-first (not muted at unlock, flagged as a mute control) stays silent; Walk while muted and unmuted inside the fade greets
+- [x] **R1.T2: Surface table owns the mute decision** - covers: F4
+  - [x] **R1.T2.1:** `audio-controls.ts` dispatches `sfxForSurface('mute')` instead of the literal `'tap'`
+- [x] **R1.T3: Remove the vacuous FR-8 test** - covers: F5
+- [x] **R1.T4: Narrow NFR-2 and correct the records** - covers: F3, F6
+  - [x] **R1.T4.1:** NFR-2 narrowed to the dispatch path, with the one-shot greeting scheduler named as allowed
+  - [x] **R1.T4.2:** P4.T3.1 marked pending on the human pass; the Phase 4 AC-5 row corrected; a comment in `toggleMute` records why a locked mute press is silent (F2, accepted)

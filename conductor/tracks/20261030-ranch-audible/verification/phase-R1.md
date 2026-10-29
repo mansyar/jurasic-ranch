@@ -58,3 +58,22 @@ rest of the row:
   assertion.
 - No change to `src/audio/*`, `plan.md`, `metadata.json`, `tracks.md`,
   `conductor/index.md`, `review.md` or `pr.md`.
+
+## Primary verification
+
+- Tree clean before close; code diff vs 167fc3a = 6 files (+72/-22) inside the
+  R1 Touches plus the reported udio-controls-feedback.test.ts deviation.
+- udio.ts: `UnlockSource` + `afterUnlock(source?)` with
+  `firstGestureWasMute ||= source?.viaMuteControl === true` (never cleared by a
+  later provenance-less call); `main.ts` passes `{ viaMuteControl: true }` only
+  from the audio-controls `onUnlock`.
+- `audio-controls.ts` dispatches `sfxForSurface('mute')` (non-null for known
+  surfaces) and records why a locked muting press is dispatched then refused.
+- New tests assert both directions: mute-control unlock with an unmuted engine
+  stays silent and parks nothing; a Walk unlock while muted greets once the parent
+  unmutes inside the fade.
+- `pnpm verify` re-run independently: exit **0**, 46 test files / 544 tests,
+  80.38 % lines, `feedback.ts` 100 %, `audio.ts` 85 %, `hud.ts` 78.57 %,
+  precache 45 entries / 5072.38 KiB, build 303 ms, dist clean.
+- `spec.md` NFR-2 narrowed to the dispatch path; `P4.T3.1` now records the
+  pending `tablet-touch-play` pass instead of a verdict.
