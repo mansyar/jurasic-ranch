@@ -151,7 +151,7 @@
 **Result:** verified — screenshots and frame figures captured by the primary (the
 subagent's shell could not drive a browser), and AC-7 needed one more fix.
 
-**Checkpoint:** _(set after squash)_
+**Checkpoint:** 05005c8
 
 **Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-5.md
 
