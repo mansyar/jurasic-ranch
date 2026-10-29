@@ -1,6 +1,6 @@
 # PR — 20261029-brachio-joins-ranch
 
-- PR: (fill on create)
+- PR: https://github.com/mansyar/jurasic-ranch/pull/7
 - State: open (awaiting CI + user merge confirm — never merge without confirm)
 - Base: main | Head: feat/20261029-brachio-joins-ranch
 - Title: feat(ranch): Brachio joins the ranch
