@@ -78,7 +78,7 @@ Review fixes are appended by `conductor-review` as:
 - **Covers:** FR-9, NFR-4, AC-10, AC-11
 - **Touches:** `scripts/**`, `package.json`, `tests/**`, `conductor/tech-stack.md`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P3.T1: dist guard** - covers: FR-9
   - [ ] **P3.T1.1: `scripts/check-dist-clean.mjs`** scans `dist/` for the harness markers (`__ranch`, `data-dev-panel`, `installDevHarness`) and exits non-zero with the offending file when one is found.
