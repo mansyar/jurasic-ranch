@@ -40,7 +40,7 @@
 - **Covers:** FR-3, FR-4, FR-17, AC-6, AC-7, AC-17
 - **Touches:** `src/ranch/ground.ts`, `src/viewer/scene.ts`, `src/viewer/sky.ts`, `src/viewer/main.ts`, `tests/ranch/ground.test.ts`, `tests/viewer/sky.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P2.T1: Meadow apron** - covers: FR-3
   - [ ] **P2.T1.1:** `MEADOW_RADIUS_METRES` at least three times `GROUND_RADIUS_METRES`, and derive `CAMERA_FAR_METRES` from it
