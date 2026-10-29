@@ -175,7 +175,7 @@ subagent's shell could not drive a browser), and AC-7 needed one more fix.
     - [x] **P6.T3.2: Re-bake with the withdrawn clips dropped, shrink the byte caps to the shipped sizes, and capture a walk screenshot per species**
 
 **Result:** verified
-**Checkpoint:** _(set after squash)_
+**Checkpoint:** 4a4eb62
 **Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-6.md
 
 > The re-bake left `Idle` first in the file, and the viewer was still looking for
