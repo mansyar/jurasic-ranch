@@ -242,9 +242,21 @@ describe('no runtime pastel remap', () => {
   });
 });
 
-describe('audio stub', () => {
-  it('starts locked and silent', () => {
+describe('audio facade', () => {
+  it('starts locked without touching Howler', async () => {
     expect(isAudioUnlocked()).toBe(false);
+    const source = await readText('src/viewer/audio.ts');
+    // The engine is built lazily on the first gesture; the facade must never
+    // import Howler or construct an AudioContext at module load (FR-2).
+    expect(source).not.toMatch(/howler/);
+    expect(source).toMatch(/new AudioEngine\(\)/);
+  });
+
+  it('unlocks from the first document gesture, not the Walk toggle', async () => {
+    const source = await readText('src/viewer/main.ts');
+    expect(source).toContain('installGestureUnlock');
+    expect(source).toContain('installVisibilityHandling');
+    expect(source).not.toMatch(/void unlockAudio\(\)/);
   });
 });
 

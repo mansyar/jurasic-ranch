@@ -3,7 +3,8 @@ import type { DinoPlayer } from '../ranch/dino-player.js';
 import { trioSpawnPositions } from '../ranch/avoidance.js';
 import { buildDressing } from '../ranch/dressing.js';
 import { DustPool } from '../ranch/dust.js';
-import { unlockAudio } from './audio.js';
+import { installGestureUnlock, installVisibilityHandling } from '../audio/gesture.js';
+import { audioEngine, unlockAudio } from './audio.js';
 import {
   CANVAS_ID,
   STATUS_ID,
@@ -102,10 +103,15 @@ export async function bootViewer(): Promise<void> {
     initialWalking: (await readSetting(WALK_SETTING_KEY)) === true,
     onWalkChange: (walking) => {
       setAllWalking(stage.players, walking);
-      void unlockAudio();
       void writeSetting(WALK_SETTING_KEY, walking);
     },
   });
+
+  // FR-2/NFR-7: the first document gesture unlocks the engine and visibility
+  // changes pause/resume the loop. Walk no longer gates audio, and a repeated
+  // gesture is a no-op because the installer removes its listeners.
+  installGestureUnlock({ onUnlock: () => unlockAudio() });
+  installVisibilityHandling(audioEngine());
 
   // Swap one instant placeholder for its rigged GLB. Staggered-entry
   // headings (TRIO_SPAWN_HEADINGS_RADIANS) send the trio out on separated
