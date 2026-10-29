@@ -301,6 +301,32 @@ export async function bootViewer(): Promise<void> {
             hud.forceHint();
           },
           getSleepyState: () => hud.sleepyState(),
+          // FR-10: state comes from the engine and the kid-facing controls;
+          // mute and volume go through `hud.audio` so label, aria-pressed and
+          // persistence move exactly as a real tap would.
+          getAudioState: () => {
+            const engine = audioEngine();
+            return {
+              unlocked: engine.unlocked,
+              muted: audio.isMuted(),
+              volume: audio.volume(),
+              musicPlaying: engine.musicPlaying,
+              activeLine: engine.activeVoiceId,
+              lastStartLatencyMs: engine.lastStartLatencyMs,
+            };
+          },
+          mute: (muted: boolean) => {
+            audio.setMuted(muted);
+          },
+          setVolume: (volume: number) => {
+            audio.setVolume(volume);
+          },
+          play: (id) => {
+            audioEngine().play(id);
+          },
+          stopAll: () => {
+            audioEngine().stopAll();
+          },
         }
       : null;
 
