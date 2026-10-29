@@ -184,5 +184,5 @@ The primary appends after acceptance:
 - [x] **R2.T3: Restate the FR-9 row to match the spec** - covers: F7
 
 **Result:** verified
-**Checkpoint:** _(set after squash)_
+**Checkpoint:** de27e2f
 **Evidence:** conductor/tracks/20261029-ranch-housekeeping/verification/phase-R2.md
