@@ -272,6 +272,17 @@ describe('master volume (FR-7)', () => {
     expect(howler.muted).toBe(true);
     expect(howler.masterVolume).toBe(0.4);
   });
+
+  it('re-applies live gains when reconfigured after unlock', async () => {
+    const { engine, howler } = createEngine();
+    await engine.unlock();
+
+    engine.configure({ getMuted: () => true, getVolume: () => 0.3 });
+    expect(engine.muted).toBe(true);
+    expect(howler.muted).toBe(true);
+    expect(howler.masterVolume).toBe(0.3);
+    expect(howlFor('music-kalimba').volumeValue).toBe(0);
+  });
 });
 
 describe('voice ducking (FR-5, AC-3)', () => {

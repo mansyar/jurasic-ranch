@@ -197,7 +197,6 @@ export async function bootViewer(): Promise<void> {
     },
   });
 
-  // FR-2/NFR-7: the first document gesture unlocks the engine and visibility
   // Swap one instant placeholder for its rigged GLB. Staggered-entry
   // headings (TRIO_SPAWN_HEADINGS_RADIANS) send the trio out on separated
   // legs early so avoidance visibly steers from the first seconds.

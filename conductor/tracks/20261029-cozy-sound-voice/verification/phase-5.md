@@ -15,13 +15,13 @@
 
 | Layer | Command | Exit | Summary |
 | --- | --- | --- | --- |
-| static + unit + coverage + build | `pnpm verify` | 0 | oxlint clean; oxfmt 81 files clean; `tsrs --noEmit`; 40 files / 453 tests pass; lines 81.7% (gate 60); audio pack 15 assets / 853,289 B; Vite build OK; precache 45 entries / 4274.87 KiB; `dist` clean of dev-harness markers |
+| static + unit + coverage + build | `pnpm verify` | 0 | oxlint clean; oxfmt 81 files clean; `tsrs --noEmit`; 40 files / 455 tests pass; lines 81.73% (gate 60); audio pack 15 assets / 853,289 B; Vite build OK; precache 45 entries / 4274.94 KiB; `dist` clean of dev-harness markers |
 
 Coverage for the changed modules:
 
 | File | Statements | Branches | Lines |
 | --- | --- | --- | --- |
-| `src/audio/engine.ts` | 91.66 | 83.03 | 92.44 |
+| `src/audio/engine.ts` | 91.77 | 83.33 | 92.54 |
 | `src/dev/harness.ts` | 74.65 | 50.00 | 74.91 |
 | `src/dev/snapshot.ts` | covered through `tests/dev/snapshot.test.ts` (ported row not listed) | — | — |
 
@@ -52,7 +52,7 @@ line and the Sound row are covered by `tests/dev/harness-panel.test.ts`.
 | Precache total | <15 MB | 45 entries / ~4.28 MB | Vite PWA build output in `pnpm verify` |
 | Music start | playable after the first gesture | `musicPlaying: true`, `Howler.ctx.state: 'running'`, kalimba Howl `loop: true` | offline production tab |
 | Voice start latency (request -> `onplay`) | <=100 ms | 0.2 ms (`hello`, dev tab) | dev tab |
-| SFX start latency | <=50 ms | 20 rapid `tap` calls: avg 0.02 ms, p95 0.1 ms, max 0.2 ms | dev tab |
+| SFX dispatch latency (not onset) | measured for regressions only | 20 rapid `tap` calls: avg 0.02 ms, p95 0.1 ms, max 0.2 ms; onset unmeasured | dev tab |
 | fps before/after playback | 60 fps, no regression | not measurable in this environment (4-25 fps software renderer); treated as unmet pending hardware | headless desktop browser |
 
 `lastStartLatencyMs` now measures the time from `playVoice` entry to Howler's
@@ -171,3 +171,9 @@ Voice re-render: `hello` 0.88 s/−16.4, `nom` 1.06/−16.4, `all-done` 0.97/−
 `count-1` 0.74/−16.4, `count-2` 0.79/−16.5, `count-3` 0.79/−16.5,
 `count-4` 0.81/−16.9, `count-5` 0.85/−16.2. Pack total 853,289 B
 (734,241 B music/SFX + 119,048 B voice).
+
+Round 2 (F11-F15): the SFX row is now labelled dispatch, not onset; stale
+gesture/unlock comments were removed; `configure` re-applies master and music
+gains if called after unlock; and the missing-audio boot fallback has a source
+assertion. `pnpm verify` after these fixes: 40 files / 455 tests, 81.73% lines,
+precache 45 entries / 4274.94 KiB.

@@ -139,6 +139,10 @@ export class AudioEngine {
     }
     this.mutedFlag = this.getMuted();
     this.volumeValue = clampVolume(this.getVolume());
+    if (this.unlockedFlag) {
+      this.applyMasterGain();
+      this.applyMusicGain();
+    }
   }
 
   /** Whether the first gesture finished unlocking audio. */

@@ -282,6 +282,13 @@ describe('audio facade', () => {
     expect(source).toContain('shouldIgnore');
     expect(source).toContain('isAudioControlTarget');
   });
+
+  it('continues booting when the sound controls are missing (FR-9, F4)', async () => {
+    const source = await readText('src/viewer/main.ts');
+    expect(source).toContain('continuing without sound');
+    expect(source).toContain("'Sound unavailable'");
+    expect(source).toContain('audioReadyControl.resolve()');
+  });
 });
 
 describe('storage stub', () => {

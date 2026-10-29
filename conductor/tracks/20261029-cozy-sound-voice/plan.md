@@ -142,3 +142,21 @@
   - [x] **R1.T5.3:** Record AC-14 as pending-hardware debt for the Track 8 device pass.
 - [x] **R1.T6: Fix the double-padded voice tail** — covers: F10
   - [x] **R1.T6.1:** Pad `max(0, tail - guard)` and re-render the eight voice lines.
+
+## Phase R2: Review Fixes (round 2)
+
+- **Goal:** Resolve the round-2 findings: honest SFX latency wording, stale comments, the post-unlock `configure` contract, and the boot-fallback test gap.
+- **Depends on:** Phase R1
+- **Covers:** F11, F12, F13, F14, F15
+- **Touches:** `src/audio/engine.ts`, `tests/audio/engine.test.ts`, `src/viewer/main.ts`, `src/viewer/hud.ts`, `src/viewer/viewer.test.ts`, `conductor/tracks/20261029-cozy-sound-voice/verification/phase-5.md`
+- **Verification:** `pnpm verify`
+- **Status:** verified
+
+- [x] **R2.T1: Stop claiming SFX onset from dispatch timing** — covers: F11
+  - [x] **R2.T1.1:** Relabel the evidence row and record onset as unmeasured pending hardware.
+- [x] **R2.T2: Fix comments left stale by the round-1 moves** — covers: F12, F13
+  - [x] **R2.T2.1:** Drop the dangling gesture comment in `main.ts` and remove "audio unlock" from `onWalkChange`.
+- [x] **R2.T3: Make `configure` safe after unlock** — covers: F14
+  - [x] **R2.T3.1:** Re-apply master and music gains when providers change after unlock; test the path.
+- [x] **R2.T4: Pin the missing-audio boot fallback** — covers: F15
+  - [x] **R2.T4.1:** Add the source assertion for the warn + `Sound unavailable` + `audioReady` path.

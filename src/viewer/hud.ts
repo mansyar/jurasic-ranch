@@ -78,7 +78,7 @@ export interface HudOptions {
   audio: AudioControls | null;
   /** Saved Walk state restored from storage (FR-7). */
   initialWalking: boolean;
-  /** Apply a new Walk state to the players, audio unlock and storage. */
+  /** Apply a new Walk state to the players and storage. */
   onWalkChange(walking: boolean): void;
 }
 
