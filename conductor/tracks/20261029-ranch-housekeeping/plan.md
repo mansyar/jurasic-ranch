@@ -106,7 +106,7 @@
   - [x] **P4.T3.2:** Confirm `dist/` holds exactly one decoder wasm/wrapper pair and the total dropped by at least 1.2 MB; if it did not, stop and report rather than trimming elsewhere
 
 **Result:** verified
-**Checkpoint:** _(set after squash)_
+**Checkpoint:** ec54a06
 **Evidence:** conductor/tracks/20261029-ranch-housekeeping/verification/phase-4.md
 
 > Measured saving is 1,064,190 B (1.015 MiB), not the 1.2 MB estimated above —
