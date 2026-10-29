@@ -254,7 +254,9 @@ describe('greeting wiring (AC-5, FR-6)', () => {
     const { clock, feedback } = createGreetingHarness();
     engineState.unlocked = true;
 
-    feedback.afterUnlock();
+    // FR-6 keys suppression on the gesture: only explicit provenance marks a
+    // mute-first unlock, not the muted state at unlock time.
+    feedback.afterUnlock({ viaMuteControl: true });
     engineState.muted = false;
     clock.advanceTo(GREETING_DELAY_MS);
 
