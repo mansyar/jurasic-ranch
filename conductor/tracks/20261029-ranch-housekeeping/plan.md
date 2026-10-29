@@ -67,20 +67,24 @@
 - **Covers:** FR-4, FR-5, FR-6, FR-7, AC-4, AC-5, AC-6, AC-7, NFR-4, NFR-5
 - **Touches:** `package.json`, `.oxfmtrc.json`, `src/**/*.ts`, `tests/**/*.ts`, `scripts/**/*.ts`, `pnpm-lock.yaml`, `.github/workflows/ci.yml`
 - **Verification:** `pnpm verify` (must now include a coverage report) and a deliberate mis-format probe
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P3.T1: Make the formatter explicit and complete** - covers: FR-4, FR-5
-  - [ ] **P3.T1.1:** Add `.oxfmtrc.json` with the project's chosen settings and confirm the "No config found" message disappears (AC-5)
-  - [ ] **P3.T1.2:** Rewrite the `format` script to quote globs covering `src/**/*.ts`, `tests/**/*.ts`, `scripts/**/*.ts` plus the existing root config files, keeping the `public/draco` exclusion only if that directory still exists after Phase 4
-  - [ ] **P3.T1.3:** Run the formatter once across the tree and commit the resulting formatting-only diff separately from logic changes
-  - [ ] **P3.T1.4:** Prove the gate bites: temporarily mis-format a file under `tests/`, confirm `pnpm format --check` exits non-zero, then revert it (AC-4)
-- [ ] **P3.T2: Turn coverage on** - covers: FR-6
-  - [ ] **P3.T2.1:** Add `@vitest/coverage-v8` as a devDependency and configure the v8 provider in `vite.config.ts` with `thresholds.lines = 60`
-  - [ ] **P3.T2.2:** Run `pnpm coverage` and record the measured global number in the phase evidence (AC-6)
-  - [ ] **P3.T2.3:** If the measured number is below 60, add tests for the untested modules touched by this track rather than lowering the threshold; record the decision either way
-- [ ] **P3.T3: Wire coverage into the gate** - covers: FR-7, AC-7
-  - [ ] **P3.T3.1:** Replace the plain `test` step in the verify chain with the coverage run so a regression fails CI
-  - [ ] **P3.T3.2:** Confirm `.github/workflows/ci.yml` still calls `pnpm verify` and needs no change, then confirm a full local `pnpm verify` exits 0 and its output contains the coverage table (AC-7)
+- [x] **P3.T1: Make the formatter explicit and complete** - covers: FR-4, FR-5
+  - [x] **P3.T1.1:** Add `.oxfmtrc.json` with the project's chosen settings and confirm the "No config found" message disappears (AC-5)
+  - [x] **P3.T1.2:** Rewrite the `format` script to quote globs covering `src/**/*.ts`, `tests/**/*.ts`, `scripts/**/*.ts` plus the existing root config files, keeping the `public/draco` exclusion only if that directory still exists after Phase 4
+  - [x] **P3.T1.3:** Run the formatter once across the tree and commit the resulting formatting-only diff separately from logic changes
+  - [x] **P3.T1.4:** Prove the gate bites: temporarily mis-format a file under `tests/`, confirm `pnpm format --check` exits non-zero, then revert it (AC-4)
+- [x] **P3.T2: Turn coverage on** - covers: FR-6
+  - [x] **P3.T2.1:** Add `@vitest/coverage-v8` as a devDependency and configure the v8 provider in `vite.config.ts` with `thresholds.lines = 60`
+  - [x] **P3.T2.2:** Run `pnpm coverage` and record the measured global number in the phase evidence (AC-6)
+  - [x] **P3.T2.3:** If the measured number is below 60, add tests for the untested modules touched by this track rather than lowering the threshold; record the decision either way
+- [x] **P3.T3: Wire coverage into the gate** - covers: FR-7, AC-7
+  - [x] **P3.T3.1:** Replace the plain `test` step in the verify chain with the coverage run so a regression fails CI
+  - [x] **P3.T3.2:** Confirm `.github/workflows/ci.yml` still calls `pnpm verify` and needs no change, then confirm a full local `pnpm verify` exits 0 and its output contains the coverage table (AC-7)
+
+**Result:** verified
+**Checkpoint:** 09c131b
+**Evidence:** conductor/tracks/20261029-ranch-housekeeping/verification/phase-3.md
 
 ## Phase 4: Ship one Draco decoder
 
