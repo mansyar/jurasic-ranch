@@ -3,9 +3,9 @@
 - **Track:** `20261029-ranch-housekeeping`
 - **Type:** refactor
 - **Branch:** `refactor/20261029-ranch-housekeeping`
-- **Range:** `cb123990caa72c10b7a99651e040a5e58eb50e62..87f0c60`
+- **Range:** `cb123990caa72c10b7a99651e040a5e58eb50e62..f689be6`
 - **Date:** 2026-10-29
-- **Verdict:** PASS WITH FINDINGS
+- **Verdict:** PASS
 
 ## Summary
 
@@ -26,7 +26,8 @@ the constructor seeds its module-level `new URL('../libs/draco/…')` paths, so
 dropping `setDecoderPath` is correct rather than a silent root-relative 404. The
 gates now bite: 48 files format-checked, coverage in `verify`, 60 % line floor.
 
-Four Low findings remain, none of them behavioural.
+Seven Low findings were raised across two review rounds. All seven are fixed:
+four in Phase R1, three in Phase R2. Nothing is deferred, so the verdict is PASS.
 
 ## Verification
 
@@ -34,7 +35,7 @@ Four Low findings remain, none of them behavioural.
 | --- | --- | --- | --- |
 | Full gate | `pnpm verify` | pass, exit 0 | head `87f0c60` |
 | Lint | `oxlint` | pass | gate transcript |
-| Format | `oxfmt --check` | 48 files correct | gate transcript |
+| Format | `oxfmt --check` | 49 files correct | gate transcript |
 | Types | `tsrs --noEmit` | pass | gate transcript |
 | Unit | `vitest run` | 23 files, 232 tests | gate transcript |
 | Coverage | v8 | 77.47 % lines (717/923), floor 60 | gate transcript |
@@ -59,7 +60,7 @@ that verifies it.
 | FR-7 | `verify` runs coverage | P3.T3.1 | `package.json:17` | covered |
 | FR-8 | One decoder, no `setDecoderPath`, models load | P4.T1.1 | grep clean, only `/assets/draco_*` requested | covered |
 | FR-9 | `dist/` at least 1.0 MiB smaller | P4.T1.2, T3 | 3,489,691 vs 4,553,881 B | covered |
-| FR-10 | Manifest names the trio, declares raster/maskable/touch icons | P5.T2.1, T2.2 | manifest parse, 4 icons resolve | **partial** (F1) |
+| FR-10 | Manifest names the trio, declares raster/maskable/touch icons | P5.T2.1, T2.2, R1.T1 | manifest parse, 5 icons resolve | covered (F1 fixed) |
 | FR-11 | Title, description and apple-touch link | P5.T3.1, T3.2 | `index.html:12,16,17`, 2-line diff | covered |
 | FR-12 | Icon script deterministic and committed output matches | P5.T1.2, T1.3 | clean tree on re-run, identical SHA-256 | covered |
 | NFR-1 | No new runtime dependency | P5.T1.1 | `sharp` dev-only, absent from `dist/` | covered |
@@ -67,7 +68,7 @@ that verifies it.
 | NFR-3 | Offline boot still works | P4.T2.2 | dead server, 23 requests, 0 failures | covered |
 | NFR-4 | Gate green, no material slowdown | P3–P5 | exit 0, build 396 ms | covered |
 | NFR-5 | Styleguide met on changed lines | P2, P3 | lint/typecheck, `singleQuote: true` | covered |
-| NFR-6 | Precache inside 15 MB | P4, P5 | 30 entries, 3,425.76 KiB | covered |
+| NFR-6 | Precache inside 15 MB | P4, P5 | 30 entries, 3,425.89 KiB | covered |
 | AC-1 | `main.ts` under 300, no renderer/light/DRACOLoader | P2.T5.2 | 171 lines, grep 0 | covered |
 | AC-2 | Modules under 300, tests pass unchanged except imports | P2.T5.4 | 232 pass; two assertions rewritten, ten guards re-pointed (reported) | **partial** |
 | AC-3 | No shim, no importer, tests green | P1 | `ls-files` empty, grep, 232 pass | covered |
@@ -76,7 +77,7 @@ that verifies it.
 | AC-6 | Coverage at least 60 % and fails when lowered | P3.T2.2 | 77.47 % | covered |
 | AC-7 | `verify` shows a coverage table and exits 0 | P3.T3.1, T3.2 | transcript | covered |
 | AC-8 | No `public/draco/`, no `setDecoderPath`, models load | P4 | `ls-files` empty, browser 200s | covered |
-| AC-9 | One decoder set, at least 1.0 MiB smaller | P4.T3 | two three-emitted wasm variants remain (−1,064,190 B) | **partial** (F4) |
+| AC-9 | No app-supplied decoder, at least 1.0 MiB smaller | P4.T3, R1.T4 | no `dist/draco`, five three-emitted files (− 1,064,190 B) | covered (F4 fixed) |
 | AC-10 | Manifest parses, trio named, 192/512/maskable | P5.T2.3 | parse + browser | covered |
 | AC-11 | Title and description name the trio, touch icon resolves | P5.T3 | `index.html`, 200 `image/png` | covered |
 | AC-12 | Icon script idempotent on a clean tree | P5.T1.3 | clean `git status` before and after | covered |
@@ -119,6 +120,20 @@ reads as a file count, so the evidence has to argue with its own spec. *Fix:*
 restate the clause as "no app-supplied decoder; every decoder file present is
 emitted by three". *Requirement:* AC-9, FR-9.
 
+**F5 — `metadata.json:18-19`: the task counter disagreed with the plan.**
+Round 2 raised this against the R1 state: `tasks_total`/`tasks_done` read 18
+while the plan held 20 top-level tasks. *Fix:* both set to the census
+(16 `P*` + 4 `R1.*`), and later 23 once Phase R2 added three. *Requirement:* process.
+
+**F6 — `verification/integrated.md:20,51`: the precache figure predated the R1 build.**
+3,425.76 KiB was the pre-R1 total; the fix head is 3,425.89 KiB. *Fix:* both
+occurrences updated. *Requirement:* NFR-6.
+
+**F7 — `verification/integrated.md:42`: the FR-9 row reinstated "One decoder set".**
+The row was rewritten during R1 into the exact phrasing F4 removed from the spec,
+contradicting its own AC-9 row. *Fix:* restated as "no app-supplied decoder; every
+decoder file is three-emitted". *Requirement:* FR-9.
+
 ## Plan compliance
 
 | Phase | Result / Checkpoint / Evidence | Tasks | Within `Touches` | Deviations |
@@ -154,8 +169,9 @@ No task was silently dropped. Every `[x]` has an artefact in the tree.
 
 | Round | Verdict | Critical | High | Medium | Low | Fixed |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | PASS WITH FINDINGS | 0 | 0 | 0 | 4 | — |
+| 1 | PASS WITH FINDINGS | 0 | 0 | 0 | 4 | F1-F4 in R1 |
+| 2 | PASS WITH FINDINGS | 0 | 0 | 0 | 3 | F5-F7 in R2 |
 
 ## Doc sync
 
-pending
+synced at `2026-10-29` — `integrated.md`, `metadata.json` and the plan phases R1/R2 reflect the reviewed state
