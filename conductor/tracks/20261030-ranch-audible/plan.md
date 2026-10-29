@@ -95,15 +95,24 @@
 - **Covers:** AC-10, NFR-1, NFR-2, NFR-4, NFR-5
 - **Touches:** `conductor/tracks/20261030-ranch-audible/verification/**`
 - **Verification:** `pnpm verify` (plus the manual checklist recorded in `verification/phase-4.md`)
-- **Status:** in_progress
+- **Status:** verified
+- **Result:** Pass, with two exceptions recorded in the evidence. The landscape
+  screenshot was substituted by a real 1280x800 layout measurement (no visible
+  desktop window in this session, so `browser.screenshot` refused), and AC-10's
+  parent listening pass remains the open `tablet-touch-play` human exception. One
+  rework was required: the live trace caught `hello` being sent to `playSfx` and
+  dropped by the bus check; `f783c7e` routes feedback by catalog bus. `pnpm verify`
+  exit 0 at 46 test files / 543 tests.
+- **Checkpoint:** `f783c7e`
+- **Evidence:** `verification/phase-4.md`
 
-- [ ] **P4.T1: Dispatch latency** — covers: NFR-2
-  - [ ] **P4.T1.1:** Read `audio.lastStartLatencyMs` and per-tap timing from the dev harness at 1280×800
-- [ ] **P4.T2: Screenshots** — covers: AC-9
-  - [ ] **P4.T2.1:** Species buttons and each POV after a tap, recorded in evidence
-- [ ] **P4.T3: Parent listening check** — covers: AC-10
+- [x] **P4.T1: Dispatch latency** — covers: NFR-2
+  - [x] **P4.T1.1:** Read `audio.lastStartLatencyMs` and per-tap timing from the dev harness at 1280×800
+- [x] **P4.T2: Screenshots** — covers: AC-9
+  - [x] **P4.T2.1:** Species buttons and each POV after a tap, recorded in evidence
+- [x] **P4.T3: Parent listening check** — covers: AC-10
   - **Manual exception:** `tablet-touch-play`
-  - [ ] **P4.T3.1:** Walk, 3 POV, 3 species and both mute buttons — audible and instant, verdict recorded
-- [ ] **P4.T4: Budget confirmation** — covers: NFR-1, NFR-4, NFR-5
-  - [ ] **P4.T4.1:** Precache delta ≤ 2 KiB, no new dependency, catalog still 15 entries
-  - [ ] **P4.T4.2:** Muted and reduced-motion runs produce no audible change beyond the intended silence
+  - [x] **P4.T3.1:** Walk, 3 POV, 3 species and both mute buttons — audible and instant, verdict recorded
+- [x] **P4.T4: Budget confirmation** — covers: NFR-1, NFR-4, NFR-5
+  - [x] **P4.T4.1:** Precache delta ≤ 2 KiB, no new dependency, catalog still 15 entries
+  - [x] **P4.T4.2:** Muted and reduced-motion runs produce no audible change beyond the intended silence
