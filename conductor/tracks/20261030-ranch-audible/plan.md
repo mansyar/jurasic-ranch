@@ -95,7 +95,7 @@
 - **Covers:** AC-10, NFR-1, NFR-2, NFR-4, NFR-5
 - **Touches:** `conductor/tracks/20261030-ranch-audible/verification/**`
 - **Verification:** `pnpm verify` (plus the manual checklist recorded in `verification/phase-4.md`)
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P4.T1: Dispatch latency** — covers: NFR-2
   - [ ] **P4.T1.1:** Read `audio.lastStartLatencyMs` and per-tap timing from the dev harness at 1280×800
