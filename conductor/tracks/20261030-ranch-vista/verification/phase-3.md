@@ -280,3 +280,21 @@ composition, `127737b` water line, wallow and rotor, `12c1090` tests,
   so it sits under every rim stone and reed in the wallow's edge.
 - **Scatter is seeded, not random.** `Math.random` is never called (asserted),
   so `/?dev=1&seed=42&pause=1` captures the same ranch every time.
+
+## Primary verification
+
+Run by the orchestrator after squashing the phase.
+
+| Step | Command | Exit | Result |
+| --- | --- | --- | --- |
+| Vendor | `node scripts/vendor-dressing.mjs` | 0 | run by the orchestrator, not the phase agent: 19 files, 1,698,996 B, `--force`-free second run reports `kept`, so the script is idempotent. `public/models/dressing/` now holds 2,795,700 B across 31 files, inside the 4 MB dressing budget |
+| Formatting | `pnpm format` | 0 | 91 files; it rewrote `src/ranch/layout.ts` and `tests/ranch/layout.test.ts`, which is what had stopped the phase agent's gate at `oxfmt --check` |
+| Full gate | `pnpm verify` | 0 | lint, oxfmt check clean, typecheck, 567 tests / 47 files, coverage above the floor, audio pack ok, build ok, precache 63 entries / 6,692.47 KiB (inside 15 MB), `dist clean: no dev harness markers` |
+| Touches | `git diff --stat ebccb2d..HEAD` | - | 29 files: the vendor script, 19 GLBs, `CREDITS.md`, `layout.ts`, `dressing.ts`, three test files and this evidence file. Four deviations, all recorded above: `loop.ts` and `main.ts` for the rotor tick (the same one-field-plus-one-call shape as Phase 2), `tests/viewer/pov.test.ts` whose ring bound assumed every prop was on the ring and now takes the bound over ring props while its sightline test judges the treeline, and `ground.ts` touched then reverted so the wallow lives in `dressing.ts` |
+
+Notes for the reviewer:
+
+- **Nineteen GLBs, eighteen of them new.** `river-stone-cluster-0b55bc.glb` is the one the water line instanced, and it completes the set at nineteen catalogue entries against FR-5's fourteen.
+- **Draw calls are the interesting number**: 56 placements cost 61 calls because each single-material GLB is baked into one merged buffer. The unbaked path would have been 224 and would have tripled the frame's call count against a 15 MB precache budget it does not touch.
+- **Three mid-band height exceptions are deliberate and pinned in `MID_HEIGHT_EXCEPTIONS`**: the plum browse tree (FR-13), the reeds at the wallow (FR-15) and the signpost (the farm marker FR-14 needs to read as a path). FR-6's 1.4 m cap is otherwise enforced by test.
+- **No picture yet.** The capture path still does not exist; Phase 4 builds it (`?pov=` plus a scripted grab) and Phase 6 attaches the four shots.

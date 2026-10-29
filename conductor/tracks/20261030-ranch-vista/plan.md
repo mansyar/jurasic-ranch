@@ -71,30 +71,34 @@
 - **Covers:** FR-5, FR-6, FR-13, FR-14, FR-15, FR-16, FR-18, AC-8, AC-13, AC-14, AC-15, AC-16, AC-18
 - **Touches:** `scripts/vendor-dressing.mjs`, `public/models/dressing/`, `src/ranch/layout.ts`, `src/ranch/dressing.ts`, `CREDITS.md`, `tests/ranch/dressing.test.ts`, `tests/ranch/layout.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P3.T1: Vendor pipeline** - covers: FR-5
-  - [ ] **P3.T1.1:** `scripts/vendor-dressing.mjs` fetching the free Polyfork GLBs by asset id into `public/models/dressing/`
-  - [ ] **P3.T1.2:** one `CREDITS.md` row per asset (source, licence, processing)
-- [ ] **P3.T2: Mid band props** - covers: FR-6
-  - [ ] **P3.T2.1:** hay bale, signpost, flower bed, berry bush, milk churn, wooden crate, log stump, garden rock inside 8.4–10.2 m
-- [ ] **P3.T3: Foreground sprigs** - covers: FR-6
-  - [ ] **P3.T3.1:** club-moss mats, wildflowers, mushroom cluster and ginkgo litter, all at most 0.5 m, beside each lens and outside ±18° of its axis
-- [ ] **P3.T4: Treeline** - covers: FR-6
-  - [ ] **P3.T4.1:** cycad, tree fern, fern clump and reed cluster beyond 17 m on the apron, outside every lens cone
-- [ ] **P3.T5: Three corners and the centre** - covers: FR-13
-  - [ ] **P3.T5.1:** Brachio's corner: trough plus a browse tree within reach of the neck
-  - [ ] **P3.T5.2:** Trike's corner: hay nest; Stego's corner: wallow and ferns; centre stays clear as the twinkle spot
-- [ ] **P3.T6: Water line** - covers: FR-14
-  - [ ] **P3.T6.1:** flush stone gutter segments following the mid band from the pump to the trough and on to the wallow, with no gap
-- [ ] **P3.T7: Cause-and-effect scatter** - covers: FR-15
-  - [ ] **P3.T7.1:** every scatter placement records its parent and sits within 1.5 m of it
-- [ ] **P3.T8: Silhouette rhymes** - covers: FR-16
-  - [ ] **P3.T8.1:** one backdrop prop per preset within ±25° of the subject bearing and behind the subject
-- [ ] **P3.T9: Windpump landmark** - covers: FR-18
-  - [ ] **P3.T9.1:** place the Cozy Farm windpump on the apron and turn its blade group, or record `FR-18` as Withdrawn with the reason
-- [ ] **P3.T10: Budget tests** - covers: AC-8
-  - [ ] **P3.T10.1:** dressing bytes at most 4 MB, precache under 15 MB, and a documented draw-call and triangle ceiling
+**Result:** verified
+**Checkpoint:** 0a8e602
+**Evidence:** conductor/tracks/20261030-ranch-vista/verification/phase-3.md
+
+- [x] **P3.T1: Vendor pipeline** - covers: FR-5
+  - [x] **P3.T1.1:** `scripts/vendor-dressing.mjs` fetching the free Polyfork GLBs by asset id into `public/models/dressing/`
+  - [x] **P3.T1.2:** one `CREDITS.md` row per asset (source, licence, processing)
+- [x] **P3.T2: Mid band props** - covers: FR-6
+  - [x] **P3.T2.1:** hay bale, signpost, flower bed, berry bush, milk churn, wooden crate, log stump, garden rock inside 8.4–10.2 m
+- [x] **P3.T3: Foreground sprigs** - covers: FR-6
+  - [x] **P3.T3.1:** club-moss mats, wildflowers, mushroom cluster and ginkgo litter, all at most 0.5 m, beside each lens and outside ±18° of its axis
+- [x] **P3.T4: Treeline** - covers: FR-6
+  - [x] **P3.T4.1:** cycad, tree fern, fern clump and reed cluster beyond 17 m on the apron, outside every lens cone
+- [x] **P3.T5: Three corners and the centre** - covers: FR-13
+  - [x] **P3.T5.1:** Brachio's corner: trough plus a browse tree within reach of the neck
+  - [x] **P3.T5.2:** Trike's corner: hay nest; Stego's corner: wallow and ferns; centre stays clear as the twinkle spot
+- [x] **P3.T6: Water line** - covers: FR-14
+  - [x] **P3.T6.1:** flush stone gutter segments following the mid band from the pump to the trough and on to the wallow, with no gap
+- [x] **P3.T7: Cause-and-effect scatter** - covers: FR-15
+  - [x] **P3.T7.1:** every scatter placement records its parent and sits within 1.5 m of it
+- [x] **P3.T8: Silhouette rhymes** - covers: FR-16
+  - [x] **P3.T8.1:** one backdrop prop per preset within ±25° of the subject bearing and behind the subject
+- [x] **P3.T9: Windpump landmark** - covers: FR-18
+  - [x] **P3.T9.1:** place the Cozy Farm windpump on the apron and turn its blade group, or record `FR-18` as Withdrawn with the reason
+- [x] **P3.T10: Budget tests** - covers: AC-8
+  - [x] **P3.T10.1:** dressing bytes at most 4 MB, precache under 15 MB, and a documented draw-call and triangle ceiling
 
 ## Phase 4: Cameras and the Sky POV
 
