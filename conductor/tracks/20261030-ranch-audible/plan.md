@@ -15,8 +15,8 @@
 - **Depends on:** none
 - **Covers:** FR-5, FR-11, NFR-3, AC-4
 - **Touches:** `src/audio/feedback.ts`, `tests/audio/feedback.test.ts`
-- **Verification:** `pnpm test -- tests/audio/feedback.test.ts && pnpm verify`
-- **Status:** pending
+- **Verification:** `pnpm verify`
+- **Status:** in_progress
 
 - [ ] **P1.T1: Surface to sound table** — covers: FR-11
   - [ ] **P1.T1.1:** `TAP_SURFACES` for `walk`, `pov` and `mute`; `cooForSpecies()`; an explicit silent set for gear, close and slider
@@ -38,7 +38,7 @@
 - **Depends on:** Phase 1
 - **Covers:** FR-1, FR-2, FR-4, FR-10, AC-1, AC-3, AC-9
 - **Touches:** `index.html`, `src/viewer/hud.ts`, `tests/viewer/hud*.test.ts`
-- **Verification:** `pnpm test -- tests/viewer && pnpm verify`
+- **Verification:** `pnpm verify`
 - **Status:** pending
 
 - [ ] **P2.T1: Species entries become buttons** — covers: FR-4, FR-10
@@ -62,7 +62,7 @@
 - **Depends on:** Phase 2
 - **Covers:** FR-3, FR-6, FR-7, FR-8, FR-9, AC-2, AC-5, AC-6, AC-7, AC-8
 - **Touches:** `src/viewer/main.ts`, `src/viewer/audio-controls.ts`, `tests/viewer/audio-controls*.test.ts`
-- **Verification:** `pnpm test -- tests/viewer && pnpm verify`
+- **Verification:** `pnpm verify`
 - **Status:** pending
 
 - [ ] **P3.T1: First-press queue across unlock** — covers: FR-7
@@ -83,7 +83,7 @@
 - **Depends on:** Phase 3
 - **Covers:** AC-10, NFR-1, NFR-2, NFR-4, NFR-5
 - **Touches:** `conductor/tracks/20261030-ranch-audible/verification/**`
-- **Verification:** human checklist in `verification/phase-4.md` + `pnpm verify`
+- **Verification:** `pnpm verify` (plus the manual checklist recorded in `verification/phase-4.md`)
 - **Status:** pending
 
 - [ ] **P4.T1: Dispatch latency** — covers: NFR-2
