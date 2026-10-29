@@ -14,7 +14,7 @@
 - **Covers:** FR-3, AC-3
 - **Touches:** `src/ranch/trike-player.ts`, `tests/waddle/trike-player.test.ts`, `tests/waddle/dino-player.test.ts`
 - **Verification:** `pnpm test` (green at 174+ tests) then `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P1.T1: Port the unique assertion, then delete the shim** - covers: FR-3
   - [ ] **P1.T1.1:** Confirm `tests/waddle/dino-player.test.ts` already asserts one 0.8 s loop covers `WADDLE_STRIDE_METRES`; if not, add that assertion there before deleting anything
