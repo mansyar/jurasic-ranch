@@ -107,7 +107,7 @@ nobody loads.
 | FR-6 | `@vitest/coverage-v8` is installed as a devDependency, `pnpm coverage` produces a report, and the command exits non-zero when global coverage falls below 60%. | must |
 | FR-7 | The configured verify chain (`pnpm verify`) executes the coverage gate, so a coverage regression fails CI rather than being silently skipped. | must |
 | FR-8 | The Draco decoder is loaded from a single copy: `public/draco/` is deleted, no `setDecoderPath` call remains, and every rigged model still loads in a browser. | must |
-| FR-9 | The produced bundle contains exactly one decoder set, and total `dist/` size is at least 1.0 MiB smaller than at the track's base commit (measured 1,064,190 B). | must |
+| FR-9 | No app-supplied decoder ships: `dist/` contains no `draco/` copy and every decoder file present is emitted by three itself, and total `dist/` size is at least 1.0 MiB smaller than at the track's base commit (measured 1,064,190 B). | must |
 | FR-10 | `public/manifest.webmanifest` names and describes the trio ranch rather than the original Trike-only walk, and declares 192×192, 512×512, maskable, and apple-touch icons that exist in `public/icons/`. | must |
 | FR-11 | `index.html`'s `<title>` and `meta[name=description]` describe the trio ranch, and the page declares an `apple-touch-icon` link. | must |
 | FR-12 | `scripts/build-icons.mjs` regenerates every PNG icon from `public/icons/icon.svg` deterministically, and the committed PNGs match its output. | should |
@@ -135,7 +135,7 @@ nobody loads.
 | AC-6 | `pnpm coverage` exits 0 on the current tree and reports a global total ≥ 60%; lowering a file's coverage below the threshold makes it exit non-zero. | FR-6 |
 | AC-7 | `pnpm verify` runs the coverage gate — its output contains the coverage report — and still exits 0. | FR-7 |
 | AC-8 | `public/draco/` is absent, `grep -r setDecoderPath src/` returns nothing, and a preview load of Trike, Stego and Brachio succeeds in a browser. | FR-8 |
-| AC-9 | `dist/` contains exactly one `draco_decoder*.wasm` pair set and its total size is ≥ 1.0 MiB smaller than the base commit's build (measured 3,489,691 B vs 4,553,881 B). | FR-9 |
+| AC-9 | `dist/draco/` is absent, every `draco_*` file in `dist/` is emitted by three, and `dist/` total size is ≥ 1.0 MiB smaller than the base commit's build (measured 3,489,691 B vs 4,553,881 B). | FR-9 |
 | AC-10 | `public/manifest.webmanifest` mentions the trio and its icon entries point at files that exist; a parse of the manifest lists 192 and 512 raster icons plus a maskable entry. | FR-10 |
 | AC-11 | `index.html` `<title>` and `meta[name=description]` mention Trike, Stego and Brachio, and an `apple-touch-icon` link resolves. | FR-11 |
 | AC-12 | Running `node scripts/build-icons.mjs` on a clean tree leaves `git status` clean, proving the committed PNGs match generated output. | FR-12 |

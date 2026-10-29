@@ -295,6 +295,12 @@ describe('offline shell', () => {
       type: 'image/png',
       purpose: 'maskable',
     });
+    // iOS ignores the manifest icon list, but declaring the touch icon here too
+    // keeps the manifest the single inventory of icons we ship (FR-10).
+    expect(bySrc.get('/icons/apple-touch-icon.png')).toMatchObject({
+      sizes: '180x180',
+      type: 'image/png',
+    });
     expect(bySrc.get('/icons/icon.svg')).toMatchObject({ type: 'image/svg+xml' });
 
     for (const icon of icons) {
