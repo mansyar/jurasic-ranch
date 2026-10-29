@@ -67,3 +67,10 @@
   before this phase and sit outside its Touches; the primary owns committing them.
 - No viewer, ranch-gait, index.html, or vite config touched. Trike/Stego
   exports and all shared waddle math untouched (full suite green).
+
+## Primary verification
+
+- Squashed 6d34ce2 + e193a8f → 0af5b63 (same author, conventional, non-empty, no merge — guard passes), plus staged vendor base files (primary-vendored, Stego precedent).
+- Deleted scratch `tests/waddle/scratch-brachio-bake.test.ts` (untracked, header-marked SCRATCH).
+- `pnpm verify` exit 0 post-squash: oxlint + oxfmt check + tsrs + 154 tests (19 files) + vite build; precache 17 entries / 3290.43 KiB; brachio.glb 119,252 bytes.
+- Diff be6290e..0af5b63 = bake-brachio js/py/d.ts, brachiosaurus base mjs+params, brachio.glb, pastel/stride tests, check-brachio, CREDITS, phase-2 evidence — all within Touches + required vendor base.

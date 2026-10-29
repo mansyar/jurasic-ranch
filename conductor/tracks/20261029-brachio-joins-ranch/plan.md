@@ -37,19 +37,19 @@ The primary appends after acceptance:
 - **Covers:** FR-3, FR-4, AC-2
 - **Touches:** `assets/brachio/**`, `public/models/brachio.glb`, `scripts/vendor/bake-brachio-*`, `scripts/**/check-brachio*`, `tests/**/brachio-*.ts`, `CREDITS.md`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P2.T1: Vendor + bake Brachio** — covers: FR-3
-  - [ ] **P2.T1.1: Lookup Polyfork brachiosaurus-base, record final lavender distinct from Trike/Stego** — colorblind-safe, honest report_need if missing
-  - [ ] **P2.T1.2: Copy bake-stego pipeline to bake-brachio** — 1.2 m cap seated-shuffle, one-material flat-shaded Draco, feet y=0, blush
-- [ ] **P2.T2: Clip + pastel gates** — covers: FR-4
-  - [ ] **P2.T2.1: Prefer Waddle else first anim, 1.0 s seamless linear check** — same /draco/ decoder, no pop/skate
-  - [ ] **P2.T2.2: Pastel + neck + size + CREDITS** — distinct zones, neck in-frame, each GLB small, total tracked toward <22 MB
+- [x] **P2.T1: Vendor + bake Brachio** — covers: FR-3
+  - [x] **P2.T1.1: Lookup Polyfork brachiosaurus-base, record final lavender distinct from Trike/Stego** — colorblind-safe, honest report_need if missing
+  - [x] **P2.T1.2: Copy bake-stego pipeline to bake-brachio** — 1.2 m cap seated-shuffle, one-material flat-shaded Draco, feet y=0, blush
+- [x] **P2.T2: Clip + pastel gates** — covers: FR-4
+  - [x] **P2.T2.1: Prefer Waddle else first anim, 1.0 s seamless linear check** — same /draco/ decoder, no pop/skate
+  - [x] **P2.T2.2: Pastel + neck + size + CREDITS** — distinct zones, neck in-frame, each GLB small, total tracked toward <22 MB
 
 <!--
 The primary appends after acceptance:
 **Result:** verified
-**Checkpoint:** <short-sha>
+**Checkpoint:** 0af5b63
 **Evidence:** conductor/tracks/20261029-brachio-joins-ranch/verification/phase-2.md
 -->
 
