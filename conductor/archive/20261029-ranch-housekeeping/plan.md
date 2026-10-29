@@ -201,3 +201,20 @@ The primary appends after acceptance:
 **Result:** verified
 **Checkpoint:** 4fa5251
 **Evidence:** conductor/archive/20261029-ranch-housekeeping/verification/phase-R3.md
+
+## Phase R4: Merge origin/main (dev harness)
+
+- **Goal:** the dev harness track, which landed on `main` while this branch was open, works inside the decomposed viewer and every gate stays green.
+- **Depends on:** Phase R3
+- **Covers:** FR-1, FR-2, NFR-2
+- **Touches:** `src/viewer/main.ts`, `src/viewer/hud.ts`, `src/viewer/loop.ts`, `src/viewer/loaders.ts`, `tests/viewer/dev-harness-gate.test.ts`, `package.json`, `conductor/tracks.md`, `conductor/archive/20261029-ranch-housekeeping/verification/phase-R4.md`
+- **Verification:** `pnpm verify` plus a browser boot of the production build and a `?dev=1` boot of the harness
+- **Status:** verified
+
+- [x] **R4.T1: Port the harness wiring into the split modules** - covers: FR-1
+- [x] **R4.T2: Reconcile the verify script and the shared registry** - covers: NFR-2
+- [x] **R4.T3: Prove the production bundle is still harness-free** - covers: FR-2
+
+**Result:** verified
+**Checkpoint:** 7ac0967
+**Evidence:** conductor/archive/20261029-ranch-housekeeping/verification/phase-R4.md
