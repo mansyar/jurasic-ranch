@@ -16,7 +16,7 @@
 - **Covers:** FR-1, FR-7, FR-8, AC-1, AC-8, AC-9, NFR-4
 - **Touches:** `src/dev/**`, `tests/dev/**`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P1.T1: Dev option parsing and seeded RNG** - covers: FR-1, FR-8
   - [ ] **P1.T1.1: `parseDevQuery`** returns `{ enabled, seed, solo, paused, overlays }`; `dev` must equal `1` for `enabled`, and `seed` parses only finite integers (0 and negatives valid, junk ignored).
