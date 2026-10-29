@@ -72,3 +72,15 @@ success; NFR-5 (COPPA local-only) — no network, storage, or tracking added.
 - Follow-ups for later phases (not blockers): portrait `#pov` offset uses a
   fixed 88 px lift; Valley/Farm dressing (Phase 2) may want per-preset targets
   re-aimed at the nest-ring/garden markers once they exist.
+
+## Primary verification
+
+- Independent `pnpm verify` run by primary at squashed head `2596cda`: exit 0
+  (oxlint clean, oxfmt clean, tsrs clean, vitest 14 files / 126 tests passed,
+  vite build ok, precache 16 entries; chunk-size warning pre-existing).
+- Working tree clean; range `4b88642..2596cda` contains only the reported
+  commits (squashed); files changed all within `Touches`.
+- Accepted deviation: POV/hint/rotate CSS added to the existing `index.html`
+  inline `<style>` instead of a new `src/styles/*` stylesheet — smallest
+  necessary change, no new render-blocking request or precache change.
+- Result: verified.

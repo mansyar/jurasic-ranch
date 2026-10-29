@@ -14,14 +14,17 @@
 - **Covers:** FR-1, FR-2, FR-5, FR-6, NFR-1, NFR-3, NFR-5, AC-1, AC-2, AC-5, AC-6
 - **Touches:** `src/viewer/main.ts`, `src/viewer/pov.ts`, `index.html`, `src/styles/*`, `tests/viewer/*`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
+- **Result:** verified
+- **Checkpoint:** 2596cda
+- **Evidence:** conductor/tracks/20261029-ranch-warmth-ui/verification/phase-1.md
 
-- [ ] **P1.T1: Fixed POV presets + buttons** - covers: FR-1
-  - [ ] **P1.T1.1: Preset constants + camera jump** - covers: FR-1
-  - [ ] **P1.T1.2: Ranch/Nest/Garden buttons 72px + icons** - covers: FR-1
-- [ ] **P1.T2: Hint glow after 5s idle** - covers: FR-5
-- [ ] **P1.T3: Viewport lock + portrait hint** - covers: FR-6
-- [ ] **P1.T4: Viewer POV + hint tests** - covers: AC-1
+- [x] **P1.T1: Fixed POV presets + buttons** - covers: FR-1
+  - [x] **P1.T1.1: Preset constants + camera jump** - covers: FR-1
+  - [x] **P1.T1.2: Ranch/Nest/Garden buttons 72px + icons** - covers: FR-1
+- [x] **P1.T2: Hint glow after 5s idle** - covers: FR-5
+- [x] **P1.T3: Viewport lock + portrait hint** - covers: FR-6
+- [x] **P1.T4: Viewer POV + hint tests** - covers: AC-1
 
 <!--
 The primary appends after acceptance:
