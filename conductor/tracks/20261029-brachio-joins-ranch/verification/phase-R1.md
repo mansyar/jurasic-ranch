@@ -33,3 +33,9 @@
 
 - Comment-only changes; no behavior change, no new tests needed.
 - `pnpm verify` run after both edits: exit 0 (oxlint, oxfmt check, tsrs --noEmit, vitest 175/175, vite build).
+
+## Primary verification
+
+- Squashed c3dd825 + 6cc83a3 + 7782253 → 15f9674 (same author, conventional, non-empty — guard passes). Clean tree.
+- `pnpm verify` exit 0 post-squash: 175 tests / 20 files, precache 17 entries / 3292.66 KiB.
+- Diff 2c1136e..15f9674 = two test files (rename + comment) + this evidence — within R1 Touches, no behavior change.

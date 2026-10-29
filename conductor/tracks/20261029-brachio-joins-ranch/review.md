@@ -73,14 +73,14 @@ The trio track is correct and well-tested: BRACHIO_GAIT reuses the generic DinoP
 
 ### Low
 
-- **F2 — Misleading constant name in Brachio stride test**
+- **F2 — Misleading constant name in Brachio stride test [fixed in R1]**
   - **File:** `tests/waddle/brachio-stride.test.ts:19`
   - **What:** `SHIPPED_GLB` points at `public/models/trike.glb` (the donor), suggesting the shipped Brachio GLB is under test.
   - **Why:** Misleads future readers; only donor animation tracks are extracted.
   - **Fix:** Rename to `DONOR_TRIKE_GLB` with a comment that only donor tracks are extracted.
   - **Requirement:** none
   - **Test gap:** none
-- **F3 — Stale post-scale value in pastel test header**
+- **F3 — Stale post-scale value in pastel test header [fixed in R1]**
   - **File:** `tests/waddle/brachio-pastel.test.ts:18`
   - **What:** Header cites "extra 0.5 post-scale" but the shipped bake uses EXTRA_SCALE 0.27.
   - **Why:** Contradicts phase-2 evidence; misleads future bake tuning.
@@ -113,3 +113,4 @@ All three phases verified with Result/Checkpoint/Evidence; every [x] task implem
 | Round | Verdict | Critical | High | Medium | Low | Fixed |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | PASS WITH FINDINGS | 0 | 0 | 1 | 2 | 0 |
+| 2 | PASS WITH FINDINGS | 0 | 0 | 1 | 2 | 2 |

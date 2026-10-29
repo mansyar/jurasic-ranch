@@ -82,7 +82,13 @@ The primary appends after acceptance:
 - **Covers:** F2, F3
 - **Touches:** `tests/waddle/brachio-stride.test.ts`, `tests/waddle/brachio-pastel.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **R1.T1: Resolve F2** — covers: F2 (rename SHIPPED_GLB → DONOR_TRIKE_GLB + donor comment)
-- [ ] **R1.T2: Resolve F3** — covers: F3 (header 0.5 → 0.27 post-scale)
+- [x] **R1.T1: Resolve F2** — covers: F2 (rename SHIPPED_GLB → DONOR_TRIKE_GLB + donor comment)
+- [x] **R1.T2: Resolve F3** — covers: F3 (header 0.5 → 0.27 post-scale)
+
+<!--
+**Result:** verified
+**Checkpoint:** 15f9674
+**Evidence:** conductor/tracks/20261029-brachio-joins-ranch/verification/phase-R1.md
+-->
