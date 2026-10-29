@@ -70,14 +70,24 @@
 - **Covers:** FR-3, AC-2
 - **Touches:** `scripts/check-dino-clips.test.ts`, `scripts/vendor/inspect-dino-clips.mjs`
 - **Verification:** `pnpm verify`, plus a recorded run that fails against `1a96d6b`'s GLBs
-- **Status:** in_progress
+- **Status:** verified
 - **Tasks:**
-  - [ ] **P3.T1: Assert the displacement envelope** - covers: FR-3
-    - [ ] **P3.T1.1: For every animated bone, resolve rest translation and first-frame translation, and assert displacement ≤ 25 % of the bone's rest distance to its parent**
-    - [ ] **P3.T1.2: Assert `Walk` durations 2.4 s / 3.8 s and the presence of `Idle` and `Run`**
-  - [ ] **P3.T2: Prove the gate bites** - covers: AC-2
-    - [ ] **P3.T2.1: Run the test against the `1a96d6b` GLBs checked out into a temp dir and record the failure**
-    - [ ] **P3.T2.2: Record both runs in the phase evidence**
+  - [x] **P3.T1: Assert the displacement envelope** - covers: FR-3
+    - [x] **P3.T1.1: For every animated bone, resolve rest translation and first-frame translation, and assert displacement ≤ 25 % of the bone's rest distance to its parent**
+    - [x] **P3.T1.2: Assert `Walk` durations 2.4 s / 3.8 s and the presence of `Idle` and `Run`**
+  - [x] **P3.T2: Prove the gate bites** - covers: AC-2
+    - [x] **P3.T2.1: Run the test against the `1a96d6b` GLBs checked out into a temp dir and record the failure**
+    - [x] **P3.T2.2: Record both runs in the phase evidence**
+
+**Result:** verified
+**Checkpoint:** 3dd8e88
+**Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-3.md
+
+> The gate runs against any directory of GLBs through DINO_CLIPS_DIR, so the
+> pre-track run is the same four assertions, not a rewritten one: 4 passed on
+> the shipped files, 4 failed on 1a96d6b's with 22/24 Stego and 12/35 Brachio
+> bones over the bound. Brachio's `Head` rests within 1e-7 m of its parent, so
+> that bone uses a 1 mm absolute floor instead of a percentage.
 
 ## Phase 4: Gait constants and per-species scale
 
