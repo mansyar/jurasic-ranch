@@ -159,10 +159,14 @@ The primary appends after acceptance:
 - **Covers:** F1, F2, F3, F4
 - **Touches:** `public/manifest.webmanifest`, `src/viewer/viewer.test.ts`, `package.json`, `conductor/tracks/20261029-ranch-housekeeping/spec.md`, `conductor/tracks/20261029-ranch-housekeeping/verification/integrated.md`, `conductor/tracks/20261029-ranch-housekeeping/metadata.json`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **R1.T1: Declare the apple-touch icon in the manifest** - covers: F1
-- [ ] **R1.T2: Put `.mjs` under the format gate** - covers: F2
-- [ ] **R1.T3: Correct the evidence and counters** - covers: F3
-- [ ] **R1.T4: Restate AC-9 as a rule, not a count** - covers: F4
+- [x] **R1.T1: Declare the apple-touch icon in the manifest** - covers: F1
+- [x] **R1.T2: Put `.mjs` under the format gate** - covers: F2
+- [x] **R1.T3: Correct the evidence and counters** - covers: F3
+- [x] **R1.T4: Restate AC-9 as a rule, not a count** - covers: F4
+
+**Result:** verified
+**Checkpoint:** c8328c5
+**Evidence:** conductor/tracks/20261029-ranch-housekeeping/verification/phase-R1.md
 
