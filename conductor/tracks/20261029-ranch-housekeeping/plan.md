@@ -35,26 +35,30 @@
 - **Covers:** FR-1, FR-2, AC-1, AC-2, NFR-2, NFR-5
 - **Touches:** `src/viewer/main.ts`, `src/viewer/scene.ts`, `src/viewer/hud.ts`, `src/viewer/loaders.ts`, `src/viewer/placeholders.ts`, `src/viewer/loop.ts`, `src/viewer/viewer.test.ts`, `tests/**/*.ts`
 - **Verification:** `pnpm verify` plus a side-by-side screenshot against `cb12399` recorded in the phase evidence
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P2.T1: Extract scene construction** - covers: FR-1
-  - [ ] **P2.T1.1:** Move renderer, camera, lights, ground, background, pixel-ratio and resize handling into `src/viewer/scene.ts`, exporting a `createScene()`-style factory returning the pieces the loop needs
-  - [ ] **P2.T1.2:** Keep renderer settings byte-identical (`antialias`, `PCFShadowMap`, `NoToneMapping`, background `0x9fd4ef`, ground `0x7ec850`, `PerspectiveCamera(40)`)
-- [ ] **P2.T2: Extract DOM chrome** - covers: FR-1, FR-2
-  - [ ] **P2.T2.1:** Move status text, species list, walk-button state, POV nav wiring, hint-glow timing and rotate-hint handling into `src/viewer/hud.ts`
-  - [ ] **P2.T2.2:** Keep every element id, class name and `aria-pressed` toggle identical so the existing DOM-chrome tests pass unchanged
-- [ ] **P2.T3: Extract model loading and placeholders** - covers: FR-1, FR-2
-  - [ ] **P2.T3.1:** Move `loadDinoPlayer`, `loadTrikePlayer`, `loadStegoPlayer`, `loadBrachioPlayer`, `DustPool` wiring and the `*_MODEL_URL` constants into `src/viewer/loaders.ts`
-  - [ ] **P2.T3.2:** Move `createPlaceholderTrike`, `createPlaceholderStego`, `createPlaceholderBrachio`, `updatePlaceholderWalk` and the placeholder/shared colour constants into `src/viewer/placeholders.ts`
-  - [ ] **P2.T3.3:** Update the import paths in `viewer.test.ts`, `dual-viewer.test.ts`, `trio-viewer.test.ts` and any other suite that imports these from `main.ts`; no assertion text changes
-- [ ] **P2.T4: Extract the render loop** - covers: FR-1
-  - [ ] **P2.T4.1:** Move the rAF loop, `dt` clamp, sleepy-weight propagation, blink/squash updates, pair-avoidance steering and dust emission into `src/viewer/loop.ts`
-  - [ ] **P2.T4.2:** Confirm the loop reads the same state it did before — no reordering that changes which subsystem sees which `dt`
-- [ ] **P2.T5: Slim `main.ts` and prove parity** - covers: FR-1, AC-1, AC-2, NFR-2
-  - [ ] **P2.T5.1:** Reduce `src/viewer/main.ts` to boot: create scene, build HUD, kick off the three loads, start the loop, register lifecycle listeners
-  - [ ] **P2.T5.2:** Prove `main.ts` is under 300 lines and contains no `new THREE.WebGLRenderer`, `new THREE.DirectionalLight`, or `DRACOLoader` construction (AC-1)
-  - [ ] **P2.T5.3:** Capture a screenshot at each POV preset before and after the split and store both in the phase evidence, confirming they match
-  - [ ] **P2.T5.4:** Confirm every extracted module is under 300 lines (AC-2)
+- [x] **P2.T1: Extract scene construction** - covers: FR-1
+  - [x] **P2.T1.1:** Move renderer, camera, lights, ground, background, pixel-ratio and resize handling into `src/viewer/scene.ts`, exporting a `createScene()`-style factory returning the pieces the loop needs
+  - [x] **P2.T1.2:** Keep renderer settings byte-identical (`antialias`, `PCFShadowMap`, `NoToneMapping`, background `0x9fd4ef`, ground `0x7ec850`, `PerspectiveCamera(40)`)
+- [x] **P2.T2: Extract DOM chrome** - covers: FR-1, FR-2
+  - [x] **P2.T2.1:** Move status text, species list, walk-button state, POV nav wiring, hint-glow timing and rotate-hint handling into `src/viewer/hud.ts`
+  - [x] **P2.T2.2:** Keep every element id, class name and `aria-pressed` toggle identical so the existing DOM-chrome tests pass unchanged
+- [x] **P2.T3: Extract model loading and placeholders** - covers: FR-1, FR-2
+  - [x] **P2.T3.1:** Move `loadDinoPlayer`, `loadTrikePlayer`, `loadStegoPlayer`, `loadBrachioPlayer`, `DustPool` wiring and the `*_MODEL_URL` constants into `src/viewer/loaders.ts`
+  - [x] **P2.T3.2:** Move `createPlaceholderTrike`, `createPlaceholderStego`, `createPlaceholderBrachio`, `updatePlaceholderWalk` and the placeholder/shared colour constants into `src/viewer/placeholders.ts`
+  - [x] **P2.T3.3:** Update the import paths in `viewer.test.ts`, `dual-viewer.test.ts`, `trio-viewer.test.ts` and any other suite that imports these from `main.ts`; no assertion text changes
+- [x] **P2.T4: Extract the render loop** - covers: FR-1
+  - [x] **P2.T4.1:** Move the rAF loop, `dt` clamp, sleepy-weight propagation, blink/squash updates, pair-avoidance steering and dust emission into `src/viewer/loop.ts`
+  - [x] **P2.T4.2:** Confirm the loop reads the same state it did before - no reordering that changes which subsystem sees which `dt`
+- [x] **P2.T5: Slim `main.ts` and prove parity** - covers: FR-1, AC-1, AC-2, NFR-2
+  - [x] **P2.T5.1:** Reduce `src/viewer/main.ts` to boot: create scene, build HUD, kick off the three loads, start the loop, register lifecycle listeners
+  - [x] **P2.T5.2:** Prove `main.ts` is under 300 lines and contains no `new THREE.WebGLRenderer`, `new THREE.DirectionalLight`, or `DRACOLoader` construction (AC-1)
+  - [x] **P2.T5.3:** Capture a screenshot at each POV preset before and after the split and store both in the phase evidence, confirming they match
+  - [x] **P2.T5.4:** Confirm every extracted module is under 300 lines (AC-2)
+
+**Result:** verified
+**Checkpoint:** 20fae35
+**Evidence:** conductor/tracks/20261029-ranch-housekeeping/verification/phase-2.md
 
 ## Phase 3: Repair the verify gate
 
