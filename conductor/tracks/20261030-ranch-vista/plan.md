@@ -71,7 +71,7 @@
 - **Covers:** FR-5, FR-6, FR-13, FR-14, FR-15, FR-16, FR-18, AC-8, AC-13, AC-14, AC-15, AC-16, AC-18
 - **Touches:** `scripts/vendor-dressing.mjs`, `public/models/dressing/`, `src/ranch/layout.ts`, `src/ranch/dressing.ts`, `CREDITS.md`, `tests/ranch/dressing.test.ts`, `tests/ranch/layout.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P3.T1: Vendor pipeline** - covers: FR-5
   - [ ] **P3.T1.1:** `scripts/vendor-dressing.mjs` fetching the free Polyfork GLBs by asset id into `public/models/dressing/`
