@@ -3,7 +3,7 @@
 - **Track:** 20261029-authored-dino-walk-clips
 - **Branch:** `fix/20261029-authored-dino-walk-clips`
 - **Base:** `fe7bd89`
-- **Head:** _set after squash_
+- **Head:** `bff3675`
 - **Result:** verified - round 1's High is confirmed closed, and the one Medium round 2 raised (the fix had no test observing the production call site) is now guarded by a test that fails without it.
 
 ## Round 2 findings

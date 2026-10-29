@@ -224,5 +224,5 @@ subagent's shell could not drive a browser), and AC-7 needed one more fix.
   - [x] **R2.T4: Correct the integrated evidence** - covers: F2.4
 
 **Result:** verified - the round-2 Medium is closed by a test that reads 0.745 m/s without the conversion and 0.4413 with it.
-**Checkpoint:** _(set after squash)_
+**Checkpoint:** bff3675
 **Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-R2.md
