@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from "../ranch/dino-player.js";
-import { avoidanceNudges } from "../ranch/avoidance.js";
+import { BRACHIO_GAIT, DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from "../ranch/dino-player.js";
+import { avoidanceNudges, trioAvoidanceNudges, trioSpawnPositions } from "../ranch/avoidance.js";
 import { buildDressing } from "../ranch/dressing.js";
 import { DustPool } from "../ranch/dust.js";
 import { SleepyController } from "../ranch/sleepy.js";
@@ -39,6 +39,13 @@ export const TRIKE_MODEL_URL = `${BASE_URL}models/trike.glb`;
 export const STEGO_MODEL_URL = `${BASE_URL}models/stego.glb`;
 
 /**
+ * Path of the baked Brachio GLB (Phase 3 pastel baby variant, Draco). Loads
+ * through the same Draco path and prefer-Waddle-else-first contract as the
+ * Trike and Stego, wrapped in a DinoPlayer with BRACHIO_GAIT.
+ */
+export const BRACHIO_MODEL_URL = `${BASE_URL}models/brachio.glb`;
+
+/**
  * Same-origin Draco decoder vendored under `public/draco` (offline-first:
  * never the Google CDN default decoder path).
  */
@@ -63,6 +70,10 @@ export const PLACEHOLDER_BODY_HEX = 0x9ed68a;
 export const STEGO_BODY_HEX = 0x7fb5a3;
 /** Boxy fallback Stego plates: peach, verbatim the baked Stego plate zone. */
 export const STEGO_PLATE_HEX = 0xefa27e;
+/** Boxy fallback Brachio hide: lavender, verbatim the baked Brachio coat zone. */
+export const BRACHIO_BODY_HEX = 0xb8a9d6;
+/** Cream belly accent, verbatim the baked Brachio belly zone. */
+export const BRACHIO_BELLY_HEX = 0xf2e9d8;
 /** Lateral spawn offset in metres: Trike starts at -x, Stego at +x (FR-5). */
 export const SPAWN_OFFSET_METRES = 0.4;
 /** Blush pink for the runtime cheek spheres. */
@@ -298,6 +309,99 @@ export function createPlaceholderStego(): THREE.Group {
 }
 
 /**
+ * Build the Phase 3 boxy fallback Brachio: a grazing long-neck with a cream
+ * belly, about 2.6 m long facing +Z with its feet on y = 0 — the same
+ * footprint window as the rigged swap target (baked grazing baby, ~2.7 m,
+ * 2.3–3.1 m per scripts/check-brachio.test.ts), so the swap does not pop.
+ * Deliberately boxy (boxes only) so it never reads as a third Trike or
+ * Stego. Shares the placeholder bob via the common PlaceholderBody part
+ * name. The grazing pose keeps the placeholder head near the 1.2 m cap.
+ */
+export function createPlaceholderBrachio(): THREE.Group {
+  const hide = new THREE.MeshStandardMaterial({
+    color: BRACHIO_BODY_HEX,
+    flatShading: true,
+    roughness: 0.9,
+  });
+  const belly = new THREE.MeshStandardMaterial({
+    color: BRACHIO_BELLY_HEX,
+    flatShading: true,
+    roughness: 0.9,
+  });
+  const dark = new THREE.MeshStandardMaterial({
+    color: 0x3a4a3a,
+    flatShading: true,
+    roughness: 0.9,
+  });
+  const blush = new THREE.MeshStandardMaterial({
+    color: BLUSH_HEX,
+    flatShading: true,
+    roughness: 0.9,
+  });
+
+  const brachio = new THREE.Group();
+  brachio.name = "PlaceholderBrachio";
+
+  /** Upper body: the only part the fallback bob may move (feet stay planted). */
+  const upper = new THREE.Group();
+  upper.name = PLACEHOLDER_BODY_NAME;
+  brachio.add(upper);
+
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.4, 0.36), hide);
+  torso.position.set(0, 0.45, 0);
+  upper.add(torso);
+
+  const bellyPatch = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.3), belly);
+  bellyPatch.position.set(0, 0.28, 0);
+  upper.add(bellyPatch);
+
+  const neck = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.16, 0.16), hide);
+  neck.position.set(0.45, 0.58, 0);
+  neck.rotation.z = 0.15;
+  upper.add(neck);
+
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.22, 0.22), hide);
+  head.position.set(0.72, 0.62, 0);
+  upper.add(head);
+
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.16, 0.16), hide);
+  tail.position.set(-0.5, 0.48, 0);
+  upper.add(tail);
+
+  const eyeGeo = new THREE.SphereGeometry(0.03, 8, 8);
+  for (const z of [-0.1, 0.1]) {
+    const eye = new THREE.Mesh(eyeGeo, dark);
+    eye.position.set(0.82, 0.66, z);
+    upper.add(eye);
+  }
+
+  const cheekGeo = new THREE.SphereGeometry(0.04, 8, 8);
+  for (const z of [-0.13, 0.13]) {
+    const cheek = new THREE.Mesh(cheekGeo, blush);
+    cheek.scale.set(0.5, 1, 0.4);
+    cheek.position.set(0.78, 0.56, z);
+    upper.add(cheek);
+  }
+
+  const legGeo = new THREE.BoxGeometry(0.15, 0.36, 0.15);
+  for (const x of [-0.22, 0.22]) {
+    for (const z of [-0.12, 0.12]) {
+      const leg = new THREE.Mesh(legGeo, hide);
+      leg.position.set(x, 0.18, z);
+      brachio.add(leg);
+    }
+  }
+
+  // Same swap contract as the other placeholders: authored parts face +X at
+  // ~1.54 m, so rotate onto +Z then scale by 1.7 into the 2.3–3.1 m
+  // shipped-GLB window. Group origin sits at ground level, feet on y = 0.
+  brachio.rotation.y = -Math.PI / 2;
+  brachio.scale.setScalar(1.7);
+
+  return brachio;
+}
+
+/**
  * Pose the placeholder for a walk time. Only the upper body bobs (feet stay
  * planted) and the pose at the loop end matches the loop start, so the 0.8 s
  * loop is seamless.
@@ -364,6 +468,11 @@ export function loadStegoPlayer(sharedDust?: DustPool): Promise<LoadedDino> {
   return loadDinoPlayer(STEGO_MODEL_URL, "Stego", STEGO_GAIT, sharedDust);
 }
 
+/** Load the baked Brachio GLB with the Brachio shuffle gait (FR-1). */
+export function loadBrachioPlayer(sharedDust?: DustPool): Promise<LoadedDino> {
+  return loadDinoPlayer(BRACHIO_MODEL_URL, "Brachio", BRACHIO_GAIT, sharedDust);
+}
+
 /** One Walk button drives every loaded player together (FR-7, AC-4). */
 export function setAllWalking(players: DinoPlayer[], walking: boolean): void {
   for (const player of players) {
@@ -371,9 +480,9 @@ export function setAllWalking(players: DinoPlayer[], walking: boolean): void {
   }
 }
 
-/** Status pill copy: names both species while walking (NFR-4 icon + word). */
+/** Status pill copy: names all three species while walking (NFR-4 icon + word). */
 export function walkStatusText(walking: boolean): string {
-  return walking ? "🦕 Trike + 🦖 Stego walking" : "Tap Walk to waddle";
+  return walking ? "🦕 Trike + 🦖 Stego + 🦴 Brachio walking" : "Tap Walk to waddle";
 }
 
 /**
@@ -402,6 +511,54 @@ export function steerPairApart(
     stego.turnTo(wrapAngle(stego.heading + bNudge));
   }
 }
+
+/**
+ * Soft-steer all three dinos apart (FR-6): applies the pairwise avoidance to
+ * each of the 3 pairs and clamps the summed bias per dino, so a dino crowded
+ * on both sides still gets a small bounded steer. Never touches `moving`,
+ * so the trio never stops, bounces, or teleports.
+ */
+export function steerTrioApart(
+  trike: DinoPlayer,
+  trikeModel: THREE.Object3D,
+  stego: DinoPlayer,
+  stegoModel: THREE.Object3D,
+  brachio: DinoPlayer,
+  brachioModel: THREE.Object3D,
+): void {
+  const nudges = trioAvoidanceNudges(
+    trikeModel.position.x,
+    trikeModel.position.z,
+    trike.heading,
+    stegoModel.position.x,
+    stegoModel.position.z,
+    stego.heading,
+    brachioModel.position.x,
+    brachioModel.position.z,
+    brachio.heading,
+  );
+  if (nudges.aNudge !== 0) {
+    trike.turnTo(wrapAngle(trike.heading + nudges.aNudge));
+  }
+  if (nudges.bNudge !== 0) {
+    stego.turnTo(wrapAngle(stego.heading + nudges.bNudge));
+  }
+  if (nudges.cNudge !== 0) {
+    brachio.turnTo(wrapAngle(brachio.heading + nudges.cNudge));
+  }
+}
+
+/**
+ * Staggered-entry spawn headings in radians (+Z = 0): the locked trio-wander
+ * draw (tests/waddle/trio-wander.test.ts) — Trike near-center, Stego central,
+ * Brachio on a radial-outward leg — so the trio never piles up three-deep
+ * and every leg stays central/radial inside the wander circle.
+ */
+export const TRIO_SPAWN_HEADINGS_RADIANS: readonly [number, number, number] = [
+  Math.PI - 0.35,
+  1.0472,
+  2.094,
+];
 
 /** Set the status pill text when the element exists. */
 function setStatus(status: HTMLElement | null, text: string): void {
@@ -470,18 +627,23 @@ export async function bootViewer(): Promise<void> {
     });
   };
 
-  // Instant boxy pair at the ±0.4 m spawn (FR-5): each rigged GLB swaps its
-  // own placeholder on load, so a slow Stego fetch never blocks the Trike.
+  // Instant boxy trio at the 120 deg triangle spawn (FR-5): each rigged GLB
+  // swaps its own placeholder on load, so a slow fetch never blocks the rest.
+  const spawn = trioSpawnPositions();
   const trike = createPlaceholderTrike();
-  trike.position.set(-SPAWN_OFFSET_METRES, 0, 0);
+  trike.position.set(spawn[0].x, 0, spawn[0].z);
   enableShadows(trike);
   scene.add(trike);
   const stego = createPlaceholderStego();
-  stego.position.set(SPAWN_OFFSET_METRES, 0, 0);
+  stego.position.set(spawn[1].x, 0, spawn[1].z);
   enableShadows(stego);
   scene.add(stego);
+  const brachio = createPlaceholderBrachio();
+  brachio.position.set(spawn[2].x, 0, spawn[2].z);
+  enableShadows(brachio);
+  scene.add(brachio);
 
-  // FR-9: one shared DustPool feeds both players (single points draw call).
+  // FR-9: one shared DustPool feeds all three players (single draw call).
   const sharedDust = new DustPool();
   scene.add(sharedDust.points);
 
@@ -489,8 +651,10 @@ export async function bootViewer(): Promise<void> {
   const players: DinoPlayer[] = [];
   let trikePlayer: DinoPlayer | null = null;
   let stegoPlayer: DinoPlayer | null = null;
+  let brachioPlayer: DinoPlayer | null = null;
   let trikeModel: THREE.Object3D = trike;
   let stegoModel: THREE.Object3D = stego;
+  let brachioModel: THREE.Object3D = brachio;
   const syncChrome = (): void => {
     button.textContent = walking ? "Stop" : "Walk";
     button.setAttribute("aria-pressed", walking ? "true" : "false");
@@ -521,6 +685,10 @@ export async function bootViewer(): Promise<void> {
     syncChrome();
   });
   syncChrome();
+
+  // Swap one instant placeholder for its rigged GLB. Staggered-entry
+  // headings (TRIO_SPAWN_HEADINGS_RADIANS) send the trio out on separated
+  // legs early so avoidance visibly steers from the first seconds.
 
   // FR-1: fixed POV buttons cut the camera instantly (no tween, AC-1).
   const povButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("#pov [data-pov]"));
@@ -589,9 +757,6 @@ export async function bootViewer(): Promise<void> {
   };
   syncRotateHint();
 
-  // Swap one instant placeholder for its rigged GLB. Crossing initial
-  // headings (+X for Trike, -X for Stego) send the pair past each other
-  // early so avoidance visibly steers from the first seconds.
   const swapToRigged = (
     placeholder: THREE.Group,
     loaded: LoadedDino,
@@ -611,10 +776,10 @@ export async function bootViewer(): Promise<void> {
   // Swap the instant placeholders for the rigged GLBs once Draco decoding
   // finishes. A failed load keeps its placeholder walking (offline
   // first-visit safety) and surfaces the reason in the console; the other
-  // dino is unaffected.
+  // dinos are unaffected.
   void loadTrikePlayer(sharedDust)
     .then((loaded) => {
-      swapToRigged(trike, loaded, Math.PI / 2, (player, model) => {
+      swapToRigged(trike, loaded, TRIO_SPAWN_HEADINGS_RADIANS[0], (player, model) => {
         trikePlayer = player;
         trikeModel = model;
       });
@@ -625,13 +790,24 @@ export async function bootViewer(): Promise<void> {
 
   void loadStegoPlayer(sharedDust)
     .then((loaded) => {
-      swapToRigged(stego, loaded, -Math.PI / 2, (player, model) => {
+      swapToRigged(stego, loaded, TRIO_SPAWN_HEADINGS_RADIANS[1], (player, model) => {
         stegoPlayer = player;
         stegoModel = model;
       });
     })
     .catch((error: unknown) => {
       console.warn("Rigged stego unavailable; keeping the placeholder.", error);
+    });
+
+  void loadBrachioPlayer(sharedDust)
+    .then((loaded) => {
+      swapToRigged(brachio, loaded, TRIO_SPAWN_HEADINGS_RADIANS[2], (player, model) => {
+        brachioPlayer = player;
+        brachioModel = model;
+      });
+    })
+    .catch((error: unknown) => {
+      console.warn("Rigged brachio unavailable; keeping the placeholder.", error);
     });
 
   // FR-3: Valley + Farm dressing loads in parallel with the dinos; any GLB
@@ -669,8 +845,19 @@ export async function bootViewer(): Promise<void> {
       setSleepyVisible(sleepyOverlay, showSleepy, reducedMotion);
       sleepyShown = showSleepy;
     }
-    if (trikePlayer !== null && stegoPlayer !== null) {
-      steerPairApart(trikePlayer, trikeModel, stegoPlayer, stegoModel);
+    if (trikePlayer !== null && stegoPlayer !== null && brachioPlayer !== null) {
+      steerTrioApart(trikePlayer, trikeModel, stegoPlayer, stegoModel, brachioPlayer, brachioModel);
+    } else {
+      // Partial load window: steer whichever pairs are rigged yet.
+      if (trikePlayer !== null && stegoPlayer !== null) {
+        steerPairApart(trikePlayer, trikeModel, stegoPlayer, stegoModel);
+      }
+      if (trikePlayer !== null && brachioPlayer !== null) {
+        steerPairApart(trikePlayer, trikeModel, brachioPlayer, brachioModel);
+      }
+      if (stegoPlayer !== null && brachioPlayer !== null) {
+        steerPairApart(stegoPlayer, stegoModel, brachioPlayer, brachioModel);
+      }
     }
     if (trikePlayer !== null) {
       trikePlayer.update(dt, now, reducedMotion);
@@ -681,6 +868,11 @@ export async function bootViewer(): Promise<void> {
       stegoPlayer.update(dt, now, reducedMotion);
     } else if (walking) {
       updatePlaceholderWalk(stego, now);
+    }
+    if (brachioPlayer !== null) {
+      brachioPlayer.update(dt, now, reducedMotion);
+    } else if (walking) {
+      updatePlaceholderWalk(brachio, now);
     }
     renderer.render(scene, camera);
   });

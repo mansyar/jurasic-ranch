@@ -58,3 +58,68 @@ export function avoidanceNudges(
     bNudge: clampNudge(wrapAngle(awayB - bHeading)),
   };
 }
+
+/** Spawn radius for the trio triangle: every pair starts clear of TRIGGER. */
+export const TRIO_SPAWN_RADIUS_METRES = 0.4;
+
+/** Triangle spawn offsets in radians: 120 deg apart (90, 210, 330 deg). */
+export const TRIO_SPAWN_ANGLES_RADIANS: readonly number[] = [
+  Math.PI / 2,
+  (Math.PI * 7) / 6,
+  (Math.PI * 11) / 6,
+];
+
+/** Ground-plane spawn point on the trio triangle (x/z, +Z = 0 heading). */
+export interface TrioSpawnPoint {
+  x: number;
+  z: number;
+}
+
+/**
+ * Triangle spawn positions on a circle of the given radius: three points at
+ * 120 deg offsets, so every pair starts ~0.69 m apart — clear of the
+ * avoidance trigger on the very first frame.
+ */
+export function trioSpawnPositions(
+  radiusMetres: number = TRIO_SPAWN_RADIUS_METRES,
+): TrioSpawnPoint[] {
+  return TRIO_SPAWN_ANGLES_RADIANS.map((angle) => ({
+    x: radiusMetres * Math.cos(angle),
+    z: radiusMetres * Math.sin(angle),
+  }));
+}
+
+/** Per-dino heading biases for one trio avoidance step, in radians. */
+export interface TrioNudges {
+  aNudge: number;
+  bNudge: number;
+  cNudge: number;
+}
+
+/**
+ * Heading biases for three dinos on the ground plane (x/z, +Z = 0 heading).
+ * Extends the dual logic: applies avoidanceNudges to each of the 3 pairs and
+ * clamps the summed bias per dino, so a dino crowded on both sides still gets
+ * a small bounded steer. Never touches `moving` — the trio never stops,
+ * bounces, or teleports.
+ */
+export function trioAvoidanceNudges(
+  aX: number,
+  aZ: number,
+  aHeading: number,
+  bX: number,
+  bZ: number,
+  bHeading: number,
+  cX: number,
+  cZ: number,
+  cHeading: number,
+): TrioNudges {
+  const ab = avoidanceNudges(aX, aZ, aHeading, bX, bZ, bHeading);
+  const ac = avoidanceNudges(aX, aZ, aHeading, cX, cZ, cHeading);
+  const bc = avoidanceNudges(bX, bZ, bHeading, cX, cZ, cHeading);
+  return {
+    aNudge: clampNudge(ab.aNudge + ac.aNudge),
+    bNudge: clampNudge(ab.bNudge + bc.aNudge),
+    cNudge: clampNudge(ac.bNudge + bc.bNudge),
+  };
+}
