@@ -11,7 +11,7 @@
 
 - **Goal:** 3 fixed POV buttons switch cam instantly, 72px targets, 5s hint glow, landscape/pinch lock
 - **Depends on:** none
-- **Covers:** FR-1, FR-2, FR-5, FR-6, AC-1, AC-2, AC-5, AC-6
+- **Covers:** FR-1, FR-2, FR-5, FR-6, NFR-1, NFR-3, NFR-5, AC-1, AC-2, AC-5, AC-6
 - **Touches:** `src/viewer/main.ts`, `src/viewer/pov.ts`, `index.html`, `src/styles/*`, `tests/viewer/*`
 - **Verification:** `pnpm verify`
 - **Status:** pending
@@ -34,7 +34,7 @@ The primary appends after acceptance:
 
 - **Goal:** Valley ground + Farm props precached offline, AAA-cozy look, size/fps reported
 - **Depends on:** Phase 1
-- **Covers:** FR-3, AC-3
+- **Covers:** FR-3, NFR-1, NFR-2, NFR-4, AC-3
 - **Touches:** `src/ranch/dressing.ts`, `scripts/vendor/*`, `public/assets/*`, `vite.config.ts`, `tests/ranch/dressing*`
 - **Verification:** `pnpm verify`
 - **Status:** pending
@@ -57,7 +57,7 @@ The primary appends after acceptance:
 
 - **Goal:** Droopy + yawn + ZZZ after 90s idle, interruptible, reduced-motion + portrait guards
 - **Depends on:** Phase 2
-- **Covers:** FR-4, FR-7, FR-8, AC-4, AC-7
+- **Covers:** FR-4, FR-7, FR-8, NFR-1, NFR-3, NFR-5, AC-4, AC-7
 - **Touches:** `src/ranch/dino-player.ts`, `src/ranch/sleepy.ts`, `src/viewer/sleepy-ui.ts`, `tests/ranch/sleepy*`
 - **Verification:** `pnpm verify`
 - **Status:** pending
