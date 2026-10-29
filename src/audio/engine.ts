@@ -110,6 +110,7 @@ export class AudioEngine {
   private musicPlayingFlag = false;
   private voiceId: string | null = null;
   private voiceSoundId: number | null = null;
+  private latencyMs = 0;
   private readonly activeSfx = new Set<string>();
 
   private readonly warned = new Set<string>();
@@ -139,6 +140,20 @@ export class AudioEngine {
   /** Whether the music loop is currently running (not paused or muted). */
   get musicPlaying(): boolean {
     return this.musicPlayingFlag;
+  }
+
+  /** Catalog id of the voice line currently ducking the music, or `null`. */
+  get activeVoiceId(): string | null {
+    return this.voiceId;
+  }
+
+  /**
+   * Wall-clock time spent dispatching the last `playVoice` call: the two
+   * `performance.now()` reads around `Howl.play`. This is dispatch latency, not
+   * DAC onset, and it resets to 0 on `stopAll` and `dispose`.
+   */
+  get lastStartLatencyMs(): number {
+    return this.latencyMs;
   }
 
   /**
@@ -208,9 +223,29 @@ export class AudioEngine {
     // Duck before the line starts so the first syllable is never drowned out.
     this.ducked = true;
     this.applyMusicGain();
+    const startedAt = performance.now();
     const soundId = howl.play();
+    this.latencyMs = Math.max(0, performance.now() - startedAt);
     this.voiceId = id;
     this.voiceSoundId = soundId;
+  }
+
+  /**
+   * Play any catalog id on its own bus (dev harness, FR-10). Unknown ids are
+   * ignored; the bus comes from the catalog, never from the caller.
+   */
+  play(id: string): void {
+    const asset = getAudioAsset(id);
+    if (asset === undefined) {
+      return;
+    }
+    if (asset.bus === 'music') {
+      this.playMusic();
+    } else if (asset.bus === 'voice') {
+      this.playVoice(asset.id);
+    } else {
+      this.playSfx(asset.id);
+    }
   }
 
   /** Stop music, voice, and every SFX instance (dev harness action). */
@@ -220,6 +255,7 @@ export class AudioEngine {
     this.voiceSoundId = null;
     this.musicSoundId = null;
     this.musicPlayingFlag = false;
+    this.latencyMs = 0;
     this.activeSfx.clear();
     this.ducked = false;
     this.applyMusicGain();

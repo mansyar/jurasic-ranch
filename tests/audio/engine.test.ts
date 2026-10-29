@@ -480,3 +480,54 @@ describe('mute, stop and dispose (FR-6, NFR-5)', () => {
     expect(engine.musicPlaying).toBe(false);
   });
 });
+
+describe('dev harness audio surface (FR-10)', () => {
+  it('routes a catalog id to its own bus and ignores unknown ids', async () => {
+    const { engine } = createEngine();
+    await engine.unlock();
+    const music = howlFor('music-kalimba');
+
+    engine.play('hello');
+    expect(howlFor('hello').played).toHaveLength(1);
+    expect(engine.activeVoiceId).toBe('hello');
+    expect(music.volumeValue).toBeCloseTo(DUCKED_GAIN, 12);
+
+    engine.play('tap');
+    expect(howlFor('tap').played).toHaveLength(1);
+
+    // Music id while already playing resumes the same loop in place.
+    engine.play('music-kalimba');
+    expect(music.played).toHaveLength(2);
+    expect(engine.musicPlaying).toBe(true);
+
+    const playsBefore = FakeHowl.instances.reduce((sum, howl) => sum + howl.played.length, 0);
+    engine.play('not-an-asset');
+    const playsAfter = FakeHowl.instances.reduce((sum, howl) => sum + howl.played.length, 0);
+    expect(playsAfter).toBe(playsBefore);
+  });
+
+  it('tracks the active line until it ends', async () => {
+    const { engine } = createEngine();
+    await engine.unlock();
+
+    engine.playVoice('hello');
+    expect(engine.activeVoiceId).toBe('hello');
+
+    const hello = howlFor('hello');
+    hello.end(hello.played[0] ?? 0);
+    expect(engine.activeVoiceId).toBeNull();
+  });
+
+  it('reports finite dispatch latency and clears it on stopAll', async () => {
+    const { engine } = createEngine();
+    await engine.unlock();
+
+    engine.playVoice('hello');
+    expect(Number.isFinite(engine.lastStartLatencyMs)).toBe(true);
+    expect(engine.lastStartLatencyMs).toBeGreaterThanOrEqual(0);
+
+    engine.stopAll();
+    expect(engine.lastStartLatencyMs).toBe(0);
+    expect(engine.activeVoiceId).toBeNull();
+  });
+});
