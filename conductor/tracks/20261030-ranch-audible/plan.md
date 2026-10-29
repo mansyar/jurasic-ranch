@@ -16,20 +16,24 @@
 - **Covers:** FR-5, FR-11, NFR-3, AC-4
 - **Touches:** `src/audio/feedback.ts`, `tests/audio/feedback.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P1.T1: Surface to sound table** — covers: FR-11
-  - [ ] **P1.T1.1:** `TAP_SURFACES` for `walk`, `pov` and `mute`; `cooForSpecies()`; an explicit silent set for gear, close and slider
-  - [ ] **P1.T1.2:** Type every mapped id as `AudioAssetId` so a missing catalog entry fails at compile time
-- [ ] **P1.T2: Coo gate** — covers: FR-5
-  - [ ] **P1.T2.1:** Per-species retrigger window derived from the catalog `durationSeconds`
-  - [ ] **P1.T2.2:** One coo at a time across the trio
-  - [ ] **P1.T2.3:** Tests: 10 taps in 1 s yields 1 coo; two species at once yields 1 coo; allowed again after the window
-- [ ] **P1.T3: Greeting policy** — covers: FR-6
-  - [ ] **P1.T3.1:** `GREETING_DELAY_MS` derived from `MUSIC_FADE_IN_MS`, not a second magic number
-  - [ ] **P1.T3.2:** `shouldGreet({ muted, firstGestureWasMute, sinceUnlockMs, alreadyGreeted })`
-- [ ] **P1.T4: First-press queue semantics** — covers: FR-7
-  - [ ] **P1.T4.1:** Retains exactly one id; flush returns it once; reject discards it
+**Result:** verified
+**Checkpoint:** 48dde04
+**Evidence:** conductor/tracks/20261030-ranch-audible/verification/phase-1.md
+
+- [x] **P1.T1: Surface to sound table** — covers: FR-11
+  - [x] **P1.T1.1:** `sfxForSurface()` for `walk`, `pov` and `mute`; `cooAssetForSpecies()`. Silence for gear, close and slider is the absence of a mapping, not an exported silent set
+  - [x] **P1.T1.2:** Type every mapped id as `AudioAssetId` so a missing catalog entry fails at compile time
+- [x] **P1.T2: Coo gate** — covers: FR-5
+  - [x] **P1.T2.1:** Per-species retrigger window derived from the catalog `durationSeconds`
+  - [x] **P1.T2.2:** One coo at a time across the trio
+  - [x] **P1.T2.3:** Tests: 10 taps in 1 s yields 1 coo; two species at once yields 1 coo; allowed again after the window
+- [x] **P1.T3: Greeting policy** — covers: FR-6
+  - [x] **P1.T3.1:** `GREETING_DELAY_MS` derived from `MUSIC_FADE_IN_MS`, not a second magic number
+  - [x] **P1.T3.2:** `shouldGreet({ muted, firstGestureWasMute, sinceUnlockMs, alreadyGreeted })`
+- [x] **P1.T4: First-press queue semantics** — covers: FR-7
+  - [x] **P1.T4.1:** Retains exactly one id; flush returns it once; reject discards it
 
 ## Phase 2: The child hears what they touch
 

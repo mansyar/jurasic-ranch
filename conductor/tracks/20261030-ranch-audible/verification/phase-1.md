@@ -91,3 +91,19 @@ added to `src/audio/`.
 - Commits: `0c0215b` (P1.T1 surface table), `bcac667` (P1.T2 coo gate),
   `c61a9aa` (P1.T3 greeting policy), `6a9f42c` (P1.T4 first-press slot). This
   evidence file is committed separately.
+
+## Primary verification
+
+- Command: `pnpm verify`
+- Exit code: 0
+- Result: 43 test files / 514 tests passed; `src/audio/feedback.ts` 100 %
+  statements, 93.33 % branches, 100 % lines; audio pack 15 assets; build clean;
+  `dist` free of dev-harness markers.
+- Diff reviewed: `git diff --name-only 17d0c10..HEAD` returned exactly the two
+  `Touches` paths plus this evidence file — no unreported change.
+- Gate logic read and confirmed by the primary: one `gateEndsAtMs` shared by the
+  trio, a refused call leaves it untouched (so a mash cannot extend the window),
+  and the window is re-derived from the catalog at every allowed call.
+- Squash guard passed: five reported commits, no merges, no foreign commits.
+  Phase squashed to `48dde04`.
+
