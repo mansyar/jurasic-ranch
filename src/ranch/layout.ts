@@ -1,4 +1,8 @@
-import { DINO_WALK_RADIUS_METRES, LARGEST_DINO_BODY_LENGTH_METRES } from './avoidance.js';
+import {
+  DINO_WALK_RADIUS_METRES,
+  LARGEST_DINO_BODY_LENGTH_METRES,
+  TRIO_SPAWN_ANGLES_RADIANS,
+} from './avoidance.js';
 
 /**
  * Ranch layout as data (FR-1): the radii the ranch is built on, the band each
@@ -133,6 +137,52 @@ export const DRESSING_CATALOGUE: Readonly<Record<string, DressingCatalogueEntry>
   'stone-well-b2dfcd.glb': { footprintMetres: 1.7, heightMetres: 1.75, band: 'mid' },
   'corn-crop-b71f2f.glb': { footprintMetres: 1.3, heightMetres: 1.81, band: 'mid' },
   'river-stone-cluster-0b55bc.glb': { footprintMetres: 1.6, heightMetres: 0.19, band: 'mid' },
+  // Phase 3. Every footprint is the widest ground extent of the GLB's own
+  // world bounds and every height its measured top above the ground origin
+  // (y = 0), read out of the bytes on disk rather than off the vendor sheet;
+  // the layout test re-measures each one. The twelve shipped entries above keep
+  // the catalogue they were authored and accepted against in Phase 1.
+  'hay-bale-079e8c.glb': { footprintMetres: 0.94, heightMetres: 0.52, band: 'mid' },
+  'signpost-0bf523.glb': { footprintMetres: 1.17, heightMetres: 1.97, band: 'mid' },
+  'flower-bed-708e73.glb': { footprintMetres: 1.0, heightMetres: 0.4, band: 'mid' },
+  'berry-bush-ee4812.glb': { footprintMetres: 0.73, heightMetres: 1.11, band: 'mid' },
+  'milk-churn-895735.glb': { footprintMetres: 0.49, heightMetres: 0.66, band: 'mid' },
+  'wooden-crate-e46521.glb': { footprintMetres: 0.6, heightMetres: 0.6, band: 'mid' },
+  'log-stump-1d65a5.glb': { footprintMetres: 0.61, heightMetres: 0.49, band: 'mid' },
+  'garden-rock-7f5d60.glb': { footprintMetres: 0.72, heightMetres: 0.42, band: 'mid' },
+  // The one deliberate mid-band height exception (FR-13): Brachio's browse tree.
+  'plum-tree-565179.glb': { footprintMetres: 1.41, heightMetres: 3.13, band: 'mid' },
+  'mushroom-cluster-f2e3ba.glb': {
+    footprintMetres: 0.26,
+    heightMetres: 0.19,
+    band: 'mid',
+    parent: 'dawn-redwood-001c29.glb',
+  },
+  'ginkgo-leaf-litter-9784e9.glb': {
+    footprintMetres: 0.78,
+    heightMetres: 0.14,
+    band: 'mid',
+    parent: 'ginkgo-tree-baa895.glb',
+  },
+  'fern-clump-90ff4b.glb': {
+    footprintMetres: 1.47,
+    heightMetres: 0.62,
+    band: 'mid',
+    parent: 'flowering-magnolia-dd76cb.glb',
+  },
+  // Second recorded exception: FR-15 asks for reeds at the wallow, and a wallow
+  // eight metres out in the treeline would not read as one.
+  'river-reed-cluster-cba87e.glb': {
+    footprintMetres: 1.07,
+    heightMetres: 1.89,
+    band: 'mid',
+    parent: 'garden-rock-7f5d60.glb',
+  },
+  'club-moss-mat-edcb1b.glb': { footprintMetres: 1.5, heightMetres: 0.23, band: 'foreground' },
+  'wildflower-68d3a1.glb': { footprintMetres: 0.15, heightMetres: 0.4, band: 'foreground' },
+  'cycad-05ad50.glb': { footprintMetres: 2.92, heightMetres: 3.2, band: 'treeline' },
+  'tree-fern-78320e.glb': { footprintMetres: 4.44, heightMetres: 9.36, band: 'treeline' },
+  'windpump-tower-1633a9.glb': { footprintMetres: 2.0, heightMetres: 7.75, band: 'treeline' },
 };
 
 /** One prop instance: which GLB, where on the ground, which way it faces. */
@@ -339,3 +389,343 @@ export function scatter(
   }
   return placements;
 }
+
+/* -------------------------------------------------------------------------- *
+ * The composition (FR-13, FR-14, FR-15, FR-16, FR-18)
+ *
+ * Every placement below is authored with the helpers above, in the order the
+ * ranch reads: the shipped ring first — kept exactly where it stood — then the
+ * three corners, the scatter that names its parent, the water line, the
+ * foreground sprigs beside every lens and the treeline that rhymes with it.
+ * -------------------------------------------------------------------------- */
+
+/**
+ * FR-6's height window per band, as numbers a test can hold. The mid cap is
+ * applied to this phase's clutter only: the twelve shipped props are
+ * grandfathered by the phase-1 snapshot (the 20 m redwood has always stood on
+ * the mid band), and FR-13's browse tree is the one deliberate mid exception.
+ */
+export const MID_PROP_MAX_HEIGHT_METRES = 1.4;
+export const FOREGROUND_SPRIG_MAX_HEIGHT_METRES = 0.5;
+export const TREELINE_MIN_HEIGHT_METRES = 3;
+
+/**
+ * FR-6: no foreground sprig stands inside this half-angle of a lens axis, so a
+ * sprig frames the shot instead of sitting in it.
+ */
+export const LENS_AXIS_CLEARANCE_DEGREES = 18;
+
+/**
+ * The cone a preset's frame reads (FR-6, FR-16). FR-16 measures a rhyme against
+ * the same ±25 deg, so "outside every lens cone" and "within the rhyme
+ * tolerance" are one number and the rhyme is the only prop inside it.
+ */
+export const LENS_CONE_HALF_ANGLE_DEGREES = 25;
+
+/** Half the horizontal frame of the narrowest FR-7 lens at 16:9, in degrees. */
+export const CORNER_FRAME_HALF_ANGLE_DEGREES = 30;
+
+/** How far off the subject a corner must sit to leave the animal a clear approach. */
+export const CORNER_APPROACH_CLEARANCE_DEGREES = 10;
+
+const DEGREES_PER_RADIAN = 180 / Math.PI;
+
+function toDegrees(radians: number): number {
+  return radians * DEGREES_PER_RADIAN;
+}
+
+/** Which dino a corner belongs to (FR-13). */
+export type CornerSpecies = 'trike' | 'stego' | 'brachio';
+
+/**
+ * Corner bearings in compass degrees, derived from the trio's own spawn angles
+ * rather than authored: Trike 90, Stego 210, Brachio 330. Move a spawn and its
+ * corner moves with it.
+ */
+export const CORNER_AZIMUTH_DEGREES: Readonly<Record<CornerSpecies, number>> = {
+  trike: toDegrees(TRIO_SPAWN_ANGLES_RADIANS[0] ?? 0),
+  stego: toDegrees(TRIO_SPAWN_ANGLES_RADIANS[1] ?? 0),
+  brachio: toDegrees(TRIO_SPAWN_ANGLES_RADIANS[2] ?? 0),
+};
+
+/** A point on the ground at a compass bearing and radius. */
+function at(azimuthDegrees: number, radiusMetres: number): readonly [number, number] {
+  const azimuth = toRadians(azimuthDegrees);
+  return [radiusMetres * Math.cos(azimuth), radiusMetres * Math.sin(azimuth)];
+}
+
+/**
+ * Valley backdrop: three pastel trees plus a boulder and a stump, spaced around
+ * the rim so each of the three POV presets gets a backdrop and none of them
+ * stands between a camera and the animal it names. Unchanged from phase 1 —
+ * these are the props the 1e-9 snapshot pins (FR-2, AC-5).
+ */
+export const VALLEY_PLACEMENTS: readonly DressingPlacement[] = [
+  ring('ginkgo-tree-baa895.glb', 28, 9.6, 'inward'),
+  ring('dawn-redwood-001c29.glb', 200, 9.8, 'inward'),
+  ring('flowering-magnolia-dd76cb.glb', 113, 9.7, 'inward'),
+  ring('fern-covered-boulder-2e0375.glb', 180, 9.0, 'inward'),
+  ring('moss-covered-stump-7253ab.glb', 70, 9.4, 'inward'),
+];
+
+/**
+ * Farm set: a curved fence run with a farm-gate gap along the back rim, the
+ * trough/pump/well cluster on the Brachio's corner (the Ranch view), two short
+ * corn rows as the garden marker on the Stego's corner, and a river-stone ring
+ * as the nest marker on the Trike's corner.
+ *
+ * The fence panels sit 12 deg apart on a 9.2 m ring — a 1.9 m chord, the width
+ * of one panel — so the run reads as a continuous fence. Unchanged from phase 1.
+ */
+export const FARM_PLACEMENTS: readonly DressingPlacement[] = [
+  ring('farm-gate-8ab320.glb', 260, 9.2, 'tangent'),
+  ...arc('wooden-fence-section-d72055.glb', 272, 296, 3, 9.2),
+  ring('water-trough-df3ced.glb', 338, 8.7, 'inward'),
+  ring('hand-water-pump-448037.glb', 350, 9.1, 'inward'),
+  ring('stone-well-b2dfcd.glb', 2, 9.0, 'inward'),
+  // Two corn rows of three: a line of constant z each, the way a planted row
+  // reads, with an authored spin per stalk so the rows never look stamped.
+  ...row('corn-crop-b71f2f.glb', [-3.4, -8.55], 3, 'x', 0.3, [2.6, 1.9, 2.4]),
+  ...row('corn-crop-b71f2f.glb', [-3.4, -9.05], 3, 'x', 0.3, [3.6, 2.9, 3.4]),
+  // Four stones ringing a nest spot 18 deg along the rim from the Nest
+  // preset, 0.43 m from its centre — a ring a child reads as "the nest",
+  // beside the animal rather than in front of it.
+  ...cluster('river-stone-cluster-0b55bc.glb', [-8.505, 3.095], 0.43, [
+    { azimuthDegrees: 0, rotationY: 0.4 },
+    { azimuthDegrees: 180, rotationY: 2.0 },
+    { azimuthDegrees: 90, rotationY: 3.5 },
+    { azimuthDegrees: 270, rotationY: 5.1 },
+  ]),
+];
+
+/**
+ * The three corners (FR-13), each built on its own dino's spawn bearing.
+ *
+ * - Trike, 90 deg: a hay nest of four bales at angles, framed by a berry bush
+ *   and a flower bed — somewhere to flop that is not the bare grass.
+ * - Stego, 210 deg: the wallow. Its mud, rim stones and reeds are in the water
+ *   line and scatter below; the log and the boulder-side rocks frame it.
+ * - Brachio, 330 deg: the trough the water line starts at, with the browse tree
+ *   standing just past it and the farm clutter — churn, crate, sign — beside it.
+ */
+export const DRESSING_CORNERS: readonly {
+  species: CornerSpecies;
+  placements: readonly DressingPlacement[];
+}[] = [
+  {
+    species: 'trike',
+    placements: [
+      ...cluster('hay-bale-079e8c.glb', at(CORNER_AZIMUTH_DEGREES.trike, 9.35), 0.55, [
+        { azimuthDegrees: 0, rotationY: 0.2 },
+        { azimuthDegrees: 90, rotationY: 2.4 },
+        { azimuthDegrees: 180, rotationY: 4.1 },
+        { azimuthDegrees: 270, rotationY: 5.6 },
+      ]),
+      ring('berry-bush-ee4812.glb', CORNER_AZIMUTH_DEGREES.trike - 12, 9.8, 'inward'),
+      ring('flower-bed-708e73.glb', CORNER_AZIMUTH_DEGREES.trike + 12, 9.8, 'inward'),
+    ],
+  },
+  {
+    species: 'stego',
+    placements: [
+      ring('garden-rock-7f5d60.glb', 206, 9.3, 'outward'),
+      ring('garden-rock-7f5d60.glb', 222, 9.3, 'inward'),
+      ring('log-stump-1d65a5.glb', 198, 8.75, 'inward'),
+    ],
+  },
+  {
+    species: 'brachio',
+    placements: [
+      // "Just beyond the trough" (338 deg / 8.7 m): the browse tree stands on
+      // the far side of it, so the neck has the tree it walks towards.
+      ring('plum-tree-565179.glb', 326, 9.1, 'inward'),
+      ring('milk-churn-895735.glb', 316, 9.4, 'inward'),
+      ring('wooden-crate-e46521.glb', 312, 8.9, 'inward'),
+      ring('signpost-0bf523.glb', 306, 9.0, 'inward'),
+    ],
+  },
+];
+
+/** The corner whose props frame the given preset (FR-13, AC-13). */
+export function cornerPlacements(species: CornerSpecies): readonly DressingPlacement[] {
+  return DRESSING_CORNERS.find((corner) => corner.species === species)?.placements ?? [];
+}
+
+/**
+ * Stego's wallow (FR-13, FR-14): a mud patch the water line empties into. It
+ * sits four degrees around from the spawn bearing so the patch clears the
+ * redwood's trunk while staying on Stego's corner.
+ */
+export const WALLOW_AZIMUTH_DEGREES = CORNER_AZIMUTH_DEGREES.stego + 4;
+export const WALLOW_RADIUS_METRES = 9.3;
+export const WALLOW_MUD_RADIUS_METRES = 1.25;
+export const WALLOW_CENTRE_METRES: readonly [number, number] = at(
+  WALLOW_AZIMUTH_DEGREES,
+  WALLOW_RADIUS_METRES,
+);
+
+/**
+ * The water line (FR-14): pump at 350 deg, trough at 338 deg, then a flush
+ * channel on the mid band all the way to the wallow at 214 deg. One band, one
+ * continuous mesh: the run is not a stone path because the channel is 0.4 m of
+ * wet stone rather than a walkway, and it costs one draw call rather than the
+ * sixteen a cloned stone arc would.
+ */
+export const WATER_LINE_RADIUS_METRES = 8.72;
+export const WATER_LINE_WIDTH_METRES = 0.4;
+export const WATER_LINE_FROM_DEGREES = 350;
+export const WATER_LINE_TO_DEGREES = WALLOW_AZIMUTH_DEGREES;
+/** The sweep runs the short way round — past the trough — so it is negative. */
+export const WATER_LINE_SWEEP_DEGREES = WATER_LINE_TO_DEGREES - WATER_LINE_FROM_DEGREES;
+
+/** No point of the water line stands above this, in metres (FR-14, AC-14). */
+export const WATER_LINE_FLUSH_METRES = 0.06;
+
+export const WATER_LINE_STONE_FILE = 'river-stone-cluster-0b55bc.glb';
+
+/**
+ * How far a gutter stone is sunk so its top lands on the flush limit instead of
+ * kerbing the channel: derived from the file's own measured height.
+ */
+export const WATER_LINE_STONE_SINK_METRES = Math.max(
+  0,
+  (DRESSING_CATALOGUE[WATER_LINE_STONE_FILE]?.heightMetres ?? 0) - WATER_LINE_FLUSH_METRES,
+);
+
+/**
+ * The stones that line the pump-to-trough stretch. They are not manifest props:
+ * the channel is one mesh, and these are dressed onto it as instances so the
+ * repeated stones stay one draw call (NFR-1).
+ */
+export const WATER_LINE_STONES: readonly DressingPlacement[] = arc(
+  WATER_LINE_STONE_FILE,
+  348,
+  336,
+  4,
+  WATER_LINE_RADIUS_METRES,
+  'tangent',
+);
+
+/** A scatter cluster needs its parent standing on the ring already. */
+function placementOf(file: string): DressingPlacement {
+  const found = [...VALLEY_PLACEMENTS, ...FARM_PLACEMENTS].find((item) => item.file === file);
+  if (found === undefined) {
+    throw new Error(`No placement for ${file}: a scatter cluster needs its parent on the ring.`);
+  }
+  return found;
+}
+
+/**
+ * Scatter under a parent (FR-15, AC-15): the area is centred on the parent and
+ * its compass window points inward, so a cluster can never be pushed out of the
+ * mid band by its own jitter, and the centroid stays within a metre of the
+ * parent it belongs to.
+ */
+function underParent(
+  file: string,
+  parentFile: string,
+  count: number,
+  fromDegrees: number,
+  toDegrees: number,
+  seed: number,
+): DressingPlacement[] {
+  const parent = placementOf(parentFile);
+  return scatter(
+    file,
+    count,
+    {
+      centre: [parent.position[0], parent.position[2]],
+      fromDegrees,
+      toDegrees,
+      minRadiusMetres: 0.4,
+      maxRadiusMetres: 1.0,
+    },
+    seed,
+  );
+}
+
+/**
+ * Cause and effect (FR-15): litter under the ginkgo it fell from, mushrooms
+ * under the redwood, ferns under the magnolia, reeds at the wallow edge.
+ */
+export const DRESSING_SCATTER: readonly DressingPlacement[] = [
+  ...underParent('ginkgo-leaf-litter-9784e9.glb', 'ginkgo-tree-baa895.glb', 3, 178, 238, 4242),
+  // The window is written 350 -> 410 rather than 350 -> 50 so it stays a 60 deg
+  // slice around the inward bearing instead of wrapping into its 300 deg complement.
+  ...underParent('mushroom-cluster-f2e3ba.glb', 'dawn-redwood-001c29.glb', 3, 350, 410, 4343),
+  ...underParent('fern-clump-90ff4b.glb', 'flowering-magnolia-dd76cb.glb', 2, 263, 323, 4444),
+];
+
+/** Reeds standing in the wallow's edge, on the stone that rims it (FR-15). */
+export const WALLOW_EDGE_PLACEMENTS: readonly DressingPlacement[] = [
+  ring('river-reed-cluster-cba87e.glb', 224, 10, 'inward'),
+  ring('river-reed-cluster-cba87e.glb', 226, 9.9, 'inward'),
+];
+
+/**
+ * Foreground sprigs (FR-6, P3.T3): one moss mat and one wildflower beside every
+ * lens, 24 deg off its axis at 13 m — inside the foreground window, outside
+ * every lens's ±18 deg, and never between a camera and its animal.
+ */
+export const FOREGROUND_PLACEMENTS: readonly DressingPlacement[] = [
+  ring('club-moss-mat-edcb1b.glb', 34, 13, 'inward'),
+  ring('wildflower-68d3a1.glb', 100, 13, 'inward'),
+  ring('club-moss-mat-edcb1b.glb', 117.6, 13, 'inward'),
+  ring('wildflower-68d3a1.glb', 165.6, 13, 'inward'),
+  ring('club-moss-mat-edcb1b.glb', 216, 13, 'inward'),
+  ring('wildflower-68d3a1.glb', 272, 13, 'inward'),
+];
+
+/** One silhouette rhyme per ground preset (FR-16, AC-16). */
+export interface SilhouetteRhyme {
+  species: CornerSpecies;
+  file: string;
+  azimuthDegrees: number;
+  radiusMetres: number;
+}
+
+/**
+ * The backdrop each ground preset rhymes its animal against: a tree fern
+ * behind the Brachio, a cycad's frill behind the Trike, a tree fern behind the
+ * Stego. Each is on its lens's own axis (bearing = the lens-to-subject line),
+ * beyond the animal, so it frames it rather than hiding it.
+ */
+export const SILHOUETTE_RHYMES: readonly SilhouetteRhyme[] = [
+  { species: 'brachio', file: 'tree-fern-78320e.glb', azimuthDegrees: 261.6, radiusMetres: 18 },
+  { species: 'trike', file: 'cycad-05ad50.glb', azimuthDegrees: 344.9, radiusMetres: 18.2 },
+  { species: 'stego', file: 'tree-fern-78320e.glb', azimuthDegrees: 75.4, radiusMetres: 18.2 },
+];
+
+/**
+ * The treeline: the rhymes above, plus one cycad filler well outside every lens
+ * cone, and the windpump standing beyond them all as the horizon landmark
+ * (FR-18). Every one of them is at least 17.8 m out, i.e. off the paddock
+ * entirely, and reads as a silhouette rather than as scenery.
+ */
+export const TREELINE_PLACEMENTS: readonly DressingPlacement[] = [
+  ...SILHOUETTE_RHYMES.map((rhyme) =>
+    ring(rhyme.file, rhyme.azimuthDegrees, rhyme.radiusMetres, 'inward'),
+  ),
+  ring('cycad-05ad50.glb', 160, 19.5, 'inward'),
+];
+
+/** FR-18: the windpump, and the file the rotor is mounted on. */
+export const WIND_PUMP_FILE = 'windpump-tower-1633a9.glb';
+export const LANDMARK_PLACEMENTS: readonly DressingPlacement[] = [
+  ring(WIND_PUMP_FILE, 210, 28, 'inward'),
+];
+
+/**
+ * The whole ranch dressing (FR-1): the shipped ring first, in its phase-1
+ * order, then everything phase 3 staged around it.
+ */
+export const DRESSING_MANIFEST: readonly DressingPlacement[] = [
+  ...VALLEY_PLACEMENTS,
+  ...FARM_PLACEMENTS,
+  ...DRESSING_CORNERS.flatMap((corner) => corner.placements),
+  ...DRESSING_SCATTER,
+  ...WALLOW_EDGE_PLACEMENTS,
+  ...FOREGROUND_PLACEMENTS,
+  ...TREELINE_PLACEMENTS,
+  ...LANDMARK_PLACEMENTS,
+];

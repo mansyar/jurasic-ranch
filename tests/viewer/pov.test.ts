@@ -13,6 +13,7 @@ import {
   WALK_CLEARANCE_METRES,
 } from '../../src/ranch/dressing.js';
 import { IN_GAME_BODY_LENGTH_METRES } from '../../src/viewer/loaders.js';
+import { DRESSING_CATALOGUE } from '../../src/ranch/layout.js';
 import {
   HINT_IDLE_MS,
   POV_BEARING_RADIANS,
@@ -112,18 +113,24 @@ describe('POV presets', () => {
     }
   });
 
-  it('stands on its own bearing outside the props and inside the far plane', () => {
-    const widestProp = Math.max(
-      ...DRESSING_MANIFEST.map((item) => Math.hypot(item.position[0], item.position[2])),
+  it('stands on its own bearing outside the ring props and inside the far plane', () => {
+    // The ring is the mid and foreground bands; the treeline is staged out on
+    // the apron on purpose (FR-6, FR-16), so it is judged by the sightline test
+    // below rather than by this ring radius.
+    const ringProps = DRESSING_MANIFEST.filter(
+      (item) => DRESSING_CATALOGUE[item.file]?.band !== 'treeline',
+    );
+    const widestRingProp = Math.max(
+      ...ringProps.map((item) => Math.hypot(item.position[0], item.position[2])),
     );
     for (const id of POV_ORDER) {
       const preset = POV_PRESETS[id];
       const distance = Math.hypot(preset.position[0], preset.position[2]);
       // The lens is never inside the circle a body centre wanders in.
       expect(distance).toBeGreaterThan(DINO_WALK_RADIUS_METRES * 2);
-      // It stands beyond every prop on its own side, so nothing can grow
-      // between the lens and the animal...
-      expect(distance).toBeGreaterThan(widestProp);
+      // It stands beyond every prop of the ring it looks across, so nothing
+      // grows between the lens and the animal it names...
+      expect(distance).toBeGreaterThan(widestRingProp);
       // ...and the whole ranch still projects inside the near/far planes.
       expect(distance).toBeLessThan(CAMERA_FAR_METRES);
       // And the preset stands where its bearing says it does.

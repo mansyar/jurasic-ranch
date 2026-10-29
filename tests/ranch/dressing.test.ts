@@ -4,13 +4,21 @@ import * as THREE from 'three';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildDressing,
+  DRAW_CALL_CEILING,
   DRESSING_BUDGET_BYTES,
   DRESSING_MANIFEST,
   GROUND_RADIUS_METRES,
   IN_FRAME_OVERSHOOT_METRES,
+  PRECACHE_BUDGET_BYTES,
+  TRIANGLE_CEILING,
+  updateDressing,
   WALK_CLEARANCE_METRES,
+  WIND_PUMP_RADIANS_PER_SECOND,
 } from '../../src/ranch/dressing.js';
+import { DRESSING_CATALOGUE } from '../../src/ranch/layout.js';
+import { MEADOW_RADIUS_METRES } from '../../src/ranch/ground.js';
 import { POV_PRESETS } from '../../src/viewer/pov.js';
+import { readGlbFacts } from './dressing-files.js';
 import {
   DINO_WALK_RADIUS_METRES,
   LARGEST_DINO_BODY_LENGTH_METRES,
@@ -20,6 +28,9 @@ import { gaitSpeedMetresPerSecond, WALK_BLEND_SECONDS } from '../../src/ranch/wa
 import { IN_GAME_BODY_LENGTH_METRES } from '../../src/viewer/loaders.js';
 
 const ROOT_URL = new URL('../../', import.meta.url);
+
+/** Every file the manifest references once, in first-use order. */
+const UNIQUE_FILES = [...new Set(DRESSING_MANIFEST.map((item) => item.file))];
 
 /** Loader-boundary stubs: the tests below never touch WebGL or the network. */
 const loaderMocks = vi.hoisted(() => ({
@@ -47,23 +58,42 @@ function groundDistanceMetres(position: readonly [number, number, number]): numb
 }
 
 describe('dressing manifest on disk (FR-3, NFR-2)', () => {
-  it('references exactly the 12 vendored CC0 GLBs', () => {
-    const files = [...new Set(DRESSING_MANIFEST.map((item) => item.file))];
-    expect(files).toHaveLength(12);
-    for (const file of files) {
+  it('references exactly the vendored GLBs on the manifest, each with metadata', () => {
+    expect(UNIQUE_FILES).toHaveLength(30);
+    for (const file of UNIQUE_FILES) {
       expect(file.endsWith('.glb')).toBe(true);
+      expect(DRESSING_CATALOGUE[file]).toBeDefined();
     }
   });
 
-  it('keeps every vendored GLB present and the ranch under the 15 MB PWA budget', () => {
+  it('keeps every vendored GLB present and the dressing set under the 4 MB budget', () => {
     let totalBytes = 0;
-    for (const item of DRESSING_MANIFEST) {
-      const bytes = statSync(dressingDirUrl(item.file)).size;
+    for (const file of UNIQUE_FILES) {
+      const bytes = statSync(dressingDirUrl(file)).size;
       expect(bytes).toBeGreaterThan(0);
-      totalBytes += statSync(dressingDirUrl(item.file)).size;
+      totalBytes += bytes;
     }
     expect(totalBytes).toBeLessThan(DRESSING_BUDGET_BYTES);
-    expect(DRESSING_BUDGET_BYTES).toBe(15_000_000);
+    expect(DRESSING_BUDGET_BYTES).toBe(4_000_000);
+    expect(PRECACHE_BUDGET_BYTES).toBe(15_000_000);
+  });
+
+  it('documents the draw-call and triangle ceilings the dressing is measured against', () => {
+    // NFR-1: a whole frame stays under 150 calls and 80k triangles. Each file
+    // is single-material, so its primitives bake into one buffer at load and one
+    // clone costs one call; the triangles are the real sum over every placement.
+    let triangles = 0;
+    for (const item of DRESSING_MANIFEST) {
+      const facts = readGlbFacts(dressingDirUrl(item.file));
+      expect(facts.materials).toBe(1);
+      triangles += facts.triangles;
+    }
+    // The water line's channel and its one stone batch, plus the wallow disc.
+    const drawCalls = DRESSING_MANIFEST.length + 3;
+    expect(drawCalls).toBeLessThan(DRAW_CALL_CEILING);
+    expect(triangles).toBeLessThan(TRIANGLE_CEILING);
+    expect(DRAW_CALL_CEILING).toBe(150);
+    expect(TRIANGLE_CEILING).toBe(80_000);
   });
 });
 
@@ -101,8 +131,9 @@ describe('dressing layout invariants (FR-3, AC-3)', () => {
     for (const item of DRESSING_MANIFEST) {
       // No prop inside the path, so no prop can intersect a dino.
       expect(groundDistanceMetres(item.position)).toBeGreaterThanOrEqual(WALK_CLEARANCE_METRES);
-      // And every prop still stands on the grass.
-      expect(groundDistanceMetres(item.position)).toBeLessThan(GROUND_RADIUS_METRES);
+      // And every prop still stands on the ground — the apron now, not just
+      // the play disc, because the treeline and the windpump stand out there.
+      expect(groundDistanceMetres(item.position)).toBeLessThan(MEADOW_RADIUS_METRES);
     }
   });
 
@@ -133,15 +164,19 @@ describe('dressing layout invariants (FR-3, AC-3)', () => {
   });
 
   it('scatters the valley backdrop: 3 trees plus boulder and stump', () => {
-    const trees = DRESSING_MANIFEST.filter(
-      (item) =>
-        item.file.includes('ginkgo') ||
-        item.file.includes('redwood') ||
-        item.file.includes('magnolia'),
-    );
+    const treeFiles = [
+      'ginkgo-tree-baa895.glb',
+      'dawn-redwood-001c29.glb',
+      'flowering-magnolia-dd76cb.glb',
+    ];
+    const trees = DRESSING_MANIFEST.filter((item) => treeFiles.includes(item.file));
     expect(trees).toHaveLength(3);
     expect(DRESSING_MANIFEST.filter((item) => item.file.includes('boulder'))).toHaveLength(1);
-    expect(DRESSING_MANIFEST.filter((item) => item.file.includes('stump'))).toHaveLength(1);
+    // The stump the valley necklace was built around; the phase-3 log stump is
+    // a corner prop with its own file rather than a second necklace stump.
+    expect(
+      DRESSING_MANIFEST.filter((item) => item.file === 'moss-covered-stump-7253ab.glb'),
+    ).toHaveLength(1);
   });
 
   it('runs the fence perimeter with a farm-gate gap', () => {
@@ -152,9 +187,15 @@ describe('dressing layout invariants (FR-3, AC-3)', () => {
   });
 
   it('clusters trough, pump, and well as the Ranch-side group', () => {
-    expect(DRESSING_MANIFEST.filter((item) => item.file.includes('trough'))).toHaveLength(1);
-    expect(DRESSING_MANIFEST.filter((item) => item.file.includes('pump'))).toHaveLength(1);
+    expect(DRESSING_MANIFEST.filter((item) => item.file.includes('water-trough'))).toHaveLength(1);
+    expect(
+      DRESSING_MANIFEST.filter((item) => item.file === 'hand-water-pump-448037.glb'),
+    ).toHaveLength(1);
     expect(DRESSING_MANIFEST.filter((item) => item.file.includes('well'))).toHaveLength(1);
+    // FR-18's landmark is the other pump-named file, and it stands alone.
+    expect(
+      DRESSING_MANIFEST.filter((item) => item.file === 'windpump-tower-1633a9.glb'),
+    ).toHaveLength(1);
   });
 
   it('plants 2 short corn rows as the garden marker', () => {
@@ -195,7 +236,7 @@ describe('dressing loader fallback (NFR-2 offline safety)', () => {
     const summary = await buildDressing(scene);
     expect(summary.requested).toBe(DRESSING_MANIFEST.length);
     expect(summary.placed).toBe(DRESSING_MANIFEST.length);
-    expect(summary.loadedFiles).toBe(12);
+    expect(summary.loadedFiles).toBe(UNIQUE_FILES.length);
     expect(summary.failedFiles).toEqual([]);
     const dressing = scene.getObjectByName('RanchDressing');
     expect(dressing).not.toBeNull();
@@ -208,7 +249,7 @@ describe('dressing loader fallback (NFR-2 offline safety)', () => {
     const summary = await buildDressing(scene);
     expect(summary.placed).toBe(0);
     expect(summary.loadedFiles).toBe(0);
-    expect(summary.failedFiles).toHaveLength(12);
+    expect(summary.failedFiles).toHaveLength(UNIQUE_FILES.length);
   });
 
   it('keeps the surviving props when a single GLB fails', async () => {
@@ -231,7 +272,95 @@ describe('dressing loader fallback (NFR-2 offline safety)', () => {
       animations: [],
     }));
     await buildDressing(new THREE.Scene());
-    expect(loaderMocks.loadAsync).toHaveBeenCalledTimes(12);
+    expect(loaderMocks.loadAsync).toHaveBeenCalledTimes(UNIQUE_FILES.length);
+  });
+
+  it('bakes a many-primitive file down to one call per clone (NFR-1)', async () => {
+    // Every dressing GLB is a single material, so its primitives merge into one
+    // buffer at load: 57 placements cost 57 calls, not the 224 the raw files
+    // would ask for.
+    loaderMocks.loadAsync.mockImplementation(async () => {
+      const scene = new THREE.Group();
+      const material = new THREE.MeshStandardMaterial();
+      const left = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
+      left.position.x = 2;
+      const right = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
+      right.position.x = -2;
+      scene.add(left, right);
+      return { scene, animations: [] };
+    });
+    const scene = new THREE.Scene();
+    await buildDressing(scene);
+    const dressing = scene.getObjectByName('RanchDressing');
+    const clone = dressing?.children[0];
+    expect(clone?.children).toHaveLength(1);
+    const baked = clone?.children[0] as THREE.Mesh;
+    baked.geometry.computeBoundingBox();
+    const bounds = baked.geometry.boundingBox as THREE.Box3;
+    // Both halves survive the merge in their own places.
+    expect(bounds.max.x - bounds.min.x).toBeCloseTo(5, 3);
+  });
+});
+
+describe('water line and windpump rig (FR-14, FR-18)', () => {
+  const sourceOf = (): THREE.Group => {
+    // Every GLB resolves to a group with one small box, so the loader path and
+    // the measurements are exercised without a real file.
+    const group = new THREE.Group();
+    group.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial()));
+    return group;
+  };
+
+  beforeEach(() => {
+    loaderMocks.loadAsync.mockReset();
+    loaderMocks.loadAsync.mockImplementation(async () => ({
+      scene: sourceOf(),
+      animations: [],
+    }));
+  });
+
+  it('builds the water line as one flush channel rather than a prop train', async () => {
+    const scene = new THREE.Scene();
+    const summary = await buildDressing(scene);
+    const waterLine = scene.getObjectByName('RanchWaterLine');
+    expect(waterLine).not.toBeNull();
+    expect(summary.waterLine).not.toBeNull();
+    // The line is its own group, so the manifest's one-clone-per-entry rule
+    // above still describes the dressing group exactly.
+    expect(waterLine?.parent).toBe(scene);
+    const mesh = waterLine?.children[0] as THREE.Mesh | undefined;
+    expect(mesh).toBeDefined();
+    const material = mesh?.material as THREE.MeshStandardMaterial;
+    expect(material).toBeInstanceOf(THREE.MeshStandardMaterial);
+    expect(material.depthWrite).toBe(false);
+  });
+
+  it('turns the windpump rotor and stops it under reduced motion', async () => {
+    const scene = new THREE.Scene();
+    const summary = await buildDressing(scene);
+    expect(summary.rotor).not.toBeNull();
+    const rotor = summary.rotor;
+    if (rotor === null) {
+      return;
+    }
+    const before = rotor.node.rotation.z;
+    updateDressing(summary, 0.5, false);
+    expect(rotor.node.rotation.z).toBeCloseTo(before - WIND_PUMP_RADIANS_PER_SECOND * 0.5, 6);
+    const turned = rotor.node.rotation.z;
+    updateDressing(summary, 0.5, true);
+    expect(rotor.node.rotation.z).toBe(turned);
+    updateDressing(summary, 0, false);
+    expect(rotor.node.rotation.z).toBe(turned);
+    updateDressing(null, 1, false);
+    expect(summary.rotor).toBe(rotor);
+  });
+
+  it('survives a dressing that failed to load, rotor and all', async () => {
+    loaderMocks.loadAsync.mockRejectedValue(new Error('offline'));
+    const summary = await buildDressing(new THREE.Scene());
+    expect(summary.rotor).toBeNull();
+    expect(() => updateDressing(summary, 1, false)).not.toThrow();
+    expect(summary.drawCalls).toBeGreaterThan(0);
   });
 });
 

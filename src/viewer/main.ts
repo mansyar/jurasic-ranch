@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { DinoPlayer } from '../ranch/dino-player.js';
 import { trioSpawnPositions } from '../ranch/avoidance.js';
 import { buildDressing } from '../ranch/dressing.js';
+import type { DressingFrame } from '../ranch/dressing.js';
 import { DustPool } from '../ranch/dust.js';
 import { installGestureUnlock, installVisibilityHandling } from '../audio/gesture.js';
 import { loadAudioSettings, saveMuted, saveVolume } from '../audio/settings.js';
@@ -267,9 +268,16 @@ export async function bootViewer(): Promise<void> {
   // FR-3: Valley + Farm dressing loads in parallel with the dinos; any GLB
   // failure falls back silently (offline first-visit safety) without
   // blocking boot, and the ground stays playable bare.
-  void buildDressing(scene).catch((error: unknown) => {
-    console.warn('Ranch dressing unavailable; ground stays playable.', error);
-  });
+  // FR-18: the handle is filled in when the load lands, so the loop can turn
+  // the windpump's fan without waiting for it.
+  const dressingFrame: DressingFrame = { dressing: null };
+  void buildDressing(scene)
+    .then((built) => {
+      dressingFrame.dressing = built;
+    })
+    .catch((error: unknown) => {
+      console.warn('Ranch dressing unavailable; ground stays playable.', error);
+    });
 
   window.addEventListener('resize', () => {
     viewer.resize();
@@ -366,6 +374,7 @@ export async function bootViewer(): Promise<void> {
     brachio,
     devFrame,
     sky,
+    dressing: dressingFrame,
   });
 }
 
