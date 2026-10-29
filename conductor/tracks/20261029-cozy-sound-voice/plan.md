@@ -115,3 +115,28 @@
 > **Human-only exceptions:** `parent-voice-review` and `tablet-touch-play` are
 > recorded during review. Phase 5 collects the pack measurements and harness
 > evidence those reviews reference.
+
+## Phase R1: Review Fixes
+
+- **Goal:** Resolve review findings F1-F4 and F6-F9; record F5 and F10 as accepted debt with a Track 8 follow-up.
+- **Depends on:** Phase 5
+- **Covers:** F1, F2, F3, F4, F5, F6, F7, F8, F9, F10
+- **Touches:** `src/audio/engine.ts`, `tests/audio/engine.test.ts`, `src/viewer/audio-controls.ts`, `tests/viewer/audio-controls.test.ts`, `src/viewer/main.ts`, `scripts/voice/generate.py`, `src/audio/mix.ts`, `conductor/tech-stack.md`, `CREDITS.md`, `conductor/tracks/20261029-cozy-sound-voice/verification/phase-5.md`
+- **Verification:** `pnpm verify`
+- **Status:** pending
+
+- [ ] **R1.T1: Block failed-load assets and un-duck safely** — covers: F1
+  - [ ] **R1.T1.1:** Track failed ids and make `readyHowl`/`musicHowl` reject them; clear their SFX slots.
+  - [ ] **R1.T1.2:** Add regression tests for a failed voice (music restores, no active line) and a failed SFX (the rest of the bus still plays).
+- [ ] **R1.T2: Fix parent-panel Escape and dialog semantics** — covers: F2
+  - [ ] **R1.T2.1:** Bind Escape on the window while the panel is open and drop the false `aria-modal` claim.
+  - [ ] **R1.T2.2:** Test Escape from the window, not the panel.
+- [ ] **R1.T3: Measure real playback-start latency** — covers: F3
+  - [ ] **R1.T3.1:** Capture the Howler `play` event and report elapsed time from the voice request.
+  - [ ] **R1.T3.2:** Update the engine tests and evidence to distinguish playback latency from dispatch.
+- [ ] **R1.T4: Keep boot alive when audio markup is missing** — covers: F4
+  - [ ] **R1.T4.1:** Guard only the audio block and continue the ranch boot without it.
+- [ ] **R1.T5: Correct docs, dead constants, and boot ordering** — covers: F5, F6, F7, F8, F9
+  - [ ] **R1.T5.1:** Install the gesture unlock before the first awaited settings read.
+  - [ ] **R1.T5.2:** Fix the `generate.py` tolerance docstrings, mark `VOICE_TAIL_SECONDS` documentation-only, and correct the CREDITS normalization sentence.
+  - [ ] **R1.T5.3:** Record AC-14 as pending-hardware and F10 as accepted debt for Track 8.
