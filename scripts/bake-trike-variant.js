@@ -18,6 +18,17 @@
  * shield's facet rings while the explicit cream/leaf hexes override the
  * pattern's rust defaults. Feet stay on y = 0.
  *
+ * SHAPE KNOB, NOT A SCALE KNOB (FR-4). `size` changes the geometry this file
+ * bakes, but it must never be used to make a species bigger or smaller on
+ * screen: in-game size is the viewer's uniform per-species group scale
+ * (`DINO_GROUP_SCALE` in src/viewer/loaders.ts), and the Trike's baked length is
+ * the anchor that scale is derived from — the shipped trike.glb measures 3.708 m
+ * along its body axis against the 6.26 m Polyfork adult reference, so S = 0.5923
+ * and Stego/Brachio land at 3.845 m / 7.423 m. Re-baking the Trike at another
+ * `size` therefore changes the whole trio's on-screen size; if you do it
+ * deliberately, re-derive S, update loaders.ts and record the new lengths in the
+ * track's verification file rather than tuning `size` to fix a look.
+ *
  * Steps:
  *   1. Build the variant with createAsset() (single mesh, single material,
  *      baked pastel COLOR_0 vertex colors, flat shading, 24-bone skeleton).

@@ -167,37 +167,55 @@ export const TRIKE_GAIT: GaitParams = {
 };
 
 /**
- * Shipped Stego gait (FR-4 / AC-2): same 0.29 m stride per 0.8 s loop as the
- * Trike (the bake measured 0.291 m, no retime), PI yaw cap, 0.8 m wander
- * circle — but a hotter 20 rad/m curvature. The Stego's 90-degree turn must
- * finish under 0.6 s (TURN_90_MAX_SECONDS): at full blend the yaw rate caps at
- * PI (20 x 0.3625 m/s = 7.25 > PI), so the quarter turn takes 0.5 s, then the
- * player walks straight. Heading steps clamp to the remaining angle, so the
- * hot curvature settles exactly instead of orbiting the target.
+ * Shipped Stego gait (FR-4 / FR-5 / AC-5): the authored `Walk` clip's own
+ * stride, measured rather than inherited. `loopSeconds` is the clip length
+ * (2.4 s) so one animation loop is exactly one stride; `strideMetres` is the
+ * distance that loop covers at the speed where planted feet stop sliding.
+ *
+ * How it was measured (track 20261029-authored-dino-walk-clips):
+ * `verification/phase-4.md` sweeps walking speed against the mean world-space
+ * slide of every planted foot over one full loop of the shipped clip. Slide
+ * falls to a clean V: 0.7445-0.745 m/s is the minimum (0.0185 m/s mean slide,
+ * stance-core cross-check 0.0046 m/s), so a 2.4 s loop strides 1.788 m. The
+ * pre-track 0.29 m / 0.8 s pair was a copy of the Trike's numbers and slid
+ * 0.376 m/s — 20x this floor. The stance-run estimator in the gait tests reads
+ * 0.723 m/s, i.e. this constant sits inside its 3 % disagreement band.
+ *
+ * Turning is not in the walk clip, so it is unchanged but re-checked against
+ * the faster walk: PI yaw cap, 20 rad/m curvature (20 x 0.745 m/s = 14.9,
+ * still capped by PI, so a quarter turn takes 0.5 s, inside
+ * TURN_90_MAX_SECONDS = 0.6 s). Heading steps clamp to the remaining angle, so
+ * the hot curvature settles exactly instead of orbiting the target.
  */
 export const STEGO_GAIT: GaitParams = {
-  strideMetres: 0.29,
-  loopSeconds: 0.8,
+  strideMetres: 1.788,
+  loopSeconds: 2.4,
   turnRateRadiansPerSecond: Math.PI,
   curvatureRadiansPerMetre: 20,
   wanderRadiusMetres: 0.8,
 };
 
 /**
- * Shipped Brachio gait (FR-1): a slower seated-shuffle — 0.24 m stride per
- * 1.0 s loop (~0.24 m/s), 1.8 rad/s yaw cap (a 90 deg rate bound of 0.87 s),
- * trike-like 4.5 rad/m stroller curvature, 0.8 m wander circle. The plan
- * assumed curvature 3.0, but TDD against AC-3 falsified it: at 3.0 the yaw
- * rate binds on curvature x speed (0.72 rad/s, 0.33 m turn radius) and even a
- * solo Brachio swings to ~1.2 m on outward rim crossings — past the
- * RADIUS + CYCLE bound — while Trike (1.63 rad/s) and Stego (PI) stay inside.
- * 4.5 is the smallest change that contains the trio (yaw 1.08 rad/s, 0.22 m
- * radius, ~1.45 s full 90 deg arc) while keeping every other assumed number.
- * See phase-1 evidence for the data. The shared waddle math stays untouched.
+ * Shipped Brachio gait (FR-1 / FR-5 / AC-5): the authored `Walk` clip's own
+ * stride over its own 3.8 s loop. Measured the same way as the Stego (sweep
+ * speed against mean planted-foot slide over one full loop, curve in
+ * `verification/phase-4.md`): the minimum is 0.4650 m/s with 0.0517 m/s mean
+ * slide (stance-core 0.0177 m/s), so a 3.8 s loop strides 1.767 m. At the
+ * pre-track 0.24 m / 1.0 s the same feet slid 0.251 m/s. The stance-run
+ * estimator reads 0.412 m/s; the constant is deliberately the slide minimiser,
+ * which is the quantity the foot-plant ceiling is about.
+ *
+ * This makes the Brachio walk (0.465 m/s) faster than the Trike's authored
+ * 0.3625 m/s rather than slower as the old tuning assumed: a 12.5 m sauropod
+ * covering 1.767 m per 3.8 s cannot be slower without dragging its feet. The
+ * turn numbers are re-checked, not re-measured (a walk clip carries no yaw):
+ * 1.8 rad/s cap, 4.5 rad/m curvature (4.5 x 0.465 = 2.09 rad/s, so the cap now
+ * binds and the 90 deg arc takes ~0.87 s). The shared waddle math stays
+ * untouched. See phase-1 evidence for the curvature call.
  */
 export const BRACHIO_GAIT: GaitParams = {
-  strideMetres: 0.24,
-  loopSeconds: 1.0,
+  strideMetres: 1.767,
+  loopSeconds: 3.8,
   turnRateRadiansPerSecond: 1.8,
   curvatureRadiansPerMetre: 4.5,
   wanderRadiusMetres: 0.8,

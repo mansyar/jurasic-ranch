@@ -7,7 +7,10 @@ import { DustPool } from '../../src/ranch/dust.js';
 import { WADDLE_LOOP_SECONDS } from '../../src/ranch/waddle.js';
 import { walkStatusText } from '../../src/viewer/hud.js';
 import {
+  AUTHORED_BODY_LENGTH_METRES,
   BRACHIO_MODEL_URL,
+  DINO_GROUP_SCALE,
+  IN_GAME_BODY_LENGTH_METRES,
   loadBrachioPlayer,
   loadStegoPlayer,
   loadTrikePlayer,
@@ -189,6 +192,61 @@ describe('rigged brachio loader (FR-1, FR-4, FR-9)', () => {
   it('rejects when the brachio GLB carries no animations', async () => {
     loaderMocks.loadAsync.mockResolvedValue({ scene: new THREE.Group(), animations: [] });
     await expect(loadBrachioPlayer()).rejects.toThrow('Waddle');
+  });
+});
+
+describe('per-species in-game size (FR-4, AC-4)', () => {
+  it('derives S from the Trike the child already knows and keeps it uniform', () => {
+    // S = 3.708 m (shipped trike.glb) / 6.26 m (Polyfork adult reference).
+    expect(DINO_GROUP_SCALE).toBeCloseTo(3.708 / 6.26, 12);
+    expect(DINO_GROUP_SCALE).toBeGreaterThan(0.55);
+    expect(DINO_GROUP_SCALE).toBeLessThan(0.65);
+    // Real-life ratios survive the shrink: Stego/Trike 1.04, Brachio/Trike 2.00.
+    expect(IN_GAME_BODY_LENGTH_METRES.trike).toBeCloseTo(3.708, 6);
+    expect(IN_GAME_BODY_LENGTH_METRES.stego / IN_GAME_BODY_LENGTH_METRES.trike).toBeCloseTo(
+      1.04,
+      2,
+    );
+    expect(IN_GAME_BODY_LENGTH_METRES.brachio / IN_GAME_BODY_LENGTH_METRES.trike).toBeCloseTo(
+      2.0,
+      2,
+    );
+    // ... and every one is the authored length times the same single scale.
+    expect(IN_GAME_BODY_LENGTH_METRES.stego).toBeCloseTo(
+      AUTHORED_BODY_LENGTH_METRES.stego * DINO_GROUP_SCALE,
+      9,
+    );
+    expect(IN_GAME_BODY_LENGTH_METRES.brachio).toBeCloseTo(
+      AUTHORED_BODY_LENGTH_METRES.brachio * DINO_GROUP_SCALE,
+      9,
+    );
+  });
+
+  it('applies one scalar to the loaded group: uniform, and 1 for the Trike', async () => {
+    const scene = new THREE.Group();
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene,
+      animations: [new THREE.AnimationClip('Waddle', 1.0, [])],
+    });
+    const loaded = await loadStegoPlayer();
+    expect(loaded.model.scale.toArray()).toEqual([
+      DINO_GROUP_SCALE,
+      DINO_GROUP_SCALE,
+      DINO_GROUP_SCALE,
+    ]);
+    // The player captured the scaled group as its squash base, so the walk
+    // squash multiplies this scale rather than replacing it.
+    loaded.player.update(1 / 60, 0);
+    expect(loaded.model.scale.x).toBeCloseTo(DINO_GROUP_SCALE, 12);
+    expect(loaded.model.scale.z).toBeCloseTo(DINO_GROUP_SCALE, 12);
+
+    const trikeScene = new THREE.Group();
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: trikeScene,
+      animations: [new THREE.AnimationClip('Waddle', 0.8, [])],
+    });
+    const trike = await loadTrikePlayer();
+    expect(trike.model.scale.toArray()).toEqual([1, 1, 1]);
   });
 });
 

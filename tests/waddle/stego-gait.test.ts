@@ -6,15 +6,18 @@ import {
   createStegoVariantGroup,
 } from '../../scripts/vendor/bake-stego-variant.js';
 import { DinoPlayer, STEGO_GAIT } from '../../src/ranch/dino-player.js';
-import { TURN_ALIGN_RADIANS, wrapAngle } from '../../src/ranch/waddle.js';
+import { gaitSpeedMetresPerSecond, TURN_ALIGN_RADIANS, wrapAngle } from '../../src/ranch/waddle.js';
 
 /**
- * Stego walk (FR-1, AC-1, AC-2). The shipped clip is Polyfork's own authored
- * `Walk` — 2.4 s, 48 channels, no donor retarget — so this harness measures the
- * clip instead of tuning one. The walking speed is DERIVED from the clip: the
- * speed at which a planted foot stops travelling in world space. That is why no
- * stride constant appears here; Phase 4 re-points `STEGO_GAIT` at the measured
- * numbers (this build measures ~0.73 m/s, so a 2.4 s loop strides ~1.75 m).
+ * Stego walk (FR-1, AC-1, AC-2, AC-5). The shipped clip is Polyfork's own
+ * authored `Walk` — 2.4 s, 48 channels, no donor retarget — so this harness
+ * measures the clip instead of tuning one. The walking speed is DERIVED from
+ * the clip: the speed at which a planted foot stops travelling in world space.
+ *
+ * Phase 4 re-pointed `STEGO_GAIT` at those measurements (1.788 m per 2.4 s,
+ * ~0.745 m/s) and the last test here holds the constant to the clip: it sweeps
+ * the same slide metric and asserts the shipped speed IS the minimum, so the
+ * constant cannot drift back into a copy of another species' numbers.
  */
 
 const DT = 1 / 60;
@@ -62,6 +65,13 @@ interface StegoWalkMeasurement {
   walkSpeed: number;
   /** Walk speed x cycle length: the ground one loop covers. */
   strideMetres: number;
+  /**
+   * Mean world-space slide of every planted foot at a candidate root speed, in
+   * m/s: replay the root at `speed` and ask how far each standing foot still
+   * travels. The gait constant minimises this, so the sweep test can hold it to
+   * the clip's own geometry instead of comparing it to itself.
+   */
+  slideAt: (speed: number) => number;
 }
 
 interface StegoWalkResult extends StegoWalkMeasurement {
@@ -182,6 +192,36 @@ async function measureStegoWalk(): Promise<StegoWalkResult> {
     };
   }
   const walkSpeed = FEET.reduce((total, foot) => total + reports[foot].footSpeed, 0) / FEET.length;
+
+  // Contact floors recomputed once: slideAt runs a few hundred times below.
+  const contactFloors = new Map<string, number>();
+  for (const foot of FEET) {
+    let minY = Infinity;
+    for (const point of series.get(foot) ?? []) {
+      minY = Math.min(minY, point.y);
+    }
+    contactFloors.set(foot, minY + CONTACT_METRES);
+  }
+  const slideAt = (speed: number): number => {
+    let sum = 0;
+    let count = 0;
+    for (const foot of FEET) {
+      const points = series.get(foot) ?? [];
+      const floor = contactFloors.get(foot) ?? 0;
+      for (let i = 1; i < points.length; i += 1) {
+        const previous = points[i - 1];
+        const current = points[i];
+        if (previous.y > floor || current.y > floor) {
+          continue;
+        }
+        const travelled = current.z + speed * current.t - (previous.z + speed * previous.t);
+        sum += Math.abs(travelled) / step;
+        count += 1;
+      }
+    }
+    return count > 0 ? sum / count : Number.NaN;
+  };
+
   return {
     group,
     clip,
@@ -189,6 +229,7 @@ async function measureStegoWalk(): Promise<StegoWalkResult> {
     reports,
     walkSpeed,
     strideMetres: walkSpeed * clip.duration,
+    slideAt,
   };
 }
 
@@ -202,15 +243,50 @@ async function createStegoPlayer(): Promise<{ player: DinoPlayer; group: THREE.G
   return { player, group };
 }
 
-describe('stego gait config (FR-1, AC-2)', () => {
-  it('ships the Stego tuning: 0.8 s loop, PI turn, tight curve, 0.8 m wander', () => {
-    expect(STEGO_GAIT.loopSeconds).toBe(0.8);
+describe('stego gait config (FR-1, FR-5, AC-5)', () => {
+  it('ships the measured Stego walk: 1.788 m stride, 2.4 s loop, PI turn, tight curve', () => {
+    expect(STEGO_GAIT.strideMetres).toBe(1.788);
+    expect(STEGO_GAIT.loopSeconds).toBe(2.4);
     expect(STEGO_GAIT.turnRateRadiansPerSecond).toBe(Math.PI);
     expect(STEGO_GAIT.curvatureRadiansPerMetre).toBe(20);
     expect(STEGO_GAIT.wanderRadiusMetres).toBe(0.8);
   });
 
-  it('turns a commanded 90 deg inside 0.6 s, then walks straight', async () => {
+  it('ties loop to the clip duration and stride to the clip walking speed (within 5 %)', async () => {
+    const { duration, walkSpeed } = await measureStegoWalk();
+    // One animation loop is exactly one stride, so the loop must be the clip.
+    expect(STEGO_GAIT.loopSeconds).toBeCloseTo(duration, 3);
+    // The constant is the slide minimiser; the stance-run estimator here reads
+    // slightly lower (it averages foot speed rather than fitting slide), and
+    // the spec tolerates 5 % between the two independent instruments.
+    const ratio = gaitSpeedMetresPerSecond(STEGO_GAIT) / walkSpeed;
+    expect(Math.abs(ratio - 1)).toBeLessThanOrEqual(0.05);
+    expect(STEGO_GAIT.strideMetres).toBeCloseTo(gaitSpeedMetresPerSecond(STEGO_GAIT) * duration, 6);
+  });
+
+  it('walks at the speed that minimises planted-foot slide on the shipped clip', async () => {
+    const measurement = await measureStegoWalk();
+    const gaitSpeed = gaitSpeedMetresPerSecond(STEGO_GAIT);
+    // Sweep the clip's own frames: a 3.45 m body leans on ~0.7–0.8 m/s.
+    let bestSlide = Infinity;
+    let bestSpeed = 0;
+    for (let i = 0; i <= 20; i += 1) {
+      const speed = 0.7 + i * 0.005;
+      const slide = measurement.slideAt(speed);
+      if (slide < bestSlide) {
+        bestSlide = slide;
+        bestSpeed = speed;
+      }
+    }
+    // The shipped constant is the minimiser, not merely "close to" it.
+    expect(Math.abs(bestSpeed - gaitSpeed)).toBeLessThanOrEqual(0.005);
+    expect(measurement.slideAt(gaitSpeed)).toBeLessThanOrEqual(0.03);
+    // The defect this phase pays: the pre-track copy of the Trike's 0.29 m /
+    // 0.8 s walked 20x the slide floor on this same clip.
+    expect(measurement.slideAt(0.29 / 0.8)).toBeGreaterThan(0.2);
+  });
+
+  it('turns a commanded 90 deg inside 0.6 s, then walks straight inside the rim', async () => {
     const { player, group } = await createStegoPlayer();
     player.setWalking(true);
     player.turnTo(Math.PI / 2);
@@ -224,12 +300,22 @@ describe('stego gait config (FR-1, AC-2)', () => {
     }
     expect(Math.abs(wrapAngle(player.heading - Math.PI / 2))).toBeLessThan(TURN_ALIGN_RADIANS);
     expect(elapsed).toBeLessThan(0.6);
+    // "Then walks straight" is only the player's contract while it is inside
+    // the stay-in-frame circle: at the measured 0.745 m/s it crosses the 0.8 m
+    // rim ~1.1 s after setting off, and steerInsideWanderRadius then re-aims it
+    // (by design). Sample the straight run up to the rim, not past it.
     const before = group.position.clone();
-    for (let i = 0; i < 48; i += 1) {
+    let straight = 0;
+    while (
+      straight < 0.5 &&
+      Math.hypot(group.position.x, group.position.z) <= STEGO_GAIT.wanderRadiusMetres
+    ) {
       player.update(DT, elapsed);
       elapsed += DT;
+      straight += DT;
+      expect(Math.abs(wrapAngle(player.heading - Math.PI / 2))).toBeLessThan(TURN_ALIGN_RADIANS);
     }
-    expect(Math.abs(wrapAngle(player.heading - Math.PI / 2))).toBeLessThan(TURN_ALIGN_RADIANS);
+    expect(straight).toBeGreaterThan(0.25);
     expect(group.position.distanceTo(before)).toBeGreaterThan(0.05);
   });
 });
