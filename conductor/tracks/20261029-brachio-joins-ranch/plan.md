@@ -75,17 +75,14 @@ The primary appends after acceptance:
 **Evidence:** conductor/tracks/20261029-brachio-joins-ranch/verification/phase-3.md
 -->
 
-<!--
-Review fixes are appended by `conductor-review` as:
-
 ## Phase R1: Review Fixes
 
-- **Goal:** Resolve review findings ...
+- **Goal:** Resolve review findings F2, F3 (stale test comments).
 - **Depends on:** Phase 3
-- **Covers:** review findings
-- **Touches:** ...
-- **Verification:** ...
-- **Status:** pending
+- **Covers:** F2, F3
+- **Touches:** `tests/waddle/brachio-stride.test.ts`, `tests/waddle/brachio-pastel.test.ts`
+- **Verification:** `pnpm verify`
+- **Status:** in_progress
 
-- [ ] **R1.T1: Resolve <finding ID>** — covers: <finding ID>
--->
+- [ ] **R1.T1: Resolve F2** — covers: F2 (rename SHIPPED_GLB → DONOR_TRIKE_GLB + donor comment)
+- [ ] **R1.T2: Resolve F3** — covers: F3 (header 0.5 → 0.27 post-scale)
