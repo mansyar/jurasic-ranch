@@ -43,7 +43,7 @@
 - **Covers:** FR-1, FR-2, FR-4, FR-10, AC-1, AC-3, AC-9
 - **Touches:** `index.html`, `src/viewer/hud.ts`, `tests/viewer/hud*.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P2.T1: Species entries become buttons** — covers: FR-4, FR-10
   - [ ] **P2.T1.1:** `<li>` becomes `<li><button data-species>` keeping emoji and label, with an accessible name and a 72 px minimum target
@@ -55,8 +55,8 @@
 - [ ] **P2.T3: Coo wiring** — covers: FR-4, FR-5
   - [ ] **P2.T3.1:** Each species button plays its own coo through the gate
   - [ ] **P2.T3.2:** Test: three different species produce three distinct ids
-- [ ] **P2.T4: Visual check** — covers: AC-9
-  - [ ] **P2.T4.1:** 1280×800 landscape screenshot of the tap targets recorded in evidence
+- [ ] **P2.T4: Target and label contract** — covers: AC-9
+  - [ ] **P2.T4.1:** DOM test asserts each species button keeps its text label as its accessible name and declares a 72 px minimum target in the stylesheet; the pixel proof is Phase 4's screenshot
 
 ## Phase 3: Unlock timing, greeting and mute ordering
 
