@@ -12,8 +12,9 @@ export default defineConfig({
       manifest: false,
       workbox: {
         // Precache the app shell plus future dino GLBs for airplane-mode boot.
-        // `wasm` covers the Draco decoder Vite emits under `assets/`.
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,glb,wasm,webmanifest}'],
+        // `wasm` covers the Draco decoder Vite emits under `assets/`; `mp3`
+        // covers the 15-asset starter pack so audio works offline (AC-10).
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,glb,wasm,webmanifest,mp3}'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
       },
