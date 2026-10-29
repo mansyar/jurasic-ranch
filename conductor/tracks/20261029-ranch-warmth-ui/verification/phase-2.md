@@ -80,6 +80,13 @@ None. `vite.config.ts` required no change (existing `**/*.{...glb...}`
 glob already precaches `public/models/dressing/*.glb`); `public/models/dressing/*`
 binaries were read (tests) but never modified.
 
+## Primary verification (independent)
+
+- Re-ran `pnpm verify` on the squashed tree: exit 0 (lint + format + typecheck clean, vitest green, vite build ok, precache 28 entries / 4305.99 KiB — matches subagent evidence).
+- `git status` clean except intended files; all changed files within Phase 2 Touches (`src/ranch/dressing.ts`, `public/models/dressing/*`, `src/viewer/main.ts`, `tests/ranch/dressing.test.ts`; `vite.config.ts` untouched — deviation none, existing glob covers `*.glb`).
+- AC-3 spot-check: 23 instances per summary, all outside 0.8 m walk circle / inside 6 m ground; per-file silent fallback keeps boot playable bare.
+- Squashed 4 task commits (0edc328, b20564f, f8bb577, 72c4f72) → `2e5976a feat(ranch): valley and farm dressing with offline precache` via `git reset --soft f64709f` (no rebase, no amend).
+
 ## Notes
 
 - Dressing GLBs carry no Draco extensions (verified by content grep), so

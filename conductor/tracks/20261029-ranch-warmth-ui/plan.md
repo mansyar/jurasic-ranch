@@ -40,19 +40,19 @@ The primary appends after acceptance:
 - **Covers:** FR-3, NFR-1, NFR-2, NFR-4, AC-3
 - **Touches:** `src/ranch/dressing.ts`, `public/models/dressing/*`, `src/viewer/main.ts`, `vite.config.ts`, `tests/ranch/dressing*`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
 - [x] **P2.T1: Kit shortlist 12 parts (primary-vendored, 1.1MB)** - covers: FR-3
   - [x] **P2.T1.1: get_kit Valley + Farm rows + tris audit (~8k tris)** - covers: FR-3
-- [ ] **P2.T2: Valley ground + trees/rocks** - covers: FR-3
-- [ ] **P2.T3: Farm fences/trough/nest-garden markers** - covers: FR-3
-- [ ] **P2.T4: Precache + size/fps report** - covers: FR-3
-- [ ] **P2.T5: Dressing fallback tests** - covers: AC-3
+- [x] **P2.T2: Valley ground + trees/rocks** - covers: FR-3
+- [x] **P2.T3: Farm fences/trough/nest-garden markers** - covers: FR-3
+- [x] **P2.T4: Precache + size/fps report** - covers: FR-3
+- [x] **P2.T5: Dressing fallback tests** - covers: AC-3
 
 <!--
 The primary appends after acceptance:
 **Result:** verified
-**Checkpoint:** <short-sha>
+**Checkpoint:** 2e5976a
 **Evidence:** conductor/tracks/20261029-ranch-warmth-ui/verification/phase-2.md
 -->
 
