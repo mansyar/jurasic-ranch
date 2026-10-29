@@ -77,7 +77,7 @@
 - **Covers:** FR-6, FR-7, FR-8, FR-12, NFR-4
 - **Touches:** `index.html`, `src/audio/gate.ts`, `src/audio/settings.ts`, `src/viewer/audio-controls.ts`, `src/viewer/hud.ts`, `src/viewer/main.ts`, `tests/audio/gate.test.ts`, `tests/audio/settings.test.ts`, `tests/viewer/audio-controls.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P4.T1: Implement the hold-gate state machine** — covers: FR-8
   - [ ] **P4.T1.1:** Add a pure `HoldGate` with 2000 ms duration, progress `0..1`, start/tick/cancel/complete, and keyboard parity.
