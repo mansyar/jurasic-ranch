@@ -1,0 +1,349 @@
+import { readFile } from "node:fs/promises";
+import * as THREE from "three";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { trioSpawnPositions } from "../../src/ranch/avoidance.js";
+import { BRACHIO_GAIT, DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from "../../src/ranch/dino-player.js";
+import { DustPool } from "../../src/ranch/dust.js";
+import { WADDLE_LOOP_SECONDS } from "../../src/ranch/waddle.js";
+import {
+  BRACHIO_BODY_HEX,
+  BRACHIO_MODEL_URL,
+  createPlaceholderBrachio,
+  loadBrachioPlayer,
+  loadStegoPlayer,
+  loadTrikePlayer,
+  PLACEHOLDER_BODY_HEX,
+  PLACEHOLDER_BODY_NAME,
+  setAllWalking,
+  STEGO_BODY_HEX,
+  STEGO_PLATE_HEX,
+  steerTrioApart,
+  TRIO_SPAWN_HEADINGS_RADIANS,
+  updatePlaceholderWalk,
+  walkStatusText,
+} from "../../src/viewer/main.js";
+
+const ROOT_URL = new URL("../../", import.meta.url);
+
+/** Loader-boundary stubs: the tests below never touch WebGL or the network. */
+const loaderMocks = vi.hoisted(() => ({
+  loadAsync: vi.fn(),
+  setDRACOLoader: vi.fn(),
+  setDecoderPath: vi.fn(),
+  dispose: vi.fn(),
+}));
+
+vi.mock("three/addons/loaders/GLTFLoader.js", () => ({
+  GLTFLoader: vi.fn(function (this: unknown) {
+    return {
+      loadAsync: loaderMocks.loadAsync,
+      setDRACOLoader: loaderMocks.setDRACOLoader,
+    };
+  }),
+}));
+
+vi.mock("three/addons/loaders/DRACOLoader.js", () => ({
+  DRACOLoader: vi.fn(function (this: unknown) {
+    return {
+      setDecoderPath: loaderMocks.setDecoderPath,
+      dispose: loaderMocks.dispose,
+    };
+  }),
+}));
+
+async function readText(relativePath: string): Promise<string> {
+  return readFile(new URL(relativePath, ROOT_URL), "utf8");
+}
+
+function bodyOf(brachio: THREE.Group): THREE.Object3D {
+  return brachio.getObjectByName(PLACEHOLDER_BODY_NAME) ?? brachio;
+}
+
+function createRig(name: string): THREE.Group {
+  const root = new THREE.Group();
+  root.name = name;
+  const hips = new THREE.Group();
+  hips.name = "Hips";
+  root.add(hips);
+  return root;
+}
+
+function createWaddleClip(loopSeconds: number): THREE.AnimationClip {
+  const track = new THREE.VectorKeyframeTrack(
+    "Hips.position",
+    [0, loopSeconds / 2, loopSeconds],
+    [0, 0, 0, 0, 0.05, 0, 0, 0, 0],
+  );
+  return new THREE.AnimationClip("Waddle", loopSeconds, [track]);
+}
+
+describe("placeholder brachio fallback (FR-8, AC-5)", () => {
+  it("reserves the brachio model URL beside the trike and stego ones", () => {
+    expect(BRACHIO_MODEL_URL).toBe("/models/brachio.glb");
+  });
+
+  it("stands boxy and grazing on the ground plane with the swap footprint", () => {
+    const brachio = createPlaceholderBrachio();
+    expect(brachio.name).toContain("Brachio");
+    expect(brachio.children.length).toBeGreaterThan(0);
+    const box = new THREE.Box3().setFromObject(brachio);
+    expect(Math.abs(box.min.y)).toBeLessThan(1e-6);
+    const size = box.getSize(new THREE.Vector3());
+    // Same window as the rigged swap target (2.3–3.1 m grazing baby).
+    expect(size.z).toBeGreaterThanOrEqual(2.3);
+    expect(size.z).toBeLessThanOrEqual(3.1);
+    expect(brachio.rotation.y).toBeCloseTo(-Math.PI / 2, 5);
+  });
+
+  it("keeps the grazing head near the 1.2 m cap", () => {
+    const box = new THREE.Box3().setFromObject(createPlaceholderBrachio());
+    expect(box.max.y).toBeLessThan(1.4);
+  });
+
+  it("reads as a Brachio, not a third Trike or Stego: lavender hide, no green or teal", () => {
+    const brachio = createPlaceholderBrachio();
+    const hexes = new Set<number>();
+    brachio.traverse((child: THREE.Object3D) => {
+      const mesh = child as THREE.Mesh;
+      const material = mesh.material as THREE.MeshStandardMaterial | undefined;
+      if (mesh.isMesh === true && material?.color !== undefined) {
+        hexes.add(material.color.getHex());
+      }
+    });
+    expect(hexes.has(BRACHIO_BODY_HEX)).toBe(true);
+    expect(hexes.has(PLACEHOLDER_BODY_HEX)).toBe(false);
+    expect(hexes.has(STEGO_BODY_HEX)).toBe(false);
+    expect(hexes.has(STEGO_PLATE_HEX)).toBe(false);
+  });
+
+  it("shares the seamless placeholder bob with the other two", () => {
+    const a = createPlaceholderBrachio();
+    const b = createPlaceholderBrachio();
+    updatePlaceholderWalk(a, 0);
+    updatePlaceholderWalk(b, WADDLE_LOOP_SECONDS);
+    expect(bodyOf(a).position.y).toBe(0);
+    expect(bodyOf(a).position.y).toBe(bodyOf(b).position.y);
+  });
+});
+
+describe("rigged brachio loader (FR-1, FR-4, FR-9)", () => {
+  beforeEach(() => {
+    loaderMocks.loadAsync.mockReset();
+    loaderMocks.setDRACOLoader.mockReset();
+    loaderMocks.setDecoderPath.mockReset();
+    loaderMocks.dispose.mockReset();
+  });
+
+  it("requests /models/brachio.glb through the same Draco path", async () => {
+    const scene = new THREE.Group();
+    const clip = new THREE.AnimationClip("Waddle", 1.0, []);
+    loaderMocks.loadAsync.mockResolvedValue({ scene, animations: [clip] });
+    const loaded = await loadBrachioPlayer();
+    expect(loaderMocks.loadAsync).toHaveBeenCalledWith("/models/brachio.glb");
+    expect(loaderMocks.setDecoderPath).toHaveBeenCalledWith("/draco/");
+    expect(loaderMocks.setDRACOLoader).toHaveBeenCalledTimes(1);
+    expect(loaded.model).toBe(scene);
+    expect(loaded.player).toBeInstanceOf(DinoPlayer);
+    expect(loaded.player.clipDurationSeconds).toBeCloseTo(1.0, 5);
+  });
+
+  it("prefers the Waddle clip over other animations", async () => {
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [
+        new THREE.AnimationClip("Idle", 1.4, []),
+        new THREE.AnimationClip("Waddle", 1.0, []),
+      ],
+    });
+    const loaded = await loadBrachioPlayer();
+    expect(loaded.player.clipDurationSeconds).toBeCloseTo(1.0, 5);
+  });
+
+  it("shares one DustPool across all three players", async () => {
+    const shared = new DustPool({ random: () => 0.5 });
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [new THREE.AnimationClip("Waddle", 0.8, [])],
+    });
+    const trike = await loadTrikePlayer(shared);
+    const stego = await loadStegoPlayer(shared);
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [new THREE.AnimationClip("Waddle", 1.0, [])],
+    });
+    const brachio = await loadBrachioPlayer(shared);
+    expect(trike.player.dust).toBe(shared);
+    expect(stego.player.dust).toBe(shared);
+    expect(brachio.player.dust).toBe(shared);
+  });
+
+  it("rejects when the brachio GLB cannot load so the placeholder stays", async () => {
+    loaderMocks.loadAsync.mockRejectedValue(new Error("offline"));
+    await expect(loadBrachioPlayer()).rejects.toThrow("offline");
+  });
+
+  it("rejects when the brachio GLB carries no animations", async () => {
+    loaderMocks.loadAsync.mockResolvedValue({ scene: new THREE.Group(), animations: [] });
+    await expect(loadBrachioPlayer()).rejects.toThrow("Waddle");
+  });
+});
+
+describe("single Walk toggles all three dinos (FR-7, AC-4)", () => {
+  it("flips every player together and never splits the trio", () => {
+    const players = [TRIKE_GAIT, STEGO_GAIT, BRACHIO_GAIT].map(
+      (gait, index) =>
+        new DinoPlayer(createRig(`Root${index}`), {
+          clip: createWaddleClip(gait.loopSeconds),
+          gait,
+        }),
+    );
+    setAllWalking(players, true);
+    for (const player of players) {
+      expect(player.walking).toBe(true);
+    }
+    setAllWalking(players, false);
+    for (const player of players) {
+      expect(player.walking).toBe(false);
+    }
+  });
+
+  it("names all three species with icon + word while walking, keeps the stopped text", () => {
+    expect(walkStatusText(true)).toContain("Trike");
+    expect(walkStatusText(true)).toContain("Stego");
+    expect(walkStatusText(true)).toContain("Brachio");
+    expect(walkStatusText(true)).toContain("🦕");
+    expect(walkStatusText(true)).toContain("🦖");
+    expect(walkStatusText(true)).toContain("🦴");
+    expect(walkStatusText(false)).toBe("Tap Walk to waddle");
+  });
+
+  it("ships staggered-entry spawn headings, one per dino", () => {
+    expect(TRIO_SPAWN_HEADINGS_RADIANS).toHaveLength(3);
+    for (const heading of TRIO_SPAWN_HEADINGS_RADIANS) {
+      expect(Number.isFinite(heading)).toBe(true);
+    }
+    const [first, second, third] = TRIO_SPAWN_HEADINGS_RADIANS;
+    expect(first).not.toBe(second);
+    expect(second).not.toBe(third);
+    expect(first).not.toBe(third);
+  });
+});
+
+describe("trio steering wiring (FR-6, AC-3)", () => {
+  it("steers a crowded trio apart without stopping any dino", () => {
+    const rigs = [createRig("TrikeRoot"), createRig("StegoRoot"), createRig("BrachioRoot")];
+    const gaits = [TRIKE_GAIT, STEGO_GAIT, BRACHIO_GAIT];
+    const players = rigs.map(
+      (rig, index) =>
+        new DinoPlayer(rig, {
+          clip: createWaddleClip(gaits[index].loopSeconds),
+          gait: gaits[index],
+          random: () => 0.5,
+        }),
+    );
+    rigs[0].position.set(-0.15, 0, 0);
+    rigs[1].position.set(0.15, 0, 0);
+    rigs[2].position.set(0, 0, 0.25);
+    players[0].turnTo(Math.PI / 2);
+    players[1].turnTo(-Math.PI / 2);
+    players[2].turnTo(Math.PI);
+    setAllWalking(players, true);
+    for (let i = 0; i < 30; i += 1) {
+      steerTrioApart(
+        players[0],
+        rigs[0],
+        players[1],
+        rigs[1],
+        players[2],
+        rigs[2],
+      );
+      players.forEach((player) => {
+        player.update(1 / 60, i / 60);
+        expect(player.walking).toBe(true);
+      });
+    }
+    // The head-on pair biased off its line: headings no longer mirror exactly.
+    expect(Math.abs(players[0].heading - Math.PI / 2)).toBeGreaterThan(0.01);
+    expect(Math.abs(players[1].heading + Math.PI / 2)).toBeGreaterThan(0.01);
+    for (const [first, second] of [
+      [rigs[0], rigs[1]],
+      [rigs[1], rigs[2]],
+      [rigs[0], rigs[2]],
+    ] as const) {
+      expect(first.position.distanceTo(second.position)).toBeGreaterThan(0.15);
+    }
+  });
+
+  it("leaves a far-apart trio on course", () => {
+    const rigs = [createRig("TrikeRoot"), createRig("StegoRoot"), createRig("BrachioRoot")];
+    const gaits = [TRIKE_GAIT, STEGO_GAIT, BRACHIO_GAIT];
+    const players = rigs.map(
+      (rig, index) =>
+        new DinoPlayer(rig, {
+          clip: createWaddleClip(gaits[index].loopSeconds),
+          gait: gaits[index],
+          random: () => 0.5,
+        }),
+    );
+    rigs[0].position.set(-2, 0, 0);
+    rigs[1].position.set(2, 0, 0);
+    rigs[2].position.set(0, 0, 2);
+    steerTrioApart(players[0], rigs[0], players[1], rigs[1], players[2], rigs[2]);
+    expect(players[0].heading).toBe(0);
+    expect(players[1].heading).toBe(0);
+    expect(players[2].heading).toBe(0);
+  });
+
+  it("spawns the trio on the avoidance triangle, not the old pair line", () => {
+    const spawn = trioSpawnPositions();
+    expect(spawn).toHaveLength(3);
+    for (const point of spawn) {
+      // Triangle vertices sit off the x-axis pair line.
+      expect(Math.abs(point.z)).toBeGreaterThan(0.01);
+    }
+  });
+});
+
+describe("trio ranch shell (NFR-4, FR-7, FR-8, FR-9)", () => {
+  it("labels all three species with icon + word in the UI", async () => {
+    const html = await readText("index.html");
+    expect(html).toContain("Trike");
+    expect(html).toContain("Stego");
+    expect(html).toContain("Brachio");
+    expect(html).toContain("🦕");
+    expect(html).toContain("🦖");
+    expect(html).toContain("🦴");
+  });
+
+  it("keeps one 72 px Walk button with pressed + status wiring", async () => {
+    const html = await readText("index.html");
+    const buttons = html.match(/id="walk-button"/g) ?? [];
+    expect(buttons.length).toBe(1);
+    expect(html).toContain("min-height: 72px");
+    expect(html).toContain('aria-pressed="false"');
+    expect(html).toContain('id="status"');
+    const source = await readText("src/viewer/main.ts");
+    expect(source).toContain("aria-pressed");
+  });
+
+  it("constructs a single shared DustPool for all three players", async () => {
+    const source = await readText("src/viewer/main.ts");
+    const constructions = source.match(/new DustPool\(/g) ?? [];
+    expect(constructions.length).toBe(1);
+    expect(source).toContain("loadBrachioPlayer");
+    expect(source).toContain("BRACHIO_GAIT");
+    expect(source).toContain("trioAvoidanceNudges");
+  });
+
+  it("adds no new player class: only DinoPlayer drives all three gaits", async () => {
+    const source = await readText("src/viewer/main.ts");
+    expect(source).not.toMatch(/class BrachioPlayer/);
+    expect(source).not.toMatch(/class TrikePlayer/);
+    expect(source).not.toMatch(/class StegoPlayer/);
+  });
+
+  it("warns and keeps walking when the brachio GLB fails", async () => {
+    const source = await readText("src/viewer/main.ts");
+    expect(source).toContain("Rigged brachio unavailable; keeping the placeholder.");
+  });
+});
