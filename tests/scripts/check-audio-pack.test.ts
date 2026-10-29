@@ -40,7 +40,7 @@ const FIXTURE_ASSETS: readonly FixtureAsset[] = [
     path: 'audio/sfx/coo-trike.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 1.1,
+    durationSeconds: 1,
   },
   {
     id: 'coo-stego',
@@ -48,7 +48,7 @@ const FIXTURE_ASSETS: readonly FixtureAsset[] = [
     path: 'audio/sfx/coo-stego.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 1.3,
+    durationSeconds: 1.2,
   },
   {
     id: 'coo-brachio',
@@ -56,7 +56,7 @@ const FIXTURE_ASSETS: readonly FixtureAsset[] = [
     path: 'audio/sfx/coo-brachio.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 1.5,
+    durationSeconds: 1.4,
   },
   {
     id: 'tap',
@@ -64,7 +64,7 @@ const FIXTURE_ASSETS: readonly FixtureAsset[] = [
     path: 'audio/sfx/tap.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.2,
+    durationSeconds: 0.18,
   },
   {
     id: 'heart',
@@ -72,7 +72,7 @@ const FIXTURE_ASSETS: readonly FixtureAsset[] = [
     path: 'audio/sfx/heart.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.8,
+    durationSeconds: 0.75,
   },
   {
     id: 'sparkle',
@@ -88,7 +88,7 @@ const FIXTURE_ASSETS: readonly FixtureAsset[] = [
     path: 'audio/voice/hello.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 1,
+    durationSeconds: 0.93,
   },
   {
     id: 'nom',
@@ -96,7 +96,7 @@ const FIXTURE_ASSETS: readonly FixtureAsset[] = [
     path: 'audio/voice/nom.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.8,
+    durationSeconds: 1.12,
   },
   {
     id: 'all-done',
@@ -104,7 +104,7 @@ const FIXTURE_ASSETS: readonly FixtureAsset[] = [
     path: 'audio/voice/all-done.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 1.2,
+    durationSeconds: 1.02,
   },
   {
     id: 'count-1',
@@ -112,7 +112,7 @@ const FIXTURE_ASSETS: readonly FixtureAsset[] = [
     path: 'audio/voice/count-1.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.7,
+    durationSeconds: 0.79,
   },
   {
     id: 'count-2',
@@ -120,7 +120,7 @@ const FIXTURE_ASSETS: readonly FixtureAsset[] = [
     path: 'audio/voice/count-2.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.7,
+    durationSeconds: 0.85,
   },
   {
     id: 'count-3',
@@ -128,7 +128,7 @@ const FIXTURE_ASSETS: readonly FixtureAsset[] = [
     path: 'audio/voice/count-3.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.8,
+    durationSeconds: 0.85,
   },
   {
     id: 'count-4',
@@ -136,7 +136,7 @@ const FIXTURE_ASSETS: readonly FixtureAsset[] = [
     path: 'audio/voice/count-4.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.8,
+    durationSeconds: 0.86,
   },
   {
     id: 'count-5',
@@ -144,7 +144,7 @@ const FIXTURE_ASSETS: readonly FixtureAsset[] = [
     path: 'audio/voice/count-5.mp3',
     loop: false,
     gain: 1,
-    durationSeconds: 0.9,
+    durationSeconds: 0.91,
   },
 ];
 
@@ -258,7 +258,7 @@ describe('validateCatalog', () => {
 });
 
 describe('auditPack (AC-1, NFR-1)', () => {
-  it('passes a complete pack and totals every byte', () => {
+  it('passes a complete pack and totals only the declared audio', () => {
     const result = auditPack({
       catalogText: catalogSource(FIXTURE_ASSETS),
       fileSizes: sizesFor(FIXTURE_ASSETS, 1_000),
@@ -267,6 +267,18 @@ describe('auditPack (AC-1, NFR-1)', () => {
     expect(result.problems).toEqual([]);
     expect(result.totalBytes).toBe(15_000);
     expect(result.entries).toHaveLength(15);
+  });
+
+  it('ignores large non-audio public files in the pack total', () => {
+    const fileSizes = { ...sizesFor(FIXTURE_ASSETS, 1_000), 'models/trike.glb': 3_000_000 };
+
+    const { problems, totalBytes } = auditPack({
+      catalogText: catalogSource(FIXTURE_ASSETS),
+      fileSizes,
+    });
+
+    expect(problems).toEqual([]);
+    expect(totalBytes).toBe(15_000);
   });
 
   it('fails a missing file', () => {
@@ -357,6 +369,8 @@ describe('CLI entry', () => {
     for (const asset of FIXTURE_ASSETS) {
       await plant(dir, `public/${asset.path}`, 'not really an mp3');
     }
+    // Big non-audio neighbours must never count against the audio budget.
+    await plant(dir, 'public/models/trike.glb', 'x'.repeat(2_600_000));
     return dir;
   }
 
@@ -371,7 +385,9 @@ describe('CLI entry', () => {
     const result = run(dir);
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toMatch(/audio pack ok: 15 assets \(1 music, 6 sfx, 8 voice\)/);
+    expect(result.stdout).toMatch(
+      /audio pack ok: 15 assets \(1 music, 6 sfx, 8 voice\), 255 bytes/,
+    );
   });
 
   it('exits 1 with one line per problem', async () => {

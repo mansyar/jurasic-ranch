@@ -171,8 +171,9 @@ export function validateCatalog(entries) {
 
 /**
  * Audit a parsed catalog against a map of deploy-relative path -> byte size.
- * `fileSizes` describes every file under `public/`, so orphans and the total
- * payload are visible without filesystem access in the tests.
+ * `fileSizes` describes every file under `public/`, so orphan mp3s stay visible
+ * without filesystem access in the tests. `totalBytes` sums only the declared
+ * audio, so models and other public assets never eat the NFR-1 audio budget.
  */
 export function auditPack({ catalogText, fileSizes }) {
   const { entries, problems: catalogProblems } = extractCatalogEntries(catalogText);
@@ -200,7 +201,10 @@ export function auditPack({ catalogText, fileSizes }) {
     }
   }
 
-  const totalBytes = Object.values(fileSizes).reduce((sum, bytes) => sum + bytes, 0);
+  const totalBytes = entries.reduce((sum, entry) => {
+    const bytes = entry.path === undefined ? 0 : (fileSizes[entry.path] ?? 0);
+    return sum + bytes;
+  }, 0);
   if (totalBytes > PACK_LIMITS.totalBytes) {
     problems.push(`pack too large: ${totalBytes} bytes > ${PACK_LIMITS.totalBytes}`);
   }
