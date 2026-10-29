@@ -35,7 +35,7 @@
 - **Covers:** FR-1, FR-2, AC-1, AC-2, NFR-2, NFR-5
 - **Touches:** `src/viewer/main.ts`, `src/viewer/scene.ts`, `src/viewer/hud.ts`, `src/viewer/loaders.ts`, `src/viewer/placeholders.ts`, `src/viewer/loop.ts`, `src/viewer/viewer.test.ts`, `tests/**/*.ts`
 - **Verification:** `pnpm verify` plus a side-by-side screenshot against `cb12399` recorded in the phase evidence
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P2.T1: Extract scene construction** - covers: FR-1
   - [ ] **P2.T1.1:** Move renderer, camera, lights, ground, background, pixel-ratio and resize handling into `src/viewer/scene.ts`, exporting a `createScene()`-style factory returning the pieces the loop needs
