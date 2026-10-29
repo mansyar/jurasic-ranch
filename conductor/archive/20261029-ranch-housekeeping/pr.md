@@ -23,6 +23,7 @@ No gameplay, gait, colour, camera or render-order value changed. Nest and Garden
 | 5: Tell the truth about the ranch | manifest, title and icons name the trio | verified | `608de48` | four deterministic PNGs from an SVG source via `sharp` (dev-only) |
 | R1: Review fixes | F1–F4 | verified | `c8328c5` | apple-touch manifest entry, `.mjs` under the gate, evidence re-keyed, AC-9 restated |
 | R2: Review fixes | F5–F7 | verified | `de27e2f` | task counter, precache figure, FR-9 row |
+| R3: CI install fix | `pnpm install` must succeed on CI | verified | `4fa5251` | pnpm 12 ignores `onlyBuiltDependencies`; replaced with `allowBuilds` |
 
 ## Requirements
 
@@ -84,6 +85,7 @@ The track's only user-visible change is the app identity, so the media is the ic
 
 ## Deviations and risks
 
+- `pnpm-workspace.yaml` used `onlyBuiltDependencies`, the pnpm 10 spelling pnpm 12 silently ignores, so the first CI run died with `ERR_PNPM_IGNORED_BUILDS`. Replaced with `allowBuilds` (`esbuild: true`, `sharp: true`); the local scratch-repo reproduction and the green CI run are in `verification/phase-R3.md`.
 - `placeholders.ts` comments were condensed to clear the 300-line gate — no statement, constant or signature changed. A per-species split would let the comments return.
 - `loop.ts` gained a mutable `LoopStage` handle; the only textual change inside the loop was qualifying reads through it, and the statement order was verified line by line against the base.
 - Source-reading guards were widened from `main.ts` to unions of the modules that now hold the symbols. The guard is weaker as a result; it is recorded as debt.

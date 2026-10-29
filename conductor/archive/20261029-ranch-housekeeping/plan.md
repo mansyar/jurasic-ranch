@@ -199,5 +199,5 @@ The primary appends after acceptance:
 - [x] **R3.T2: Prove a clean install locally and let CI re-run** - covers: NFR-4
 
 **Result:** verified
-**Checkpoint:** _(set after commit)_
+**Checkpoint:** 4fa5251
 **Evidence:** conductor/archive/20261029-ranch-housekeeping/verification/phase-R3.md

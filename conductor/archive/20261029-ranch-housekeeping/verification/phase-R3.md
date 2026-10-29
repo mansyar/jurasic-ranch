@@ -52,7 +52,7 @@ allowBuilds:
 | `pnpm install --frozen-lockfile` (scratch dir, new key) | exit 0, 15.2 s |
 | `pnpm install --frozen-lockfile` (repo) | exit 0, `esbuild postinstall: Done` |
 | `pnpm verify` | exit 0 - 49 files formatted, 23 test files / 232 tests, 77.47 % lines (705/910), precache 30 entries (3,425.89 KiB) |
-| GitHub Actions `verify` on the fixed head | pass |
+| GitHub Actions `verify` on the fixed head (`4fa5251`) | pass, 27 s - run `40847326032` |
 
 ## Note
 
