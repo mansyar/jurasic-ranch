@@ -97,7 +97,7 @@
 - **Covers:** FR-9, FR-10, FR-11, NFR-1, NFR-2, NFR-5, NFR-8
 - **Touches:** `src/dev/harness.ts`, `src/dev/snapshot.ts`, `tests/dev/dev-harness.test.ts`, `tests/dev/snapshot.test.ts`, `conductor/tech-stack.md`, `conductor/product.md`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P5.T1: Expose audio in the dev harness** — covers: FR-10
   - [ ] **P5.T1.1:** Add `window.__ranch.audio` state (`unlocked`, `muted`, `volume`, `musicPlaying`, `activeLine`, `lastStartLatencyMs`) and actions (`mute`, `setVolume`, `play`, `stopAll`).
