@@ -13,6 +13,7 @@ import {
 } from '../../src/dev/harness.js';
 import type { DevSpeciesId } from '../../src/dev/dev-options.js';
 import type { SnapshotAudio } from '../../src/dev/snapshot.js';
+import { POV_ORDER, type PovPresetId } from '../../src/viewer/pov.js';
 import { type FakeDom, type FakeElement, installFakeDom } from './fake-dom.js';
 
 /**
@@ -379,5 +380,59 @@ describe('audio bridge (FR-10, AC-11)', () => {
 
     button(row, 'Stop').click();
     expect(audio.actions).toEqual(['mute:true', 'play:hello', 'stop-all']);
+  });
+});
+
+describe('viewpoint row (FR-9, P4.T5)', () => {
+  let dom: FakeDom;
+
+  beforeEach(() => {
+    dom = installFakeDom();
+  });
+
+  afterEach(() => {
+    dom.restore();
+  });
+
+  /** A bridge whose viewpoint actually moves, so a press can be observed. */
+  function createPovBridge(): { bridge: DevBridge; pressed: string[] } {
+    const { bridge } = createBridge();
+    const presses: string[] = [];
+    let active: PovPresetId = 'ranch';
+    bridge.getPov = () => active;
+    bridge.setPov = (id: PovPresetId) => {
+      active = id;
+      presses.push(id);
+    };
+    return { bridge, pressed: presses };
+  }
+
+  it('derives a button per preset from POV_ORDER, Sky included', () => {
+    const { bridge } = createPovBridge();
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+    const row = findRow(dom.body, 'Viewpoint');
+
+    for (const id of POV_ORDER) {
+      const label = id.charAt(0).toUpperCase() + id.slice(1);
+      expect(button(row, label).getAttribute('data-dev-pov')).toBe(id);
+    }
+    // Exactly one button per preset: the row is POV_ORDER, not a second list.
+    expect(row.queryAll((element) => element.getAttribute('data-dev-pov') !== null)).toHaveLength(
+      POV_ORDER.length,
+    );
+  });
+
+  it('routes a Sky press to setPov and marks it pressed', () => {
+    const { bridge, pressed: presses } = createPovBridge();
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+    const row = findRow(dom.body, 'Viewpoint');
+    const sky = button(row, 'Sky');
+
+    expect(pressed(sky)).toBe('false');
+    sky.click();
+
+    expect(presses).toEqual(['sky']);
+    expect(pressed(sky)).toBe('true');
+    expect(pressed(button(row, 'Ranch'))).toBe('false');
   });
 });

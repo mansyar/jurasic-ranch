@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CAMERA_FAR_METRES, createGround } from '../ranch/ground.js';
 import { resolvePixelRatio } from './pixel-ratio.js';
+import { BOOT_POV_ID, POV_PRESETS } from './pov.js';
 import { SKY_ZENITH_HEX } from './sky.js';
 
 /**
@@ -18,12 +19,13 @@ import { SKY_ZENITH_HEX } from './sky.js';
 export { CAMERA_FAR_METRES };
 
 /**
- * Vertical field of view of the fixed lens, in degrees. Exported because the
- * ground's reach (FR-3) is derived from it: widen the lens in phase 4 and the
- * frame-edge rays stretch, so the derivation has to be re-checked rather than
- * assumed. `src/ranch/ground.ts` does the intersecting.
+ * Vertical field of view the camera is built with, in degrees — the boot
+ * preset's lens (FR-10). The lens now belongs to the preset rather than to the
+ * camera, so a cut re-projects it; `src/ranch/ground.ts` derives the ground's
+ * reach from whichever lens a preset carries, and the frame-edge rays are
+ * re-checked per preset rather than against one copied fov.
  */
-export const CAMERA_VERTICAL_FOV_DEGREES = 40;
+export const CAMERA_VERTICAL_FOV_DEGREES = POV_PRESETS[BOOT_POV_ID].fov;
 
 export interface ViewerScene {
   renderer: THREE.WebGLRenderer;

@@ -2,10 +2,12 @@ import type { PerspectiveCamera } from 'three';
 import { IDLE_AFTER_MS, SleepyController, type SleepyState } from '../ranch/sleepy.js';
 import type { AudioControls } from './audio-controls.js';
 import {
+  BOOT_POV_ID,
   HINT_IDLE_MS,
   applyPovPreset,
   hintModeFor,
   isPortraitViewport,
+  isPovPresetId,
   shouldShowHint,
   type PovPresetId,
 } from './pov.js';
@@ -126,7 +128,7 @@ export function createHud(options: HudOptions): Hud {
 
   // FR-1: fixed POV buttons cut the camera instantly (no tween, AC-1).
   // Ranch is the boot view; the preset owns the numbers.
-  let activePov: PovPresetId = 'ranch';
+  let activePov: PovPresetId = BOOT_POV_ID;
   applyPovPreset(camera, activePov);
   const povButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('#pov [data-pov]'));
   const syncPov = (): void => {
@@ -145,8 +147,10 @@ export function createHud(options: HudOptions): Hud {
   };
   for (const povButton of povButtons) {
     povButton.addEventListener('click', () => {
+      // FR-9: every lookup goes through the preset table, so adding a fourth
+      // button is a data change rather than another id in a hardcoded list.
       const id = povButton.dataset['pov'];
-      if (id !== 'ranch' && id !== 'nest' && id !== 'garden') {
+      if (!isPovPresetId(id)) {
         return;
       }
       setPov(id);

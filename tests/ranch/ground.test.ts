@@ -20,11 +20,9 @@ import {
   gateStub,
   groundTrackways,
 } from '../../src/ranch/ground.js';
+import { CAMERA_FAR_METRES as SCENE_FAR_METRES } from '../../src/viewer/scene.js';
 import {
-  CAMERA_FAR_METRES as SCENE_FAR_METRES,
-  CAMERA_VERTICAL_FOV_DEGREES,
-} from '../../src/viewer/scene.js';
-import {
+  GROUND_POV_ORDER,
   POV_FOCUS_SPECIES,
   POV_FOCUS_SPAWN_INDEX,
   POV_ORDER,
@@ -130,12 +128,14 @@ describe('meadow apron (FR-3, AC-7)', () => {
 
 describe('ground reach from the live presets (FR-3, AC-6)', () => {
   it('reaches past every frame-edge ground hit', () => {
-    for (const id of POV_ORDER) {
+    // Ground presets only: the overhead frame reaches further from its lens by
+    // construction, and its all-ground claim is proved in `pov.test.ts` against
+    // the meadow radius instead.
+    for (const id of GROUND_POV_ORDER) {
       const preset = POV_PRESETS[id];
       const standoff = presetDistanceMetres(id);
       for (const aspect of ASPECTS) {
-        const fov = CAMERA_VERTICAL_FOV_DEGREES;
-        const frame = frameEdgeGround(preset.position, preset.lookAt, fov, aspect);
+        const frame = frameEdgeGround(preset.position, preset.lookAt, preset.fov, aspect);
         // A ground-level lens always shows ground along its lower edge.
         expect(frame.hits.length, `${id} at aspect ${aspect}`).toBeGreaterThan(0);
         for (const hit of frame.hits) {
@@ -149,13 +149,14 @@ describe('ground reach from the live presets (FR-3, AC-6)', () => {
     }
   });
 
-  it('keeps the top of every preset frame above the horizon', () => {
+  it('keeps the top of every ground preset frame above the horizon', () => {
     // The reach argument leans on this: a downward top edge would put the
-    // plane's far intersection back in play. A phase 4 tilt fails here.
-    for (const id of POV_ORDER) {
+    // plane's far intersection back in play. The overhead preset is the one
+    // frame that is allowed to tilt past the horizon, and it must not see sky
+    // while doing it (`pov.test.ts`, AC-2).
+    for (const id of GROUND_POV_ORDER) {
       const preset = POV_PRESETS[id];
-      const fov = CAMERA_VERTICAL_FOV_DEGREES;
-      const frame = frameEdgeGround(preset.position, preset.lookAt, fov, 1.78);
+      const frame = frameEdgeGround(preset.position, preset.lookAt, preset.fov, 1.78);
       expect(frame.topEdgeAboveHorizon, `${id} top edge`).toBe(true);
     }
   });
@@ -173,8 +174,10 @@ describe('worn trefoil (FR-4, AC-6)', () => {
     expect(WORN_DISCS.length).toBe(3);
     expect(new Set(WORN_DISCS.map((disc) => disc.species)).size).toBe(3);
     // Cross-checked through the preset table rather than by list position, so
-    // a reordered species list cannot pass by agreeing with itself.
-    for (const id of POV_ORDER) {
+    // a reordered species list cannot pass by agreeing with itself. The worn
+    // trefoil is drawn around the trio's spawns, so it is a ground-preset
+    // question; the overhead preset frames the same three animals at once.
+    for (const id of GROUND_POV_ORDER) {
       const species = POV_FOCUS_SPECIES[id] as Species;
       const disc = WORN_DISCS.find((entry) => entry.species === species);
       expect(disc, `${id} species ${species}`).toBeDefined();

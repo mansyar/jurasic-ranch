@@ -37,7 +37,12 @@ import {
 } from '../../src/ranch/layout.js';
 import type { CornerSpecies, SilhouetteRhyme } from '../../src/ranch/layout.js';
 import { MEADOW_RADIUS_METRES } from '../../src/ranch/ground.js';
-import { POV_FOCUS_SPECIES, POV_ORDER, POV_PRESETS } from '../../src/viewer/pov.js';
+import {
+  GROUND_POV_ORDER,
+  POV_FOCUS_SPECIES,
+  POV_ORDER,
+  POV_PRESETS,
+} from '../../src/viewer/pov.js';
 import { readGlbFacts } from './dressing-files.js';
 
 /** The shape of a recorded placement, independent of the layout module. */
@@ -427,10 +432,14 @@ describe('band rules the new props answer to (FR-6, NFR-5)', () => {
       expect(radius).toBeGreaterThanOrEqual(DRESSING_BAND_RANGES.foreground.minMetres);
       expect(radius).toBeLessThanOrEqual(DRESSING_BAND_RANGES.foreground.maxMetres);
       const bearing = bearingDegrees([0, 0], groundXZ(item.position));
-      for (const id of POV_ORDER) {
+      // Ground lenses only: the overhead preset has no lateral axis to keep a
+      // sprig off, and it is framed instead by the sky kit in `pov.test.ts`.
+      for (const id of GROUND_POV_ORDER) {
         const preset = POV_PRESETS[id];
         const axis = bearingDegrees(groundXZ(preset.position), groundXZ(preset.lookAt));
-        expect(apartDegrees(bearing, axis)).toBeGreaterThanOrEqual(LENS_AXIS_CLEARANCE_DEGREES);
+        const apart = apartDegrees(bearing, axis);
+        const where = `${id}: ${item.file} ${apart.toFixed(1)} deg off its axis`;
+        expect(apart, where).toBeGreaterThanOrEqual(LENS_AXIS_CLEARANCE_DEGREES);
       }
     }
   });
@@ -457,7 +466,7 @@ describe('band rules the new props answer to (FR-6, NFR-5)', () => {
     for (const item of TREELINE_PLACEMENTS) {
       const radius = Math.hypot(item.position[0], item.position[2]);
       const rhyme = rhymeOf(item.file, radius);
-      for (const id of POV_ORDER) {
+      for (const id of GROUND_POV_ORDER) {
         if (rhyme !== undefined && rhyme.species === POV_FOCUS_SPECIES[id]) {
           continue;
         }
@@ -469,10 +478,12 @@ describe('band rules the new props answer to (FR-6, NFR-5)', () => {
     }
   });
 
-  it('never stands a prop between a lens and the animal it names', () => {
+  it('never stands a prop between a ground lens and the animal it names', () => {
     // Anything further from the lens than the animal cannot hide it; anything
-    // nearer has to clear half its own footprint plus half a metre.
-    for (const id of POV_ORDER) {
+    // nearer has to clear half its own footprint plus half a metre. The
+    // overhead preset has no such segment — it looks down on the middle — so
+    // it is judged by the screen-space kit instead (AC-1, `pov.test.ts`).
+    for (const id of GROUND_POV_ORDER) {
       const preset = POV_PRESETS[id];
       const lens = groundXZ(preset.position);
       const subject = groundXZ(preset.lookAt);
@@ -528,7 +539,11 @@ describe('three corners on the trio’s own bearings (FR-13, AC-13)', () => {
       const axis = bearingDegrees(groundXZ(preset.position), groundXZ(preset.lookAt));
       for (const item of cornerPlacements(species)) {
         const bearing = bearingDegrees(groundXZ(preset.position), groundXZ(item.position));
-        expect(apartDegrees(bearing, axis)).toBeLessThanOrEqual(CORNER_FRAME_HALF_ANGLE_DEGREES);
+        const apart = apartDegrees(bearing, axis);
+        expect(
+          apart,
+          `${id}: ${item.file} at ${bearing.toFixed(1)} deg, ${apart.toFixed(1)} deg off axis`,
+        ).toBeLessThanOrEqual(CORNER_FRAME_HALF_ANGLE_DEGREES);
       }
     }
   });
@@ -667,7 +682,7 @@ describe('scatter names its parent (FR-15, AC-15)', () => {
 describe('one silhouette rhyme per preset (FR-16, AC-16)', () => {
   it('rhymes each preset against a backdrop on its axis, beyond the animal', () => {
     expect(SILHOUETTE_RHYMES).toHaveLength(3);
-    for (const id of POV_ORDER) {
+    for (const id of GROUND_POV_ORDER) {
       const preset = POV_PRESETS[id];
       const rhyme = SILHOUETTE_RHYMES.find((entry) => entry.species === POV_FOCUS_SPECIES[id]);
       expect(rhyme).toBeDefined();

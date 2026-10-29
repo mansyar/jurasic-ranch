@@ -3,6 +3,8 @@
  * projection behind `window.__ranch.snapshot()`.
  */
 
+import type { PovPresetId } from '../viewer/pov.js';
+
 /** Species ids the trio reports. */
 export type SpeciesId = 'trike' | 'stego' | 'brachio';
 
@@ -40,7 +42,7 @@ export interface SnapshotAudio {
 export interface DevSnapshot {
   walking: boolean;
   paused: boolean;
-  pov: 'ranch' | 'nest' | 'garden';
+  pov: PovPresetId;
   sleepy: 'awake' | 'drowsy' | 'sleepy';
   fps: number;
   dinos: SnapshotDino[];
@@ -59,7 +61,7 @@ export interface DevSnapshot {
 export function buildSnapshot(input: {
   walking: boolean;
   paused: boolean;
-  pov: 'ranch' | 'nest' | 'garden';
+  pov: PovPresetId;
   sleepy: 'awake' | 'drowsy' | 'sleepy';
   fps: number;
   dinos: SnapshotDino[];

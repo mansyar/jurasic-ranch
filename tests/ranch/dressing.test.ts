@@ -15,9 +15,9 @@ import {
   WALK_CLEARANCE_METRES,
   WIND_PUMP_RADIANS_PER_SECOND,
 } from '../../src/ranch/dressing.js';
-import { DRESSING_CATALOGUE } from '../../src/ranch/layout.js';
+import { DRESSING_BAND_RANGES, DRESSING_CATALOGUE } from '../../src/ranch/layout.js';
 import { MEADOW_RADIUS_METRES } from '../../src/ranch/ground.js';
-import { POV_PRESETS } from '../../src/viewer/pov.js';
+import { GROUND_POV_ORDER, POV_PRESETS } from '../../src/viewer/pov.js';
 import { readGlbFacts } from './dressing-files.js';
 import {
   DINO_WALK_RADIUS_METRES,
@@ -142,13 +142,25 @@ describe('dressing layout invariants (FR-3, AC-3)', () => {
     // would have nowhere legal to go.
     expect(GROUND_RADIUS_METRES).toBeGreaterThan(WALK_CLEARANCE_METRES);
     expect(GROUND_RADIUS_METRES - WALK_CLEARANCE_METRES).toBeGreaterThan(1);
-    for (const preset of Object.values(POV_PRESETS)) {
+    for (const id of GROUND_POV_ORDER) {
+      const preset = POV_PRESETS[id];
       const distance = Math.hypot(preset.position[0], preset.position[2]);
       // Stands clear of the walk area (nothing walks through the lens) and
-      // beyond every prop (nothing grows between the lens and the animal).
+      // outside the mid band, so the band's props are what the frame reads
+      // first. Phase 4 pulled the lenses inside the foreground ring on purpose;
+      // the screen-space kit in `pov.test.ts` is what proves the animal behind
+      // those props is still clear (AC-1).
       expect(distance).toBeGreaterThan(WALK_CLEARANCE_METRES);
-      expect(distance).toBeGreaterThan(LARGEST_DINO_BODY_LENGTH_METRES * 2);
+      expect(distance).toBeGreaterThan(DRESSING_BAND_RANGES.mid.maxMetres);
+      expect(distance).toBeLessThan(DRESSING_BAND_RANGES.foreground.minMetres);
     }
+    // The overhead lens stands further out still, so nothing it looks past is
+    // in the near plane.
+    const overhead = POV_PRESETS['sky'];
+    expect(Math.hypot(overhead.position[0], overhead.position[2])).toBeGreaterThan(
+      WALK_CLEARANCE_METRES,
+    );
+    expect(overhead.position[1]).toBeGreaterThan(LARGEST_DINO_BODY_LENGTH_METRES * 2);
   });
 
   it('keeps every prop clear of the fixed POV camera near-planes', () => {

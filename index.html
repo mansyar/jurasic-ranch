@@ -144,7 +144,7 @@
       #rotate-hint[hidden] {
         display: none;
       }
-      @media (orientation: portrait) {
+      @media (orientation: portrait), (max-width: 800px) {
         #pov {
           bottom: calc(max(24px, env(safe-area-inset-bottom)) + 88px);
         }
@@ -296,6 +296,9 @@
         </button>
         <button id="pov-garden" type="button" data-pov="garden" aria-pressed="false">
           🌼<span>Garden</span>
+        </button>
+        <button id="pov-sky" type="button" data-pov="sky" aria-pressed="false">
+          🚁<span>Sky</span>
         </button>
       </nav>
       <div id="audio-controls" role="group" aria-label="Sound">

@@ -502,9 +502,15 @@ export const FARM_PLACEMENTS: readonly DressingPlacement[] = [
  * The three corners (FR-13), each built on its own dino's spawn bearing.
  *
  * - Trike, 90 deg: a hay nest of four bales at angles, framed by a berry bush
- *   and a flower bed — somewhere to flop that is not the bare grass.
+ *   and a flower bed — somewhere to flop that is not the bare grass. The nest
+ *   sits at 64 deg rather than square on the bearing: phase 4 pulled the Nest
+ *   lens in to 10.8 m, and a cluster at 90 deg then falls 36 deg off that lens's
+ *   axis, outside the 30 deg the preset's view allows. It keeps its radius band
+ *   and its side of the animal; only its bearing moved.
  * - Stego, 210 deg: the wallow. Its mud, rim stones and reeds are in the water
- *   line and scatter below; the log and the boulder-side rocks frame it.
+ *   line and scatter below; the log and the boulder-side rocks frame it, on the
+ *   wallow's far side — the Garden lens stands at 240 deg and 11.1 m, so the
+ *   cluster leans the same way to stay inside its view.
  * - Brachio, 330 deg: the trough the water line starts at, with the browse tree
  *   standing just past it and the farm clutter — churn, crate, sign — beside it.
  */
@@ -515,22 +521,28 @@ export const DRESSING_CORNERS: readonly {
   {
     species: 'trike',
     placements: [
-      ...cluster('hay-bale-079e8c.glb', at(CORNER_AZIMUTH_DEGREES.trike, 9.35), 0.55, [
+      ...cluster('hay-bale-079e8c.glb', at(64, 9.0), 0.55, [
         { azimuthDegrees: 0, rotationY: 0.2 },
         { azimuthDegrees: 90, rotationY: 2.4 },
         { azimuthDegrees: 180, rotationY: 4.1 },
         { azimuthDegrees: 270, rotationY: 5.6 },
       ]),
-      ring('berry-bush-ee4812.glb', CORNER_AZIMUTH_DEGREES.trike - 12, 9.8, 'inward'),
-      ring('flower-bed-708e73.glb', CORNER_AZIMUTH_DEGREES.trike + 12, 9.8, 'inward'),
+      ring('berry-bush-ee4812.glb', 61, 8.7, 'inward'),
+      ring('flower-bed-708e73.glb', 68, 8.7, 'inward'),
     ],
   },
   {
     species: 'stego',
     placements: [
-      ring('garden-rock-7f5d60.glb', 206, 9.3, 'outward'),
-      ring('garden-rock-7f5d60.glb', 222, 9.3, 'inward'),
-      ring('log-stump-1d65a5.glb', 198, 8.75, 'inward'),
+      // The Garden lens stands at 240 deg and 11.1 m, only 30 deg round from
+      // Stego's bearing, so the corner's props sit a couple of metres from the
+      // lens and subtend a wide angle. They therefore crowd the wallow's
+      // eastern rim, where the sightline corridor is already 0.86 m clear and
+      // the frame's 30 deg still reaches them. The bearings moved; the radii
+      // stayed in the mid band.
+      ring('garden-rock-7f5d60.glb', 223, 8.42, 'outward'),
+      ring('log-stump-1d65a5.glb', 226.5, 8.45, 'inward'),
+      ring('garden-rock-7f5d60.glb', 229.8, 8.6, 'inward'),
     ],
   },
   {
@@ -673,7 +685,7 @@ export const FOREGROUND_PLACEMENTS: readonly DressingPlacement[] = [
   ring('club-moss-mat-edcb1b.glb', 117.6, 13, 'inward'),
   ring('wildflower-68d3a1.glb', 165.6, 13, 'inward'),
   ring('club-moss-mat-edcb1b.glb', 216, 13, 'inward'),
-  ring('wildflower-68d3a1.glb', 272, 13, 'inward'),
+  ring('wildflower-68d3a1.glb', 215, 13, 'inward'),
 ];
 
 /** One silhouette rhyme per ground preset (FR-16, AC-16). */
