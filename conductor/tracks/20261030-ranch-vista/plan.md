@@ -107,7 +107,7 @@
 - **Covers:** FR-7, FR-8, FR-9, FR-10, FR-19, AC-1, AC-2, AC-3, AC-4
 - **Touches:** `src/viewer/pov.ts`, `src/viewer/hud.ts`, `src/viewer/scene.ts`, `src/dev/snapshot.ts`, `index.html`, `src/ranch/dressing.ts` (placement nudges only), `tests/viewer/pov.test.ts`, `tests/dev/snapshot.test.ts`, `tests/dev/harness-panel.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P4.T1: Preset model** - covers: FR-10
   - [ ] **P4.T1.1:** `PovPreset` gains `kind: 'ground' | 'overhead'`, `fov`, and `anchor` (corner or centre)
