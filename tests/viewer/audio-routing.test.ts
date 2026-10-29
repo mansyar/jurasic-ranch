@@ -182,3 +182,46 @@ describe('greeting under a relocked engine (FR-6, FR-7)', () => {
     feedback.dispose();
   });
 });
+
+describe('greeting provenance (FR-6, AC-5)', () => {
+  it('stays silent after a mute-control unlock even though the engine is unmuted', () => {
+    audioEngine();
+    playFeedback('tap');
+    const clock = new ManualGreetingClock();
+    const feedback = createUnlockFeedback({ clock });
+    engineState.unlocked = true;
+
+    feedback.afterUnlock({ viaMuteControl: true });
+    // The held press still flushes once, and a later provenance-less call must
+    // not clear the flag.
+    expect(playSfx.mock.calls).toEqual([['tap']]);
+    feedback.afterUnlock();
+    clock.advanceTo(GREETING_DELAY_MS);
+
+    expect(playVoice).not.toHaveBeenCalled();
+    expect(playSfx.mock.calls).toEqual([['tap']]);
+
+    // Nothing was parked in the first-press slot for a later tap.
+    flushFeedback();
+    expect(playVoice).not.toHaveBeenCalled();
+    expect(playSfx.mock.calls).toEqual([['tap']]);
+    feedback.dispose();
+  });
+
+  it('greets after a Walk unlock that was muted, once unmuted inside the fade', () => {
+    audioEngine();
+    const clock = new ManualGreetingClock();
+    const feedback = createUnlockFeedback({ clock });
+    engineState.muted = true;
+    engineState.unlocked = true;
+
+    // No provenance: the unlocking gesture was Walk, not a mute control.
+    feedback.afterUnlock();
+    engineState.muted = false;
+    clock.advanceTo(GREETING_DELAY_MS);
+
+    expect(playVoice.mock.calls).toEqual([['hello']]);
+    expect(playSfx).not.toHaveBeenCalled();
+    feedback.dispose();
+  });
+});

@@ -163,7 +163,8 @@ export async function bootViewer(): Promise<void> {
       },
       onUnlock: async () => {
         await unlockAudio();
-        unlockFeedback.afterUnlock();
+        // FR-6: a mute control unlocked, so the greeting stays suppressed.
+        unlockFeedback.afterUnlock({ viaMuteControl: true });
       },
     });
   } else {

@@ -109,10 +109,16 @@ export interface UnlockFeedbackOptions {
   clock?: GreetingClock;
 }
 
+/** Provenance of the gesture that resolved the unlock. */
+export interface UnlockSource {
+  /** True when the gesture was a mute control (`audio-controls` onUnlock). */
+  viaMuteControl?: boolean;
+}
+
 /** Session-wide aftermath of the unlock: the held press and the greeting. */
 export interface UnlockFeedback {
   /** Call after `unlockAudio()` resolves; repeated calls add no timer. */
-  afterUnlock(): void;
+  afterUnlock(source?: UnlockSource): void;
   /** Drop the pending greeting; never called at boot. */
   dispose(): void;
 }
@@ -120,7 +126,8 @@ export interface UnlockFeedback {
 /**
  * The once-per-session greeting (FR-6). The first resolved unlock flushes the
  * queued press and starts the only greeting timer; at fire time the pure
- * policy decides, so a muted or mute-first session stays silent forever.
+ * policy decides, so a muted session stays silent and a mute-control unlock
+ * stays silent for the session, even after a later unmute.
  */
 export function createUnlockFeedback(options?: UnlockFeedbackOptions): UnlockFeedback {
   const clock = options?.clock ?? defaultGreetingClock;
@@ -131,13 +138,16 @@ export function createUnlockFeedback(options?: UnlockFeedbackOptions): UnlockFee
   let timer: number | null = null;
 
   return {
-    afterUnlock(): void {
+    afterUnlock(source?: UnlockSource): void {
       flushFeedback();
+      // Provenance, never inferred from the mute state: unmuting runs before
+      // unlock, so `muted` is already false on an unmute-first session. The OR
+      // keeps the first `true`, whichever call carried it.
+      firstGestureWasMute ||= source?.viaMuteControl === true;
       if (scheduled) {
         return;
       }
       scheduled = true;
-      firstGestureWasMute = audioEngine().muted;
       unlockedAtMs = clock.now();
       timer = clock.setTimer(() => {
         timer = null;
