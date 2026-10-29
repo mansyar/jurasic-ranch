@@ -26,12 +26,6 @@ export interface PovPreset {
 export const POV_ORDER: readonly PovPresetId[] = ['ranch', 'nest', 'garden'];
 
 /**
- * POV preset id -> the animal that preset is named for. Looking at a body
- * centre inside the walk circle keeps the named animal in frame whatever it
- * does, because every dino's centre stays within
- * `LARGEST_DINO_BODY_LENGTH_METRES / 2` of it.
- */
-/**
  * POV preset id -> the animal that preset is named for. Every preset aims at
  * where its animal is *placed* rather than at the middle of the ranch: the
  * lens stands on a bearing of its own, and aiming at the centre put whichever

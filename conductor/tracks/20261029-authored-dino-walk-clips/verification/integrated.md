@@ -25,10 +25,10 @@
 | FR-1 | Phases 2 + 6 - authored `Walk` grafted per joint name; loader asks for `Walk` (or the Trike's `Waddle`) and refuses `animations[0]` | `scripts/check-{stego,brachio,dino-clips}.test.ts`, three viewer suites | covered (amended: `Idle`/`Run` withdrawn) |
 | FR-2 | Phase 2 - re-bake at `size: 1.0`; Phase 1 proved the module rig equals the official rig | `verification/phase-1.md` (24/24 and 35/35 joints, 0.0000 m), `phase-2.md` | covered |
 | FR-3 | Phase 3 - displacement gate ≤ 25 % of rest offset to parent, switchable to any GLB directory | `scripts/check-dino-clips.test.ts` | covered |
-| FR-4 | Phase 4 - `IN_GAME_BODY_LENGTH_METRES`, one uniform group scale | `tests/ranch/gait-constants.test.ts` | covered |
+| FR-4 | Phase 4 - `IN_GAME_BODY_LENGTH_METRES`, one uniform group scale | `tests/waddle/trio-viewer.test.ts` (in-game size per species) | covered |
 | FR-5 | Phase 4 - stride swept from the clips (Stego 1.788 m / 2.4 s, Brachio 1.767 m / 3.8 s) | stride suites + constants test forbidding a copy of `TRIKE_GAIT` | covered |
-| FR-6 | Phase 5 - one `LARGEST_DINO_BODY_LENGTH_METRES` drives walk circle, spawn ring, clearance, trigger, far plane | `tests/ranch/*wander*.test.ts`, `pov.test.ts` | covered |
-| FR-7 | Phase 5 - dressing placed by bearing + radius, asserted outside wander + overshoot + half a body | `tests/ranch/dressing.ts` suite | covered |
+| FR-6 | Phase 5 - one `LARGEST_DINO_BODY_LENGTH_METRES` drives walk circle, spawn ring, clearance, trigger, far plane | `tests/waddle/dual-wander.test.ts`, `tests/waddle/trio-wander.test.ts`, `tests/viewer/pov.test.ts` | covered |
+| FR-7 | Phase 5 - dressing placed by bearing + radius, asserted outside wander + overshoot + half a body | `tests/ranch/dressing.test.ts` | covered |
 | FR-8 | Phase 5 - each preset aims at its named animal's placement; prop and animal sightlines asserted | `tests/viewer/pov.test.ts` (three tests) | covered |
 | FR-9 | Phases 2 + 6 - CREDITS and bake docblocks name the official GLB as the clip source | `CREDITS.md`, `scripts/vendor/bake-*.js` | covered |
 | NFR-1 | Phase 5 - trio peaks 32,805 tris / 100 calls at 1280x800 | `verification/phase-5.md` | covered |

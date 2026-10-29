@@ -39,10 +39,14 @@ export const DINO_WALK_RADIUS_METRES = LARGEST_DINO_BODY_LENGTH_METRES / 2;
 export const PAIR_BODY_CLEARANCE_METRES = LARGEST_DINO_BODY_LENGTH_METRES / 6;
 
 /**
- * Fastest a pair can close on each other, in m/s: the Stego's measured 0.745
- * plus the Brachio's 0.465 (phase-4 sweep). The Trike pairing closes slower.
+ * Fastest a pair can close on each other, in m/s: the Trike's 0.3625 plus the
+ * Stego's measured 0.4413 (authored stride 1.788 m x `DINO_GROUP_SCALE` per
+ * 2.4 s loop). Those are the two fastest walkers once the Stego and Brachio are
+ * drawn at their in-game size, so this is the worst pair. Derived from the gaits
+ * rather than guessed, and re-derived whenever a stride or the group scale
+ * moves - the avoidance test recomputes the trigger from it.
  */
-export const MAX_CLOSING_SPEED_METRES_PER_SECOND = 1.21;
+export const MAX_CLOSING_SPEED_METRES_PER_SECOND = 0.804;
 
 /**
  * Seconds of warning a meeting needs: half a second covers the yaw-limited

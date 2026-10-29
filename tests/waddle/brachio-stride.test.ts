@@ -7,6 +7,8 @@ import {
 } from '../../scripts/vendor/bake-brachio-variant.js';
 import { BRACHIO_GAIT } from '../../src/ranch/dino-player.js';
 import { gaitSpeedMetresPerSecond } from '../../src/ranch/waddle.js';
+import type { GaitParams } from '../../src/ranch/waddle.js';
+import { DINO_GROUP_SCALE, worldGait } from '../../src/viewer/loaders.js';
 
 /**
  * Brachio walk (FR-1, AC-1, AC-2, AC-5). The shipped clip is Polyfork's own
@@ -303,6 +305,21 @@ describe('brachio foot plant (AC-2, AC-5, no skate)', () => {
     expect(measurement.slideAt(gaitSpeed)).toBeLessThanOrEqual(bestSlide * 1.05);
     expect(gaitSpeed / measurement.walkSpeed).toBeGreaterThan(1.0);
     expect(gaitSpeed / measurement.walkSpeed).toBeLessThan(1.15);
+  });
+
+  it('advances the world stride at the group scale, so the shipped feet do not skate', async () => {
+    // AC-5 as the viewer actually runs it: the constant is measured on the group
+    // at authored size, and the viewer draws the Brachio at DINO_GROUP_SCALE, so
+    // the root must advance the scaled stride. Sliding a scaled rig at speed v is
+    // the unscaled slide at v / S, scaled by S.
+    const measurement = await measureBrachioWalk();
+    const shipped = worldGait(BRACHIO_GAIT, DINO_GROUP_SCALE);
+    expect(shipped.strideMetres).toBeCloseTo(BRACHIO_GAIT.strideMetres * DINO_GROUP_SCALE, 10);
+    const worldSlide = (gait: GaitParams): number =>
+      measurement.slideAt(gaitSpeedMetresPerSecond(gait) / DINO_GROUP_SCALE) * DINO_GROUP_SCALE;
+    expect(worldSlide(shipped)).toBeLessThanOrEqual(0.07);
+    // Without the conversion the shipped Brachio skates ~0.19 m/s.
+    expect(worldSlide(BRACHIO_GAIT)).toBeGreaterThan(0.1);
   });
 
   it('holds planted feet still when root motion runs at that speed', async () => {

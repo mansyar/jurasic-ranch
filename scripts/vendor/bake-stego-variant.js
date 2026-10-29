@@ -2,8 +2,9 @@
  * Bake the pastel Stegosaurus GLB (track 20261029-authored-dino-walk-clips, Phase 2).
  *
  * The shipped game file `public/models/stego.glb` is the vendored Polyfork
- * parametric module's mesh and palette with Polyfork's OWN authored `Idle`,
- * `Walk` and `Run` clips on it. Nothing here reads the Trike: the donor transfer
+ * parametric module's mesh and palette with Polyfork's OWN authored `Walk` clip
+ * on it (`Idle` and `Run` are withdrawn at bake time, see `SHIPPED_CLIP_NAMES`).
+ * Nothing here reads the Trike: the donor transfer
  * this bake used until this phase is gone, because glTF translation channels are
  * absolute local translations and a foreign clip drags every bone off its rest
  * offset.
@@ -30,7 +31,7 @@
  *        curl -L -o .conductor/evidence/polyfork/stegosaurus-base.glb \
  *          https://polyfork.dev/cdn/stegosaurus-base.glb
  *
- *      `Idle` (48 channels), `Walk` (48) and `Run` (48) are carried verbatim:
+ *      `Walk` (48 channels) is carried verbatim:
  *      name, duration, keyframe times and values unchanged, `translation` and
  *      `rotation` only. The authored clips carry no scale channels, so none is
  *      synthesised. A clip naming a bone the baked rig lacks aborts the bake,
@@ -147,9 +148,9 @@ export function createStegoDefaultGroup() {
 
 /**
  * Load the published GLB's authored clips and rebuild the SHIPPED set on
- * `skeletonRoot`: `Idle` and `Walk`, in that order. `Run` is withdrawn - it
- * costs 102-370 KiB of keyframes that no code path plays, and the offline-cache
- * budget is 2 MiB - so the bake grafts two of the three (see
+ * `skeletonRoot`: `Walk` only. `Idle` and `Run` are withdrawn - they cost
+ * 100 KiB-1.6 MiB of keyframes that no code path plays, and the offline-cache
+ * budget is 2 MiB - so the bake grafts one of the three (see
  * `SHIPPED_CLIP_NAMES` in `bake-trike-variant.js`). Species-named wrapper over
  * the shared graft; see `graftAuthoredClips` for the copy rules. The bake uses it as a
  * pre-flight check against the baked skeleton, and the tests use it to play the

@@ -157,9 +157,11 @@ export class BlinkController {
 /**
  * Shipped Trike gait (FR-2): 0.29 m stride per 0.8 s loop (~0.4 m/s), PI yaw
  * cap, 4.5 rad/m stroller curvature, and the ranch's shared stay-in-frame
- * circle. Values match the waddle math constants so Trike behaviour is
- * bit-identical; only the wander radius grew, and it grew for all three at
- * once (`DINO_WALK_RADIUS_METRES`, half the largest body length).
+ * circle. Stride, loop, yaw cap and curvature are the waddle math constants, so
+ * the Trike's motion math is identical to before; the stay-in-frame circle grew
+ * from its own 0.8 m to half the largest body length (`DINO_WALK_RADIUS_METRES`),
+ * which all three now share, so its path geometry did change (FR-6).
+ * The Trike is drawn at group scale 1, so its stride needs no conversion.
  */
 export const TRIKE_GAIT: GaitParams = {
   strideMetres: 0.29,
@@ -176,12 +178,17 @@ export const TRIKE_GAIT: GaitParams = {
  * distance that loop covers at the speed where planted feet stop sliding.
  *
  * How it was measured (track 20261029-authored-dino-walk-clips):
- * `verification/phase-4.md` sweeps walking speed against the mean world-space
- * slide of every planted foot over one full loop of the shipped clip. Slide
- * falls to a clean V: 0.7445-0.745 m/s is the minimum (0.0185 m/s mean slide,
- * stance-core cross-check 0.0046 m/s), so a 2.4 s loop strides 1.788 m. The
+ * `verification/phase-4.md` sweeps walking speed against the mean slide of
+ * every planted foot over one full loop of the shipped clip, measured on the
+ * baked group at authored size (scale 1). Slide falls to a clean V:
+ * 0.7445-0.745 m/s is the minimum (0.0185 m/s mean slide, stance-core
+ * cross-check 0.0046 m/s), so a 2.4 s loop strides 1.788 m. **These are
+ * authored metres.** The viewer draws the Stego at `DINO_GROUP_SCALE` (0.5923),
+ * so `loaders.ts worldGait` multiplies the stride by that scale before the
+ * player applies it in world metres - without that the root would advance
+ * 1.788 m while the feet covered 1.059 m, skating 0.30 m/s. The
  * pre-track 0.29 m / 0.8 s pair was a copy of the Trike's numbers and slid
- * 0.376 m/s — 20x this floor. The stance-run estimator in the gait tests reads
+ * 0.376 m/s - 20x this floor. The stance-run estimator in the gait tests reads
  * 0.723 m/s, i.e. this constant sits inside its 3 % disagreement band.
  *
  * Turning is not in the walk clip, so it is unchanged but re-checked against
@@ -202,19 +209,24 @@ export const STEGO_GAIT: GaitParams = {
  * Shipped Brachio gait (FR-1 / FR-5 / AC-5): the authored `Walk` clip's own
  * stride over its own 3.8 s loop. Measured the same way as the Stego (sweep
  * speed against mean planted-foot slide over one full loop, curve in
- * `verification/phase-4.md`): the minimum is 0.4650 m/s with 0.0517 m/s mean
- * slide (stance-core 0.0177 m/s), so a 3.8 s loop strides 1.767 m. At the
- * pre-track 0.24 m / 1.0 s the same feet slid 0.251 m/s. The stance-run
- * estimator reads 0.412 m/s; the constant is deliberately the slide minimiser,
- * which is the quantity the foot-plant ceiling is about.
+ * `verification/phase-4.md`), on the baked group at authored size (scale 1):
+ * the minimum is 0.4650 m/s with 0.0517 m/s mean slide (stance-core
+ * 0.0177 m/s), so a 3.8 s loop strides 1.767 m. **Authored metres**: the viewer
+ * draws the Brachio at `DINO_GROUP_SCALE`, and `loaders.ts worldGait` scales the
+ * stride to match. At the pre-track 0.24 m / 1.0 s the same feet slid
+ * 0.251 m/s. The stance-run estimator reads 0.412 m/s; the constant is
+ * deliberately the slide minimiser, which is the quantity the foot-plant
+ * ceiling is about.
  *
- * This makes the Brachio walk (0.465 m/s) faster than the Trike's authored
- * 0.3625 m/s rather than slower as the old tuning assumed: a 12.5 m sauropod
- * covering 1.767 m per 3.8 s cannot be slower without dragging its feet. The
- * turn numbers are re-checked, not re-measured (a walk clip carries no yaw):
- * 1.8 rad/s cap, 4.5 rad/m curvature (4.5 x 0.465 = 2.09 rad/s, so the cap now
- * binds and the 90 deg arc takes ~0.87 s). The shared waddle math stays
- * untouched. See phase-1 evidence for the curvature call.
+ * This makes the Brachio's authored walk speed (0.465 m/s) faster than the
+ * Trike's 0.3625 m/s rather than slower as the old tuning assumed: a 12.5 m
+ * sauropod covering 1.767 m per 3.8 s cannot be slower without dragging its
+ * feet. In world metres it still walks slower than the Trike (0.275 m/s vs
+ * 0.3625 m/s) because it is drawn 0.59x and takes a longer, slower step.
+ * The turn numbers are re-checked, not re-measured (a walk clip carries no
+ * yaw): 1.8 rad/s cap, 4.5 rad/m curvature (the cap now binds), so the 90 deg
+ * arc takes ~0.87 s. The shared waddle math stays untouched. See phase-1
+ * evidence for the curvature call.
  */
 export const BRACHIO_GAIT: GaitParams = {
   strideMetres: 1.767,

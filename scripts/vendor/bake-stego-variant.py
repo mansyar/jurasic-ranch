@@ -1,7 +1,7 @@
 """Draco-compress the baked Stegosaurus GLB (second half of the bake).
 
 The Node bake (scripts/vendor/bake-stego-variant.js) builds the pastel variant
-from the vendored module, grafts Polyfork's own authored Idle/Walk/Run clips
+from the vendored module, grafts Polyfork's own authored Walk clip
 from the published asset GLB, and exports that to an uncompressed temp GLB;
 three's GLTFExporter has no Draco writer, so this pass imports that file into a
 clean headless Blender scene and re-exports it with

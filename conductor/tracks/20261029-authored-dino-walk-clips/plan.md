@@ -193,12 +193,16 @@ subagent's shell could not drive a browser), and AC-7 needed one more fix.
 - **Covers:** F1, F2, F3, F4, F5
 - **Touches:** `src/viewer/loaders.ts`, `src/ranch/dino-player.ts`, `src/ranch/avoidance.ts`, `src/viewer/pov.ts`, `tests/waddle/*.test.ts`, `scripts/bake-trike-variant.js`, `scripts/vendor/bake-*-variant.{js,py}`, `conductor/tracks/20261029-authored-dino-walk-clips/verification/`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 - **Tasks:**
-  - [ ] **R1.T1: Advance the world stride at the group scale** - covers: F1
-    - [ ] **R1.T1.1:** `worldGait(gait, groupScale)` applied inside `loadDinoPlayer`
-    - [ ] **R1.T1.2:** coupling tests in both stride suites measuring the shipped scale
-    - [ ] **R1.T1.3:** re-derive `MAX_CLOSING_SPEED_METRES_PER_SECOND` and the trigger from the gaits
-  - [ ] **R1.T2: Correct the bake docblocks** - covers: F2
-  - [ ] **R1.T3: Correct the stale Trike and POV comments** - covers: F3, F4
-  - [ ] **R1.T4: Point the evidence at the tests that assert it** - covers: F5
+  - [x] **R1.T1: Advance the world stride at the group scale** - covers: F1
+    - [x] **R1.T1.1:** `worldGait(gait, groupScale)` applied inside `loadDinoPlayer`
+    - [x] **R1.T1.2:** coupling tests in both stride suites measuring the shipped scale
+    - [x] **R1.T1.3:** re-derive `MAX_CLOSING_SPEED_METRES_PER_SECOND` and the trigger from the gaits
+  - [x] **R1.T2: Correct the bake docblocks** - covers: F2
+  - [x] **R1.T3: Correct the stale Trike and POV comments** - covers: F3, F4
+  - [x] **R1.T4: Point the evidence at the tests that assert it** - covers: F5
+
+**Result:** verified - the shipped stride is the one the clip plays, and the bake docs describe what ships.
+**Checkpoint:** _(set after squash)_
+**Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-R1.md

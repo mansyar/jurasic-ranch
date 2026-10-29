@@ -358,7 +358,7 @@ export const SHIPPED_CLIP_NAMES = ['Walk'];
  * Keep only the clips that ship, refusing a clip set that drifted.
  *
  * Accepts either the published download (Idle, Walk, Run) or an already-shipped
- * GLB (Idle, Walk): anything outside `PUBLISHED_CLIP_NAMES` throws rather than
+ * GLB (Walk): anything outside `PUBLISHED_CLIP_NAMES` throws rather than
  * being dropped silently, and a missing shipped clip throws too. The result is
  * ordered by `PUBLISHED_CLIP_NAMES`, so the same clip set always serialises to
  * the same bytes whichever GLB it was read from.

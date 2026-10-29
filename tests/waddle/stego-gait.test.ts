@@ -8,6 +8,8 @@ import {
 import { DINO_WALK_RADIUS_METRES } from '../../src/ranch/avoidance.js';
 import { DinoPlayer, STEGO_GAIT } from '../../src/ranch/dino-player.js';
 import { gaitSpeedMetresPerSecond, TURN_ALIGN_RADIANS, wrapAngle } from '../../src/ranch/waddle.js';
+import type { GaitParams } from '../../src/ranch/waddle.js';
+import { DINO_GROUP_SCALE, worldGait } from '../../src/viewer/loaders.js';
 
 /**
  * Stego walk (FR-1, AC-1, AC-2, AC-5). The shipped clip is Polyfork's own
@@ -286,6 +288,23 @@ describe('stego gait config (FR-1, FR-5, AC-5)', () => {
     // The defect this phase pays: the pre-track copy of the Trike's 0.29 m /
     // 0.8 s walked 20x the slide floor on this same clip.
     expect(measurement.slideAt(0.29 / 0.8)).toBeGreaterThan(0.2);
+  });
+
+  it('advances the world stride at the group scale, so the shipped feet do not skate', async () => {
+    // AC-5 as the viewer actually runs it. The constant is measured on the
+    // group at authored size; the viewer draws the Stego at DINO_GROUP_SCALE, so
+    // the root must advance the scaled stride or the feet skate by (1 - S) of
+    // every step. Sliding a scaled rig at speed v is the unscaled slide at
+    // v / S, scaled by S, which is what these two assertions measure.
+    const measurement = await measureStegoWalk();
+    const shipped = worldGait(STEGO_GAIT, DINO_GROUP_SCALE);
+    expect(shipped.strideMetres).toBeCloseTo(STEGO_GAIT.strideMetres * DINO_GROUP_SCALE, 10);
+    const worldSlide = (gait: GaitParams): number =>
+      measurement.slideAt(gaitSpeedMetresPerSecond(gait) / DINO_GROUP_SCALE) * DINO_GROUP_SCALE;
+    expect(worldSlide(shipped)).toBeLessThanOrEqual(0.03);
+    // Without the conversion the shipped Stego would skate ~0.3 m/s, most of a
+    // stride per loop: the High finding this phase exists to close.
+    expect(worldSlide(STEGO_GAIT)).toBeGreaterThan(0.15);
   });
 
   it('turns a commanded 90 deg inside 0.6 s, then walks straight inside the rim', async () => {

@@ -9,6 +9,16 @@ import {
   avoidanceNudges,
 } from '../../src/ranch/avoidance.js';
 import { wrapAngle } from '../../src/ranch/waddle.js';
+import { gaitSpeedMetresPerSecond } from '../../src/ranch/waddle.js';
+import { BRACHIO_GAIT, STEGO_GAIT, TRIKE_GAIT } from '../../src/ranch/dino-player.js';
+import { DINO_GROUP_SCALE, worldGait } from '../../src/viewer/loaders.js';
+
+/** The gait the viewer actually applies, i.e. after the in-game size scale. */
+const WORLD_GAITS = [
+  worldGait(TRIKE_GAIT, 1),
+  worldGait(STEGO_GAIT, DINO_GROUP_SCALE),
+  worldGait(BRACHIO_GAIT, DINO_GROUP_SCALE),
+];
 
 /**
  * Soft-steer avoidance (FR-6): when the pair is closer than the trigger, each
@@ -22,17 +32,24 @@ import { wrapAngle } from '../../src/ranch/waddle.js';
 describe('avoidance trigger (FR-6)', () => {
   it('clears the biggest flank plus the ground a pair covers reacting', () => {
     // Half a body length of beam each side is what two bodies need before a
-    // steer must start; phase 4 measured 1.21 m/s as the fastest pair.
+    // steer must start; the fastest pair is the Trike plus the Stego drawn at
+    // its in-game size (0.3625 + 0.4413 m/s).
     expect(PAIR_BODY_CLEARANCE_METRES).toBe(LARGEST_DINO_BODY_LENGTH_METRES / 6);
     expect(AVOIDANCE_TRIGGER_METRES).toBe(
       PAIR_BODY_CLEARANCE_METRES + MAX_CLOSING_SPEED_METRES_PER_SECOND * AVOIDANCE_REACTION_SECONDS,
     );
-    expect(AVOIDANCE_TRIGGER_METRES).toBeCloseTo(1.842, 3);
+    expect(AVOIDANCE_TRIGGER_METRES).toBeCloseTo(1.639, 3);
+    // The closing speed is derived from the gaits, not guessed: a stride change
+    // or a group-scale change must move it.
+    const worldSpeeds = WORLD_GAITS.map((gait) => gaitSpeedMetresPerSecond(gait));
+    const [fastest, secondFastest] = [...worldSpeeds].sort((a, b) => b - a);
+    expect(MAX_CLOSING_SPEED_METRES_PER_SECOND).toBeCloseTo(fastest + secondFastest, 2);
   });
 
   it('starts steering while the flanks are still apart', () => {
-    // The phase-4 requirement (a 0.6 m trigger for 1.21 m/s and 0.5 s) is the
-    // floor; the body clearance is what the old tuned 0.4 m lacked.
+    // The phase-4 requirement (a 0.6 m trigger for the worst pair covering
+    // ground for 0.5 s) is the floor; the body clearance is what the old tuned
+    // 0.4 m lacked.
     expect(AVOIDANCE_TRIGGER_METRES).toBeGreaterThanOrEqual(0.6);
     expect(AVOIDANCE_TRIGGER_METRES).toBeLessThan(LARGEST_DINO_BODY_LENGTH_METRES);
   });

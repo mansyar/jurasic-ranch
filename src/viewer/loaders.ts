@@ -7,8 +7,8 @@ import type { GaitParams } from '../ranch/waddle.js';
 
 /**
  * Model loading and the rigged-vs-placeholder swap targets: every baked Draco
- * GLB URL, the blush cheek pass, and the loaders that wrap a `Waddle` clip in
- * a DinoPlayer. DOM- and renderer-free, so tests drive it with a stubbed
+ * GLB URL, the blush cheek pass, and the loaders that wrap a walk clip in a
+ * DinoPlayer. DOM- and renderer-free, so tests drive it with a stubbed
  * GLTFLoader while the viewer owns the WebGL chrome.
  */
 
@@ -192,7 +192,7 @@ async function loadDinoPlayer(
     // cheeks to the blink Head bone. No-op on models without a Head node.
     const player = new DinoPlayer(gltf.scene, {
       clip,
-      gait,
+      gait: worldGait(gait, groupScale),
       dust: sharedDust,
       random,
       blinkRandom,
@@ -202,6 +202,23 @@ async function loadDinoPlayer(
   } finally {
     draco.dispose();
   }
+}
+
+/**
+ * Convert a gait measured on the baked file into the gait the viewer applies.
+ *
+ * A stride is measured on the group at authored size (scale 1), but
+ * `DinoPlayer` advances the root in **world** metres on top of whatever scale
+ * the model carries. A model drawn at `groupScale` therefore covers
+ * `strideMetres x groupScale` of ground per loop while the root moves
+ * `strideMetres`, so the planted feet slide by the difference - the very
+ * defect this track removed, reintroduced by the size change. Every gait
+ * passes through here, so a species added later cannot forget it; the Trike is
+ * scale 1 (its bake is the reference `S` was derived from) and is unchanged.
+ */
+export function worldGait(gait: GaitParams, groupScale: number): GaitParams {
+  if (groupScale === 1) return gait;
+  return { ...gait, strideMetres: gait.strideMetres * groupScale };
 }
 
 /**
