@@ -47,7 +47,7 @@
 - Typecheck: tsrs (Oct 2026 Rust port, primary) with tsgo TS7 fallback `tsgo --noEmit`
 - Lint: oxlint v1.90.0 (`pnpm lint`, ignores `scripts/vendor/**`)
 - Format: oxfmt v0.75.0 Prettier-compatible, configured by `.oxfmtrc.json`, gate covers `src/**/*.ts`, `tests/**/*.ts`, `scripts/**/*.ts` and the root configs (`pnpm format --check`)
-- Unit: Vitest for counting/sort/sticker logic (`pnpm test`)
+- Unit: Vitest for counting/sort/sticker logic (`pnpm test`), coverage via `@vitest/coverage-v8` (`pnpm coverage`, v8 provider, 60 % lines floor, `scripts/vendor/**` excluded)
 - Visual: manual tablet play + Polyfork preview_scene, pixelRatio cap 2
 
 ## Local Dev Env
