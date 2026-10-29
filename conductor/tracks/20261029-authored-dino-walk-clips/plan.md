@@ -12,18 +12,21 @@
 - **Covers:** FR-2, AC-2
 - **Touches:** `scripts/vendor/inspect-dino-clips.mjs`, `conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-1.md`
 - **Verification:** `pnpm verify` plus the inspection script's recorded output
-- **Status:** in_progress
+- **Status:** verified
 - **Tasks:**
-  - [ ] **P1.T1: Build the inspection tool** - covers: FR-2
-    - [ ] **P1.T1.1: Parse a GLB and print nodes, skins, joints, rest TRS and every animation channel**
-    - [ ] **P1.T1.2: Print per-bone rest distance to parent, so later phases can express displacement as a fraction**
-  - [ ] **P1.T2: Compare official GLB against a module bake** - covers: FR-2
-    - [ ] **P1.T2.1: Fetch the official `stegosaurus-base.glb` and `brachiosaurus-base.glb` into gitignored `.conductor/evidence/phase-1/`**
-    - [ ] **P1.T2.2: Bake each module at `size: 1.0` with the pastel knobs and diff rest TRS joint by joint**
-    - [ ] **P1.T2.3: Record the verdict — identical rig, or the exact bones that differ and by how much**
-  - [ ] **P1.T3: Record the clip facts** - covers: FR-2
-    - [ ] **P1.T3.1: Dump each clip's name, duration, channel count and bone coverage**
-    - [ ] **P1.T3.2: Record the current shipped GLBs' displacement table as the pre-track baseline for AC-2**
+  - [x] **P1.T1: Build the inspection tool** - covers: FR-2
+    - [x] **P1.T1.1: Parse a GLB and print nodes, skins, joints, rest TRS and every animation channel**
+    - [x] **P1.T1.2: Print per-bone rest distance to parent, so later phases can express displacement as a fraction**
+  - [x] **P1.T2: Compare official GLB against a module bake** - covers: FR-2
+    - [x] **P1.T2.1: Fetch the official `stegosaurus-base.glb` and `brachiosaurus-base.glb` into gitignored `.conductor/evidence/phase-1/`**
+    - [x] **P1.T2.2: Bake each module at `size: 1.0` with the pastel knobs and diff rest TRS joint by joint**
+    - [x] **P1.T2.3: Record the verdict — identical rig, or the exact bones that differ and by how much**
+  - [x] **P1.T3: Record the clip facts** - covers: FR-2
+    - [x] **P1.T3.1: Dump each clip's name, duration, channel count and bone coverage**
+    - [x] **P1.T3.2: Record the current shipped GLBs' displacement table as the pre-track baseline for AC-2**
+- **Result:** verified — both modules rebuild the official rigs bone for bone (24/24 and 35/35 joints, worst delta 0.0000 m / 0.000°), so the authored clips apply verbatim. The first run reported a false MISMATCH because three exports bones as `matrix`, not TRS; fixed in the inspector and recorded as a deviation.
+- **Checkpoint:** 17f6b8a
+- **Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-1.md
 
 ## Phase 2: Re-bake both GLBs with the authored clips
 
