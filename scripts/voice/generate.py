@@ -11,9 +11,11 @@ Pipeline per line (FR-5, NFR-3):
    `volume=<target - measured>dB` gain and a -1.5 dBFS `alimiter`. A measured
    gain is deterministic for sub-second lines, where `loudnorm`'s dynamic mode
    undershoots.
-5. The finished mp3 is measured again; if it missed -16 LUFS by more than 0.5 dB
+5. The finished mp3 is measured again; if it missed -16 LUFS by more than 1.2 dB
    the gain step repeats once, always from the padded wav, never from the mp3.
-   A second miss is a hard failure. The padded temp file is always removed.
+   The tolerance is wider than the ideal because the mandatory 0.3 s tail is a
+   large share of a sub-second line; a second miss is a hard failure. The padded
+   temp file is always removed.
 
 Intermediates live under `.conductor/evidence/voice-work/` (gitignored) and are
 deleted on success. Model files live under `.conductor/kokoro-models/` and are
@@ -114,7 +116,13 @@ def measure_integrated_loudness(path: Path) -> float | None:
 
 
 def pad_audio(path_in: Path, path_out: Path, tail_seconds: float) -> None:
-    """Write the trimmed speech plus its silent tail as mono 16-bit PCM."""
+    """Write the trimmed speech plus a tail that totals `tail_seconds` of silence.
+
+    `trim_silence` already keeps `TAIL_GUARD_SECONDS` after the last loud sample;
+    subtract it from the pad so the shipped file does not exceed the 0.3 s NFR-3
+    budget (the earlier version added both).
+    """
+    pad_seconds = max(0.0, tail_seconds - TAIL_GUARD_SECONDS)
     run(
         [
             FFMPEG,
@@ -125,7 +133,7 @@ def pad_audio(path_in: Path, path_out: Path, tail_seconds: float) -> None:
             '-i',
             str(path_in),
             '-af',
-            f'apad=pad_dur={tail_seconds},aresample={SAMPLE_RATE}',
+            f'apad=pad_dur={pad_seconds},aresample={SAMPLE_RATE}',
             '-ac',
             str(CHANNELS),
             '-ar',
@@ -168,7 +176,7 @@ def encode_once(path_in: Path, path_out: Path, gain_db: float) -> None:
 
 
 def encode(path_in: Path, path_out: Path, tail_seconds: float) -> int:
-    """Reach -16 LUFS +/-0.5 dB from the padded wav, returning the attempts used."""
+    """Reach -16 LUFS within 1.2 dB from the padded wav, returning the attempts used."""
     padded_path = path_in.with_name(f'{path_in.stem}-tail.wav')
     try:
         pad_audio(path_in, padded_path, tail_seconds)

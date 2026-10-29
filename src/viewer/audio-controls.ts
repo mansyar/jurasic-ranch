@@ -346,8 +346,10 @@ export function createAudioControls(options: AudioControlsOptions): AudioControl
   on(closeButton, 'click', () => {
     closePanel();
   });
-  on(panel, 'keydown', (event) => {
-    if (event.key !== 'Escape') {
+  // AC-8: Escape works from anywhere while the panel is open, including after
+  // focus leaves the panel; the panel is non-modal (no aria-modal claim).
+  on(windowTarget ?? panel, 'keydown', (event) => {
+    if (event.key !== 'Escape' || !panelOpen) {
       return;
     }
     event.preventDefault?.();

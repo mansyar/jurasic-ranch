@@ -14,7 +14,11 @@ export const MUSIC_BUS_GAIN = 0.1;
 /** Music multiplier while a voice line speaks (FR-5). */
 export const DUCK_FACTOR = 0.35;
 
-/** Quiet stretch after a voice line before the music restores, in seconds. */
+/**
+ * Documentation of the 0.3 s silence baked into each voice mp3, in seconds.
+ * The engine does not read it: music restores on the line's `end` event, after
+ * that baked-in tail has already played.
+ */
 export const VOICE_TAIL_SECONDS = 0.3;
 
 /** Distinct SFX instances allowed to overlap; later taps are dropped (FR-4). */

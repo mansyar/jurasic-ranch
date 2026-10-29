@@ -161,3 +161,9 @@ can never cut a line short. The re-render left every duration unchanged.
   reconciliation, `acb26df` measured-gain encoder, `58f1996` padded-wav
   measurement, `3c5881b` 1.2 dB tolerance, `4f29cce` re-rendered voice lines,
   this evidence file.
+
+> Review round 1 re-rendered the voice lines with `pad_dur = tail − 0.05` so the
+> shipped trailing silence is 0.3 s (previously 0.35 s). The pack is now
+> **853,289 B** (119,048 B voice + 734,241 B music/SFX); loudness is −16.2 …
+> −16.9 LUFS with count-5 at −16.2. The measurements above are the Phase 2
+> snapshot and remain the record for that phase.

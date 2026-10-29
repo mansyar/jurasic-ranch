@@ -15,6 +15,7 @@ import {
   AUDIO_VOLUME_VALUE_ID,
   createAudioControls,
   isAudioControlTarget,
+  type AudioControls,
 } from './audio-controls.js';
 import { audioEngine, configureAudio, unlockAudio } from './audio.js';
 import {
@@ -79,10 +80,30 @@ export async function bootViewer(): Promise<void> {
   }
   const { renderer, scene, camera } = viewer;
 
-  // FR-6/FR-7/FR-12: the sound controls are part of the shell; a missing
-  // element means the HTML and the viewer disagree, so boot stays silent-safe
-  // and leaves the rest of the ranch alone. Elements are injected, never
-  // queried inside the controls module.
+  let audio: AudioControls | null = null;
+  const audioReadyControl = { resolve: (): void => {} };
+  const audioReady = new Promise<void>((resolve) => {
+    audioReadyControl.resolve = resolve;
+  });
+
+  // FR-2: install the first-gesture listener before any awaited settings read,
+  // so a tap during boot is not lost. It waits for the controls and engine
+  // settings to exist, then unlocks. A tap on the sound controls is ignored so
+  // mute can unlock silently (AC-6 edge) and the parent gate cannot start music.
+  installGestureUnlock({
+    onUnlock: async () => {
+      await audioReady;
+      if (audio !== null) {
+        await unlockAudio();
+      }
+    },
+    shouldIgnore: (event) => isAudioControlTarget(event.target),
+  });
+  installVisibilityHandling(audioEngine());
+
+  // FR-6/FR-7/FR-12: the sound controls are part of the shell. If the markup
+  // and the viewer disagree, keep the ranch alive (silent) instead of aborting
+  // after the scene exists; only the audio block is skipped.
   const muteButton = document.getElementById(AUDIO_MUTE_ID);
   const parentButton = document.getElementById(AUDIO_PARENT_ID);
   const panel = document.getElementById(AUDIO_PANEL_ID);
@@ -91,47 +112,49 @@ export async function bootViewer(): Promise<void> {
   const volumeValue = document.getElementById(AUDIO_VOLUME_VALUE_ID);
   const closeButton = document.getElementById(AUDIO_PANEL_CLOSE_ID);
   if (
-    !(muteButton instanceof HTMLButtonElement) ||
-    !(parentButton instanceof HTMLButtonElement) ||
-    !(panel instanceof HTMLElement) ||
-    !(panelMuteButton instanceof HTMLButtonElement) ||
-    !(slider instanceof HTMLInputElement) ||
-    !(closeButton instanceof HTMLButtonElement)
+    muteButton instanceof HTMLButtonElement &&
+    parentButton instanceof HTMLButtonElement &&
+    panel instanceof HTMLElement &&
+    panelMuteButton instanceof HTMLButtonElement &&
+    slider instanceof HTMLInputElement &&
+    closeButton instanceof HTMLButtonElement
   ) {
-    return;
+    // Read both settings before the engine exists, so the first gesture already
+    // knows whether to start music and at which volume (FR-2, FR-6, FR-7).
+    const audioSettings = await loadAudioSettings();
+    configureAudio({
+      getMuted: () => audioSettings.muted,
+      getVolume: () => audioSettings.volume,
+    });
+    audio = createAudioControls({
+      muteButton,
+      parentButton,
+      panel,
+      panelMuteButton,
+      slider,
+      closeButton,
+      volumeValue: volumeValue instanceof HTMLElement ? volumeValue : null,
+      initialMuted: audioSettings.muted,
+      initialVolume: audioSettings.volume,
+      // Mirrored twice: the mutable object feeds the engine providers, while the
+      // engine calls apply the change to already-built Howls immediately.
+      onMutedChange: (muted) => {
+        audioSettings.muted = muted;
+        audioEngine().setMuted(muted);
+        void saveMuted(muted);
+      },
+      onVolumeChange: (volume) => {
+        audioSettings.volume = volume;
+        audioEngine().setVolume(volume);
+        void saveVolume(volume);
+      },
+      onUnlock: () => unlockAudio(),
+    });
+  } else {
+    console.warn('Audio controls are missing from the shell; continuing without sound.');
+    setStatus(status, 'Sound unavailable');
   }
-
-  // Read both settings before the engine exists, so the first gesture already
-  // knows whether to start music and at which volume (FR-2, FR-6, FR-7).
-  const audioSettings = await loadAudioSettings();
-  configureAudio({
-    getMuted: () => audioSettings.muted,
-    getVolume: () => audioSettings.volume,
-  });
-  const audio = createAudioControls({
-    muteButton,
-    parentButton,
-    panel,
-    panelMuteButton,
-    slider,
-    closeButton,
-    volumeValue: volumeValue instanceof HTMLElement ? volumeValue : null,
-    initialMuted: audioSettings.muted,
-    initialVolume: audioSettings.volume,
-    // Mirrored twice: the mutable object feeds the engine providers, while the
-    // engine calls apply the change to already-built Howls immediately.
-    onMutedChange: (muted) => {
-      audioSettings.muted = muted;
-      audioEngine().setMuted(muted);
-      void saveMuted(muted);
-    },
-    onVolumeChange: (volume) => {
-      audioSettings.volume = volume;
-      audioEngine().setVolume(volume);
-      void saveVolume(volume);
-    },
-    onUnlock: () => unlockAudio(),
-  });
+  audioReadyControl.resolve();
 
   // Instant boxy trio at the 120 deg triangle spawn (FR-5): each rigged GLB
   // swaps its own placeholder on load, so a slow fetch never blocks the rest.
@@ -175,16 +198,6 @@ export async function bootViewer(): Promise<void> {
   });
 
   // FR-2/NFR-7: the first document gesture unlocks the engine and visibility
-  // changes pause/resume the loop. Walk no longer gates audio, and a repeated
-  // gesture is a no-op because the installer removes its listeners. A tap on
-  // the sound controls is ignored so mute can unlock silently (AC-6 edge) and
-  // the parent gate cannot start music behind the child.
-  installGestureUnlock({
-    onUnlock: () => unlockAudio(),
-    shouldIgnore: (event) => isAudioControlTarget(event.target),
-  });
-  installVisibilityHandling(audioEngine());
-
   // Swap one instant placeholder for its rigged GLB. Staggered-entry
   // headings (TRIO_SPAWN_HEADINGS_RADIANS) send the trio out on separated
   // legs early so avoidance visibly steers from the first seconds.
@@ -308,18 +321,18 @@ export async function bootViewer(): Promise<void> {
             const engine = audioEngine();
             return {
               unlocked: engine.unlocked,
-              muted: audio.isMuted(),
-              volume: audio.volume(),
+              muted: audio?.isMuted() ?? engine.muted,
+              volume: audio?.volume() ?? engine.volume,
               musicPlaying: engine.musicPlaying,
               activeLine: engine.activeVoiceId,
               lastStartLatencyMs: engine.lastStartLatencyMs,
             };
           },
           mute: (muted: boolean) => {
-            audio.setMuted(muted);
+            audio?.setMuted(muted);
           },
           setVolume: (volume: number) => {
-            audio.setVolume(volume);
+            audio?.setVolume(volume);
           },
           play: (id) => {
             audioEngine().play(id);

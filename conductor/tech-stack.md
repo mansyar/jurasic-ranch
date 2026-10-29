@@ -34,14 +34,16 @@
   blocking boot.
 - Buses and gains (`src/audio/mix.ts`): `MUSIC_BUS_GAIN 0.1` (about -20 dB under
   voice), `DUCK_FACTOR 0.35` while a line speaks, `VOICE_TAIL_SECONDS 0.3`
-  before the music restores, `SFX_OVERLAP_CAP 4`, `DEFAULT_VOLUME 0.8`. Master
-  volume rides Howler's global gain, so a volume move never rewrites the duck.
+  documents the silence baked into each voice mp3 (the engine restores music on
+  the line's `end`, after that tail), `SFX_OVERLAP_CAP 4`, `DEFAULT_VOLUME 0.8`.
+  Master volume rides Howler's global gain, so a volume move never rewrites the
+  duck.
 - Controls: a 72 px bottom-right mute button plus a 72 px gear whose continuous
   2 s hold opens the parent volume panel (`src/viewer/audio-controls.ts`,
   `src/audio/gate.ts`). Mute and volume persist through idb-keyval under
   `audio-muted` and `audio-volume`; a blocked store falls back to in-memory
   defaults and never throws.
-- Pack budget: 15 assets, 859,977 B total (<=2.5 MB), precached with the app
+- Pack budget: 15 assets, 853,289 B total (<=2.5 MB), precached with the app
   shell (total precache under 15 MB). `node scripts/check-audio-pack.mjs`
   (`pnpm audio:check`, also part of `pnpm verify`) fails on a manifest/file
   mismatch, an orphan, a wrong bus count, or an over-budget pack.

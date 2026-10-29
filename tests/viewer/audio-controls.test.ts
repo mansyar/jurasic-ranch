@@ -424,12 +424,12 @@ describe('hold gate (FR-8, AC-8)', () => {
 });
 
 describe('parent panel (FR-8, AC-8)', () => {
-  it('closes on Escape and returns focus to the gear', () => {
+  it('closes on Escape from the window and returns focus to the gear', () => {
     const harness = createHarness();
     completeHold(harness);
     expect(harness.panel.hidden).toBe(false);
 
-    harness.panel.dispatch('keydown', { key: 'Escape' });
+    harness.windowTarget.dispatch('keydown', { key: 'Escape' });
 
     expect(harness.panel.hidden).toBe(true);
     expect(harness.controls.isPanelOpen()).toBe(false);

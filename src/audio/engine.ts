@@ -22,6 +22,7 @@ export interface HowlOptionsLike {
   onend?: (soundId: number) => void;
   onstop?: (soundId: number) => void;
   onloaderror?: (soundId: number) => void;
+  onplay?: (soundId: number) => void;
 }
 
 /** The Howl calls the engine makes; structural so tests can pass a fake. */
@@ -91,8 +92,8 @@ function sfxKey(assetId: string, soundId: number): string {
  */
 export class AudioEngine {
   private readonly load: HowlerLoader;
-  private readonly getMuted: () => boolean;
-  private readonly getVolume: () => number;
+  private getMuted: () => boolean;
+  private getVolume: () => number;
   private readonly musicId: string | null;
 
   private howler: HowlerModuleLike | null = null;
@@ -110,8 +111,10 @@ export class AudioEngine {
   private musicPlayingFlag = false;
   private voiceId: string | null = null;
   private voiceSoundId: number | null = null;
+  private voiceRequestedAtMs: number | null = null;
   private latencyMs = 0;
   private readonly activeSfx = new Set<string>();
+  private readonly failed = new Set<string>();
 
   private readonly warned = new Set<string>();
 
@@ -120,6 +123,22 @@ export class AudioEngine {
     this.getMuted = options.getMuted ?? ((): boolean => false);
     this.getVolume = options.getVolume ?? ((): number => DEFAULT_VOLUME);
     this.musicId = musicAssetId();
+  }
+
+  /**
+   * Late-bind the persisted mute/volume providers (FR-6, FR-7). Boot installs
+   * the gesture guard before the settings read, so the singleton can exist
+   * before its providers do.
+   */
+  configure(options: AudioEngineOptions): void {
+    if (options.getMuted !== undefined) {
+      this.getMuted = options.getMuted;
+    }
+    if (options.getVolume !== undefined) {
+      this.getVolume = options.getVolume;
+    }
+    this.mutedFlag = this.getMuted();
+    this.volumeValue = clampVolume(this.getVolume());
   }
 
   /** Whether the first gesture finished unlocking audio. */
@@ -148,9 +167,9 @@ export class AudioEngine {
   }
 
   /**
-   * Wall-clock time spent dispatching the last `playVoice` call: the two
-   * `performance.now()` reads around `Howl.play`. This is dispatch latency, not
-   * DAC onset, and it resets to 0 on `stopAll` and `dispose`.
+   * Wall-clock time from the last `playVoice` request to Howler's `play` event:
+   * the moment the line actually starts, not the synchronous `Howl.play` call.
+   * It resets to 0 on `stopAll` and `dispose`.
    */
   get lastStartLatencyMs(): number {
     return this.latencyMs;
@@ -223,9 +242,9 @@ export class AudioEngine {
     // Duck before the line starts so the first syllable is never drowned out.
     this.ducked = true;
     this.applyMusicGain();
-    const startedAt = performance.now();
+    this.voiceRequestedAtMs = performance.now();
+    this.latencyMs = 0;
     const soundId = howl.play();
-    this.latencyMs = Math.max(0, performance.now() - startedAt);
     this.voiceId = id;
     this.voiceSoundId = soundId;
   }
@@ -253,6 +272,7 @@ export class AudioEngine {
     this.howler?.Howler.stop();
     this.voiceId = null;
     this.voiceSoundId = null;
+    this.voiceRequestedAtMs = null;
     this.musicSoundId = null;
     this.musicPlayingFlag = false;
     this.latencyMs = 0;
@@ -324,6 +344,7 @@ export class AudioEngine {
     this.unlockPromise = null;
     this.loadFailed = false;
     this.warned.clear();
+    this.failed.clear();
   }
 
   /** Build the 15 Howls once, then start music unless the ranch is muted. */
@@ -354,6 +375,9 @@ export class AudioEngine {
             onloaderror: (soundId) => {
               this.warnAsset(asset.id, soundId);
             },
+            onplay: (soundId) => {
+              this.handlePlay(asset.bus, asset.id, soundId);
+            },
           }),
         );
       }
@@ -370,14 +394,17 @@ export class AudioEngine {
     }
   }
 
-  /** The music Howl, or `undefined` when locked, disposed, or music-less. */
+  /** The music Howl, or `undefined` when locked, disposed, failed, or music-less. */
   private musicHowl(): HowlLike | undefined {
-    return this.musicId === null ? undefined : this.howls.get(this.musicId);
+    if (this.musicId === null || this.failed.has(this.musicId)) {
+      return undefined;
+    }
+    return this.howls.get(this.musicId);
   }
 
   /** A playable Howl for `id` on `bus`, or `undefined` when unusable. */
   private readyHowl(id: string, bus: AudioBus): HowlLike | undefined {
-    if (!this.unlockedFlag || this.mutedFlag) {
+    if (!this.unlockedFlag || this.mutedFlag || this.failed.has(id)) {
       return undefined;
     }
     const asset = getAudioAsset(id);
@@ -416,10 +443,12 @@ export class AudioEngine {
     if (previousId === null || previousSoundId === null) {
       this.voiceId = null;
       this.voiceSoundId = null;
+      this.voiceRequestedAtMs = null;
       return;
     }
     this.voiceId = null;
     this.voiceSoundId = null;
+    this.voiceRequestedAtMs = null;
     this.howls.get(previousId)?.stop(previousSoundId);
   }
 
@@ -442,8 +471,20 @@ export class AudioEngine {
     if (bus === 'voice' && this.voiceId === assetId && this.voiceSoundId === soundId) {
       this.voiceId = null;
       this.voiceSoundId = null;
+      this.voiceRequestedAtMs = null;
       this.ducked = false;
       this.applyMusicGain();
+    }
+  }
+
+  /** Howler's `play` event: the line actually started (AC-5, NFR-2). */
+  private handlePlay(bus: AudioBus, assetId: string, soundId: number): void {
+    if (bus !== 'voice' || this.voiceId !== assetId || this.voiceSoundId !== soundId) {
+      return;
+    }
+    if (this.voiceRequestedAtMs !== null) {
+      this.latencyMs = Math.max(0, performance.now() - this.voiceRequestedAtMs);
+      this.voiceRequestedAtMs = null;
     }
   }
 
@@ -454,6 +495,25 @@ export class AudioEngine {
 
   /** One warning per failed asset; the rest of the pack stays playable. */
   private warnAsset(assetId: string, soundId: number): void {
+    this.failed.add(assetId);
+    for (const key of this.activeSfx) {
+      if (key.startsWith(`${assetId}#`)) {
+        this.activeSfx.delete(key);
+      }
+    }
+    if (this.voiceId === assetId) {
+      this.voiceId = null;
+      this.voiceSoundId = null;
+      this.voiceRequestedAtMs = null;
+      if (this.ducked) {
+        this.ducked = false;
+        this.applyMusicGain();
+      }
+    }
+    if (this.musicId === assetId) {
+      this.musicSoundId = null;
+      this.musicPlayingFlag = false;
+    }
     this.warnOnce(
       assetId,
       `Audio asset "${assetId}" failed to load (sound ${soundId}); playing silence.`,

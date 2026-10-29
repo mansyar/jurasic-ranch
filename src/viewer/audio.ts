@@ -15,6 +15,7 @@ let engineOptions: AudioEngineOptions = {};
  */
 export function configureAudio(options: AudioEngineOptions): void {
   engineOptions = options;
+  engine?.configure(options);
 }
 
 /** The lazily built engine shared by unlock, visibility, and the dev bridge. */

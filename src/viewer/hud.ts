@@ -47,8 +47,8 @@ export interface SleepyStage {
 
 /** Handles boot keeps after the DOM chrome is wired. */
 export interface Hud {
-  /** Bottom-right mute button and parent volume panel (FR-6, FR-7, FR-8). */
-  readonly audio: AudioControls;
+  /** Bottom-right mute button and parent volume panel; null if the shell lacks it. */
+  readonly audio: AudioControls | null;
   /** Sleepy cues plus the hint-glow timer the render loop reads. */
   readonly sleepy: SleepyStage;
   /** Whether the Walk toggle is on. */
@@ -74,8 +74,8 @@ export interface HudOptions {
   camera: PerspectiveCamera;
   button: HTMLButtonElement;
   status: HTMLElement | null;
-  /** Already-wired sound controls; the HUD exposes them for the dev bridge. */
-  audio: AudioControls;
+  /** Already-wired sound controls; null when the shell omitted them. */
+  audio: AudioControls | null;
   /** Saved Walk state restored from storage (FR-7). */
   initialWalking: boolean;
   /** Apply a new Walk state to the players, audio unlock and storage. */

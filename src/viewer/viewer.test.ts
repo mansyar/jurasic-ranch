@@ -269,12 +269,15 @@ describe('audio facade', () => {
     expect(source).not.toMatch(/void unlockAudio\(\)/);
   });
 
-  it('configures persisted providers before the engine is built (FR-6, FR-7)', async () => {
+  it('configures persisted providers for the early engine (FR-6, FR-7)', async () => {
     const source = await readText('src/viewer/main.ts');
     const configureAt = source.indexOf('configureAudio({');
-    const engineAt = source.indexOf('audioEngine()');
     expect(configureAt).toBeGreaterThan(-1);
-    expect(engineAt).toBeGreaterThan(configureAt);
+    expect(source.indexOf('createAudioControls(')).toBeGreaterThan(configureAt);
+    // The gesture guard must exist before the first storage await (F8).
+    expect(source.indexOf('installGestureUnlock')).toBeLessThan(
+      source.indexOf('await loadAudioSettings'),
+    );
     // The first gesture ignores taps inside the sound controls (AC-6 edge).
     expect(source).toContain('shouldIgnore');
     expect(source).toContain('isAudioControlTarget');
@@ -313,7 +316,6 @@ describe('offline shell', () => {
     }
     expect(html).toContain('aria-haspopup="dialog"');
     expect(html).toContain('role="dialog"');
-    expect(html).toContain('aria-modal="true"');
     expect(html).toContain('type="range"');
     expect(html).toContain('--hold-progress');
     // Walk, POV, mute/gear, close, and the slider all meet the 72 px target.

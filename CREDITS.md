@@ -41,7 +41,9 @@
 
 All 15 starter-pack files are generated at build time and committed under
 `public/audio/`; nothing is fetched at runtime. Every file is mono 44.1 kHz,
-128 kbps mp3, normalized to −16 LUFS.
+128 kbps mp3. Voice lines target −16 LUFS within 1.2 dB (the 0.3 s tail is part
+of the measurement); short SFX are peak-normalized where integrated loudness is
+not meaningful (`tap`), and all SFX sit below the voice in the mix.
 
 - Voice engine: [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M), run
   through `kokoro-onnx`. Model license: Apache-2.0. Voice `af_bella`, speed

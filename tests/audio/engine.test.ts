@@ -76,6 +76,11 @@ class FakeHowl implements HowlLike {
   fail(): void {
     this.options.onloaderror?.(1);
   }
+
+  /** Fire Howler's play event for one sound instance. */
+  playStarted(soundId: number): void {
+    this.options.onplay?.(soundId);
+  }
 }
 
 /** Recording global Howler stand-in with a controllable context state. */
@@ -252,6 +257,21 @@ describe('master volume (FR-7)', () => {
     engine.setVolume(Number.NaN);
     expect(engine.volume).toBe(DEFAULT_VOLUME);
   });
+
+  it('late-binds providers installed after construction', async () => {
+    const howler = new FakeHowler();
+    const module: HowlerModuleLike = { Howl: FakeHowl, Howler: howler };
+    const load = vi.fn<HowlerLoader>(async () => module);
+    const engine = new AudioEngine({ load });
+
+    engine.configure({ getMuted: () => true, getVolume: () => 0.4 });
+    expect(engine.muted).toBe(true);
+    expect(engine.volume).toBe(0.4);
+
+    await engine.unlock();
+    expect(howler.muted).toBe(true);
+    expect(howler.masterVolume).toBe(0.4);
+  });
 });
 
 describe('voice ducking (FR-5, AC-3)', () => {
@@ -371,6 +391,37 @@ describe('asset failures (FR-9, AC-9)', () => {
 
     engine.playSfx('tap');
     expect(howlFor('tap').played).toHaveLength(1);
+  });
+
+  it('does not duck music or report a line when a failed voice is requested', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { engine } = createEngine();
+    await engine.unlock();
+    const music = howlFor('music-kalimba');
+    const hello = howlFor('hello');
+
+    hello.fail();
+    engine.playVoice('hello');
+
+    expect(hello.played).toHaveLength(0);
+    expect(engine.activeVoiceId).toBeNull();
+    expect(music.volumeValue).toBeCloseTo(MUSIC_GAIN, 12);
+  });
+
+  it('does not let a failed SFX fill the overlap cap for the rest of the bus', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { engine } = createEngine();
+    await engine.unlock();
+    const tap = howlFor('tap');
+
+    tap.fail();
+    for (let index = 0; index < SFX_OVERLAP_CAP + 2; index += 1) {
+      engine.playSfx('tap');
+    }
+    engine.playSfx('heart');
+
+    expect(tap.played).toHaveLength(0);
+    expect(howlFor('heart').played).toHaveLength(1);
   });
 
   it('warns once and stays silent when Howler itself cannot load', async () => {
@@ -518,13 +569,18 @@ describe('dev harness audio surface (FR-10)', () => {
     expect(engine.activeVoiceId).toBeNull();
   });
 
-  it('reports finite dispatch latency and clears it on stopAll', async () => {
+  it('measures latency from the play request to Howler’s play event', async () => {
     const { engine } = createEngine();
     await engine.unlock();
+    const hello = howlFor('hello');
 
+    const now = vi.spyOn(performance, 'now').mockReturnValue(1_000);
     engine.playVoice('hello');
-    expect(Number.isFinite(engine.lastStartLatencyMs)).toBe(true);
-    expect(engine.lastStartLatencyMs).toBeGreaterThanOrEqual(0);
+    expect(engine.lastStartLatencyMs).toBe(0);
+
+    now.mockReturnValue(1_120);
+    hello.playStarted(hello.played[0] ?? 0);
+    expect(engine.lastStartLatencyMs).toBe(120);
 
     engine.stopAll();
     expect(engine.lastStartLatencyMs).toBe(0);
