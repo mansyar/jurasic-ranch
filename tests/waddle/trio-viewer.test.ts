@@ -7,10 +7,14 @@ import { DustPool } from '../../src/ranch/dust.js';
 import { WADDLE_LOOP_SECONDS } from '../../src/ranch/waddle.js';
 import { walkStatusText } from '../../src/viewer/hud.js';
 import {
+  AUTHORED_BODY_LENGTH_METRES,
   BRACHIO_MODEL_URL,
+  DINO_GROUP_SCALE,
+  IN_GAME_BODY_LENGTH_METRES,
   loadBrachioPlayer,
   loadStegoPlayer,
   loadTrikePlayer,
+  type LoadedDino,
 } from '../../src/viewer/loaders.js';
 import {
   setAllWalking,
@@ -20,6 +24,8 @@ import {
 import {
   BRACHIO_BODY_HEX,
   createPlaceholderBrachio,
+  createPlaceholderStego,
+  createPlaceholderTrike,
   PLACEHOLDER_BODY_HEX,
   PLACEHOLDER_BODY_NAME,
   STEGO_BODY_HEX,
@@ -86,22 +92,27 @@ describe('placeholder brachio fallback (FR-8, AC-5)', () => {
     expect(BRACHIO_MODEL_URL).toBe('/models/brachio.glb');
   });
 
-  it('stands boxy and grazing on the ground plane with the swap footprint', () => {
+  it('stands boxy and grazing on the ground plane at the rigged length', () => {
     const brachio = createPlaceholderBrachio();
     expect(brachio.name).toContain('Brachio');
     expect(brachio.children.length).toBeGreaterThan(0);
     const box = new THREE.Box3().setFromObject(brachio);
     expect(Math.abs(box.min.y)).toBeLessThan(1e-6);
     const size = box.getSize(new THREE.Vector3());
-    // Same window as the rigged swap target (2.3–3.1 m grazing baby).
-    expect(size.z).toBeGreaterThanOrEqual(2.3);
-    expect(size.z).toBeLessThanOrEqual(3.1);
+    // Phase 4 sized the rigged model at 7.423 m; the boxy stand-in is the same
+    // length now, so the swap is a shape change and not also a 2.66x pop.
+    expect(size.z).toBeCloseTo(IN_GAME_BODY_LENGTH_METRES.brachio, 3);
     expect(brachio.rotation.y).toBeCloseTo(-Math.PI / 2, 5);
   });
 
-  it('keeps the grazing head near the 1.2 m cap', () => {
+  it('stays squat: no taller than half its own length', () => {
+    // The old "head near the 1.2 m cap" window described a 2.79 m toy. At the
+    // rigged size the cap that still means something is proportion, not metres:
+    // the stand-in must stay a low, child-readable shape...
     const box = new THREE.Box3().setFromObject(createPlaceholderBrachio());
-    expect(box.max.y).toBeLessThan(1.4);
+    expect(box.max.y).toBeLessThan(IN_GAME_BODY_LENGTH_METRES.brachio / 2);
+    // ...and shorter than the rigged animal, so it never grows on the swap.
+    expect(box.max.y).toBeGreaterThan(IN_GAME_BODY_LENGTH_METRES.brachio / 4);
   });
 
   it('reads as a Brachio, not a third Trike or Stego: lavender hide, no green or teal', () => {
@@ -118,6 +129,20 @@ describe('placeholder brachio fallback (FR-8, AC-5)', () => {
     expect(hexes.has(PLACEHOLDER_BODY_HEX)).toBe(false);
     expect(hexes.has(STEGO_BODY_HEX)).toBe(false);
     expect(hexes.has(STEGO_PLATE_HEX)).toBe(false);
+  });
+
+  it('lands every stand-in at the rigged length, so no swap changes size (FR-4)', () => {
+    const cases = [
+      [createPlaceholderTrike(), IN_GAME_BODY_LENGTH_METRES.trike],
+      [createPlaceholderStego(), IN_GAME_BODY_LENGTH_METRES.stego],
+      [createPlaceholderBrachio(), IN_GAME_BODY_LENGTH_METRES.brachio],
+    ] as const;
+    for (const [group, length] of cases) {
+      const size = new THREE.Box3().setFromObject(group).getSize(new THREE.Vector3());
+      // Each stand-in faces +Z after its rotation, so z is its length.
+      expect(Math.max(size.x, size.z)).toBeCloseTo(length, 3);
+      expect(size.y).toBeLessThan(length);
+    }
   });
 
   it('shares the seamless placeholder bob with the other two', () => {
@@ -163,6 +188,27 @@ describe('rigged brachio loader (FR-1, FR-4, FR-9)', () => {
     expect(loaded.player.clipDurationSeconds).toBeCloseTo(1.0, 5);
   });
 
+  it('picks the authored Walk clip, not the first animation in the file', async () => {
+    // The re-baked Brachio ships Idle first; the walk loop is 3.8 s (FR-1, AC-1).
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [
+        new THREE.AnimationClip('Idle', 8, []),
+        new THREE.AnimationClip('Walk', 3.8, []),
+      ],
+    });
+    const loaded = await loadBrachioPlayer();
+    expect(loaded.player.clipDurationSeconds).toBeCloseTo(3.8, 5);
+  });
+
+  it('refuses a GLB that carries no walk clip rather than guessing at one', async () => {
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [new THREE.AnimationClip('Idle', 8, [])],
+    });
+    await expect(loadBrachioPlayer()).rejects.toThrow('no walk clip');
+  });
+
   it('shares one DustPool across all three players', async () => {
     const shared = new DustPool({ random: () => 0.5 });
     loaderMocks.loadAsync.mockResolvedValue({
@@ -189,6 +235,61 @@ describe('rigged brachio loader (FR-1, FR-4, FR-9)', () => {
   it('rejects when the brachio GLB carries no animations', async () => {
     loaderMocks.loadAsync.mockResolvedValue({ scene: new THREE.Group(), animations: [] });
     await expect(loadBrachioPlayer()).rejects.toThrow('Waddle');
+  });
+});
+
+describe('per-species in-game size (FR-4, AC-4)', () => {
+  it('derives S from the Trike the child already knows and keeps it uniform', () => {
+    // S = 3.708 m (shipped trike.glb) / 6.26 m (Polyfork adult reference).
+    expect(DINO_GROUP_SCALE).toBeCloseTo(3.708 / 6.26, 12);
+    expect(DINO_GROUP_SCALE).toBeGreaterThan(0.55);
+    expect(DINO_GROUP_SCALE).toBeLessThan(0.65);
+    // Real-life ratios survive the shrink: Stego/Trike 1.04, Brachio/Trike 2.00.
+    expect(IN_GAME_BODY_LENGTH_METRES.trike).toBeCloseTo(3.708, 6);
+    expect(IN_GAME_BODY_LENGTH_METRES.stego / IN_GAME_BODY_LENGTH_METRES.trike).toBeCloseTo(
+      1.04,
+      2,
+    );
+    expect(IN_GAME_BODY_LENGTH_METRES.brachio / IN_GAME_BODY_LENGTH_METRES.trike).toBeCloseTo(
+      2.0,
+      2,
+    );
+    // ... and every one is the authored length times the same single scale.
+    expect(IN_GAME_BODY_LENGTH_METRES.stego).toBeCloseTo(
+      AUTHORED_BODY_LENGTH_METRES.stego * DINO_GROUP_SCALE,
+      9,
+    );
+    expect(IN_GAME_BODY_LENGTH_METRES.brachio).toBeCloseTo(
+      AUTHORED_BODY_LENGTH_METRES.brachio * DINO_GROUP_SCALE,
+      9,
+    );
+  });
+
+  it('applies one scalar to the loaded group: uniform, and 1 for the Trike', async () => {
+    const scene = new THREE.Group();
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene,
+      animations: [new THREE.AnimationClip('Waddle', 1.0, [])],
+    });
+    const loaded = await loadStegoPlayer();
+    expect(loaded.model.scale.toArray()).toEqual([
+      DINO_GROUP_SCALE,
+      DINO_GROUP_SCALE,
+      DINO_GROUP_SCALE,
+    ]);
+    // The player captured the scaled group as its squash base, so the walk
+    // squash multiplies this scale rather than replacing it.
+    loaded.player.update(1 / 60, 0);
+    expect(loaded.model.scale.x).toBeCloseTo(DINO_GROUP_SCALE, 12);
+    expect(loaded.model.scale.z).toBeCloseTo(DINO_GROUP_SCALE, 12);
+
+    const trikeScene = new THREE.Group();
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: trikeScene,
+      animations: [new THREE.AnimationClip('Waddle', 0.8, [])],
+    });
+    const trike = await loadTrikePlayer();
+    expect(trike.model.scale.toArray()).toEqual([1, 1, 1]);
   });
 });
 
@@ -350,5 +451,54 @@ describe('trio ranch shell (NFR-4, FR-7, FR-8, FR-9)', () => {
   it('warns and keeps walking when the brachio GLB fails', async () => {
     const source = await readText('src/viewer/main.ts');
     expect(source).toContain('Rigged brachio unavailable; keeping the placeholder.');
+  });
+});
+
+describe('world stride at the loader boundary (FR-5, AC-5)', () => {
+  const DT = 1 / 60;
+
+  /** Summed per-frame path length over two seconds, after the 0.2 s blend. */
+  function walkedSpeedMetresPerSecond(loaded: LoadedDino): number {
+    loaded.model.position.set(0, 0, 0);
+    loaded.player.setWalking(true);
+    let now = 0;
+    for (let frame = 0; frame < 60; frame += 1) {
+      now += DT;
+      loaded.player.update(DT, now);
+    }
+    let travelled = 0;
+    for (let frame = 0; frame < 120; frame += 1) {
+      const before = loaded.model.position.clone();
+      now += DT;
+      loaded.player.update(DT, now);
+      travelled += loaded.model.position.distanceTo(before);
+    }
+    return travelled / 2;
+  }
+
+  it('walks the loaded Stego at the stride its clip plays on the scaled group', async () => {
+    // The round-1 defect lived at the one place gait meets player: the stride
+    // was authored metres while the root advanced world metres, so the feet
+    // covered 1.059 m per 2.4 s loop while the body moved 1.788 m. This test
+    // never calls worldGait - it walks the loaded player and times it, so
+    // dropping the conversion at the call site fails here.
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [new THREE.AnimationClip('Walk', 2.4, [])],
+    });
+    const stego = await loadStegoPlayer();
+    const speed = walkedSpeedMetresPerSecond(stego);
+    expect(speed).toBeCloseTo(0.4413, 2);
+    // The authored stride would read 0.745 m/s: 0.30 m/s of skating.
+    expect(speed).toBeLessThan(0.6);
+  });
+
+  it('leaves the Trike at its own stride, because it is drawn at scale 1', async () => {
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [new THREE.AnimationClip('Waddle', 0.8, [])],
+    });
+    const trike = await loadTrikePlayer();
+    expect(walkedSpeedMetresPerSecond(trike)).toBeCloseTo(0.3625, 2);
   });
 });

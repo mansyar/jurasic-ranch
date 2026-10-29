@@ -62,7 +62,7 @@ OUT:
 - Animation + audio pipeline heaviest for evenings — mitigate: Trike-first template, 6-clip cap, procedural fallback, copy rig to Stego/Brachio
 - Boredom after week 1 — mitigate: 4 rotating surprises + sticker variety, cooldowns
 - PWA cache/perf — mitigate: <15MB, Draco GLBs, one material, flat-shaded
-- Brachio scale reads huge — mitigate: cap 1.2m, mostly seated shuffle
+- Brachio scale reads huge - mitigate: real-life proportions kept on screen (Brachio 2.0x the Trike's length), walk area sized from the largest body
 
 ## Open Questions & Assumptions
 
@@ -73,7 +73,7 @@ OUT:
 
 - [x] Track 1 — Trike Waddle Walk (offline PWA shell, pastel rigged waddle, stay-in-frame wander, silence)
 - [x] Track 2 - Stego joins (reuse Trike pipeline: retime Waddle, plates pastel, wander)
-- [x] Track 3 — Brachio joins (seated shuffle, 1.2 m scale cap; UP/DOWN size-sort surprise deferred to feeding track)
+- [x] Track 3 - Brachio joins (own authored walk clip, real-life proportions: 7.42 m long, 2.0x the Trike; UP/DOWN size-sort surprise deferred to feeding track)
 - [ ] Track 4 — Feed mini + snack counting 1-5 (drag berry/leaf, Kokoro counts, eat_nom clip)
 - [ ] Track 5 — Wash + cuddle (scrub mud, tap hearts, body-tap vocab surprise)
 - [ ] Track 6 — Surprises + sticker book (TSB bubbles, twinkle invites, auto-save moments)

@@ -7,9 +7,17 @@ import {
   DRESSING_BUDGET_BYTES,
   DRESSING_MANIFEST,
   GROUND_RADIUS_METRES,
+  IN_FRAME_OVERSHOOT_METRES,
   WALK_CLEARANCE_METRES,
 } from '../../src/ranch/dressing.js';
 import { POV_PRESETS } from '../../src/viewer/pov.js';
+import {
+  DINO_WALK_RADIUS_METRES,
+  LARGEST_DINO_BODY_LENGTH_METRES,
+} from '../../src/ranch/avoidance.js';
+import { BRACHIO_GAIT, STEGO_GAIT, TRIKE_GAIT } from '../../src/ranch/dino-player.js';
+import { gaitSpeedMetresPerSecond, WALK_BLEND_SECONDS } from '../../src/ranch/waddle.js';
+import { IN_GAME_BODY_LENGTH_METRES } from '../../src/viewer/loaders.js';
 
 const ROOT_URL = new URL('../../', import.meta.url);
 
@@ -68,12 +76,47 @@ describe('dressing layout invariants (FR-3, AC-3)', () => {
     }
   });
 
-  it('keeps every prop outside the dino walk area and inside the ground circle', () => {
-    expect(WALK_CLEARANCE_METRES).toBe(0.8);
-    expect(GROUND_RADIUS_METRES).toBe(6);
+  it('keeps every prop outside the biggest animal’s whole wander path', () => {
+    // FR-6/FR-7, derived rather than tuned: the circle body centres use is half
+    // the largest body length, and nothing may stand inside that circle plus
+    // the ground a dino covers overshooting it plus half its nose and tail.
+    expect(LARGEST_DINO_BODY_LENGTH_METRES).toBeCloseTo(IN_GAME_BODY_LENGTH_METRES.brachio, 3);
+    expect(LARGEST_DINO_BODY_LENGTH_METRES).toBeGreaterThan(IN_GAME_BODY_LENGTH_METRES.stego);
+    expect(DINO_WALK_RADIUS_METRES).toBe(LARGEST_DINO_BODY_LENGTH_METRES / 2);
+    for (const gait of [TRIKE_GAIT, STEGO_GAIT, BRACHIO_GAIT]) {
+      expect(gait.wanderRadiusMetres).toBe(DINO_WALK_RADIUS_METRES);
+      // The overshoot margin must cover every gait's in-frame bound.
+      const speed = gaitSpeedMetresPerSecond(gait);
+      const yawRate = Math.min(
+        gait.turnRateRadiansPerSecond,
+        gait.curvatureRadiansPerMetre * speed,
+      );
+      const overshoot = speed * (Math.PI / yawRate + WALK_BLEND_SECONDS);
+      expect(overshoot).toBeLessThanOrEqual(IN_FRAME_OVERSHOOT_METRES);
+    }
+    expect(WALK_CLEARANCE_METRES).toBeCloseTo(
+      DINO_WALK_RADIUS_METRES + IN_FRAME_OVERSHOOT_METRES + LARGEST_DINO_BODY_LENGTH_METRES / 2,
+      10,
+    );
     for (const item of DRESSING_MANIFEST) {
-      expect(groundDistanceMetres(item.position)).toBeGreaterThan(WALK_CLEARANCE_METRES);
+      // No prop inside the path, so no prop can intersect a dino.
+      expect(groundDistanceMetres(item.position)).toBeGreaterThanOrEqual(WALK_CLEARANCE_METRES);
+      // And every prop still stands on the grass.
       expect(groundDistanceMetres(item.position)).toBeLessThan(GROUND_RADIUS_METRES);
+    }
+  });
+
+  it('leaves the ranch a prop band to stand in on both sides of every preset', () => {
+    // The walk clearance has to stay smaller than the ground, or the props
+    // would have nowhere legal to go.
+    expect(GROUND_RADIUS_METRES).toBeGreaterThan(WALK_CLEARANCE_METRES);
+    expect(GROUND_RADIUS_METRES - WALK_CLEARANCE_METRES).toBeGreaterThan(1);
+    for (const preset of Object.values(POV_PRESETS)) {
+      const distance = Math.hypot(preset.position[0], preset.position[2]);
+      // Stands clear of the walk area (nothing walks through the lens) and
+      // beyond every prop (nothing grows between the lens and the animal).
+      expect(distance).toBeGreaterThan(WALK_CLEARANCE_METRES);
+      expect(distance).toBeGreaterThan(LARGEST_DINO_BODY_LENGTH_METRES * 2);
     }
   });
 

@@ -1,9 +1,11 @@
-"""Draco-compress the baked pastel baby Brachio (Phase 2, second half of the bake).
+"""Draco-compress the baked Brachiosaurus GLB (second half of the bake).
 
-The Node bake (scripts/vendor/bake-brachio-variant.js) exports the procedural pastel
-variant with its rebuilt Waddle clip to an uncompressed temp GLB; three's
-GLTFExporter has no Draco writer, so this pass imports that file into a clean
-headless Blender scene and re-exports it with KHR_draco_mesh_compression.
+The Node bake (scripts/vendor/bake-brachio-variant.js) builds the pastel variant
+from the vendored module, grafts Polyfork's own authored Walk clip
+from the published asset GLB, and exports that to an uncompressed temp GLB;
+three's GLTFExporter has no Draco writer, so this pass imports that file into a
+clean headless Blender scene and re-exports it with
+KHR_draco_mesh_compression.
 
 Usage:
     blender --background --python scripts/vendor/bake-brachio-variant.py -- <in.glb> <out.glb>

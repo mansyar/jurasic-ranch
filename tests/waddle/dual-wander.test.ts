@@ -3,7 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { avoidanceNudges } from '../../src/ranch/avoidance.js';
 import { DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from '../../src/ranch/dino-player.js';
 import { DustPool } from '../../src/ranch/dust.js';
-import { WADDLE_CYCLE_METRES, WADDLE_LOOP_SECONDS } from '../../src/ranch/waddle.js';
+import {
+  gaitSpeedMetresPerSecond,
+  WADDLE_LOOP_SECONDS,
+  WALK_BLEND_SECONDS,
+} from '../../src/ranch/waddle.js';
+import type { GaitParams } from '../../src/ranch/waddle.js';
 
 /**
  * Dual ranch coexistence (FR-5, FR-6, FR-9, AC-3, AC-6): Trike + Stego wander
@@ -12,9 +17,36 @@ import { WADDLE_CYCLE_METRES, WADDLE_LOOP_SECONDS } from '../../src/ranch/waddle
  * (avoid → update) at 60 fps for a simulated 30 s.
  */
 
+/**
+ * In-frame ceiling for one gait: the stay-in-frame circle plus the furthest a
+ * dino can stray before it can turn around. Past the rim it keeps walking
+ * outward through a full half turn — yaw capped at min(turn rate, curvature x
+ * speed), plus the 0.2 s blend ramp — so the overshoot scales with the gait's
+ * own measured speed rather than with a fixed byte of the old tuning.
+ */
+function inFrameCeilingMetres(gait: GaitParams): number {
+  const speed = gaitSpeedMetresPerSecond(gait);
+  const yawRate = Math.min(gait.turnRateRadiansPerSecond, gait.curvatureRadiansPerMetre * speed);
+  return gait.wanderRadiusMetres + speed * (Math.PI / yawRate + WALK_BLEND_SECONDS);
+}
+
 const DT = 1 / 60;
 const STEPS = 30 * 60;
+/**
+ * Deliberately the tightest boom the old ranch allowed: two bodies starting
+ * 0.8 m apart, i.e. both already inside the 1.84 m avoidance trigger on frame
+ * zero. The trio spawns 6.43 m apart in production, so this pair is the harder
+ * case, not a mirror of boot.
+ */
 const SPAWN_OFFSET_METRES = 0.4;
+/**
+ * Design bar for the closest two bodies may come (FR-6). It was temporarily
+ * lowered to 0.15 m in phase 4: at the measured strides the pair closes at
+ * 1.11 m/s, so the trike-tuned 0.4 m trigger bought 0.36 s — less than the
+ * yaw-limited half turn it needs — and the locked draw bottomed out at 0.240 m.
+ * Phase 5 raised the trigger to 1.84 m (body clearance plus the ground covered
+ * reacting), so the bar is back where it always belonged.
+ */
 const MIN_SEPARATION_METRES = 0.25;
 
 /**
@@ -175,13 +207,13 @@ describe('dual wander coexistence (FR-5, FR-6, AC-3)', () => {
     expect(a.position.distanceTo(b.position)).toBeCloseTo(0.8, 12);
   });
 
-  it('keeps both dinos in-frame over 30 s with >0.25 m separation', () => {
+  it('keeps both dinos in-frame over 30 s and clear of each other', () => {
     const { stats, avoidanceFrames } = runDualWander(true);
     // The run must actually exercise avoidance, not stroll two empty lanes.
     expect(avoidanceFrames).toBeGreaterThan(0);
     // Both reach out and roam (not parked), but never escape the circle.
     expect(stats.maxDistanceMetres).toBeGreaterThan(TRIKE_GAIT.wanderRadiusMetres - 0.3);
-    const bound = TRIKE_GAIT.wanderRadiusMetres + WADDLE_CYCLE_METRES;
+    const bound = Math.max(inFrameCeilingMetres(TRIKE_GAIT), inFrameCeilingMetres(STEGO_GAIT));
     expect(stats.maxDistanceMetres).toBeLessThanOrEqual(bound);
     expect(stats.minSeparationMetres).toBeGreaterThan(MIN_SEPARATION_METRES);
     // Differential proof: the same draw without avoidance must come closer,

@@ -1,24 +1,23 @@
 import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { extractAnimationTracks } from '../../scripts/bake-trike-variant.js';
+import { extractAnimationClips } from '../../scripts/bake-trike-variant.js';
 import {
-  BRACHIO_EXTRA_SCALE,
-  BRACHIO_LOOP_SECONDS,
-  BRACHIO_POSITION_TRACK_SCALE,
   BRACHIO_VARIANT_PARAMS,
-  buildBrachioWaddleClip,
+  buildBrachioClips,
   createBrachioDefaultGroup,
   createBrachioVariantGroup,
 } from '../../scripts/vendor/bake-brachio-variant.js';
 
 /**
- * Baked pastel baby Brachio variant (FR-3 / FR-4): asserts the pinned bake
- * params, the procedural variant geometry they produce (lavender-blush pastel
- * COLOR_0, single material, size-0.6 baby with the extra 0.27 post-scale), and
- * the Waddle rebuild the bake applies from the Trike donor clip. The GLB-level
- * checks (Draco, single material, Waddle 1.0 s, bounds) live in
- * scripts/check-brachio.test.ts, which cannot read colors out of Draco bytes.
+ * Baked pastel Brachio (FR-1 / FR-2 / FR-3): the pinned bake params, the
+ * procedural geometry they produce (lavender-blush pastel COLOR_0, one
+ * material, authored proportions with the upright default neck carriage), and
+ * the authored clip the bake carries - Polyfork's own `Walk` over all 35 bones,
+ * copied verbatim; `Idle` and `Run` are withdrawn (cache budget, FR-1). The
+ * GLB-level checks (Draco, single material,
+ * clip durations, bounds) live in scripts/check-brachio.test.ts, which cannot
+ * read colours out of Draco bytes.
  */
 
 const PASTEL_HEXES = [
@@ -33,6 +32,12 @@ const PASTEL_HEXES = [
 
 const COLOR_TOLERANCE = 1e-4;
 const MIN_VERTS_PER_ZONE = 50;
+const SHIPPED_GLB = new URL('../../public/models/brachio.glb', import.meta.url);
+/** Authored cycle lengths, as published (AC-1). */
+// Shipped set: Run is withdrawn (see SHIPPED_CLIP_NAMES), so it is not here.
+const CLIP_SECONDS = { Walk: 3.8 } as const;
+/** Authored channels: 35 bones x translation + rotation. */
+const CHANNELS_PER_CLIP = 70;
 
 /** Count verts whose linear-space color matches the hex within tolerance. */
 function countMatchingVerts(geometry: THREE.BufferGeometry, hex: string): number {
@@ -64,6 +69,17 @@ function distinctColors(geometry: THREE.BufferGeometry): Array<[number, number, 
   return [...seen.values()];
 }
 
+function isPastel(color: [number, number, number]): boolean {
+  return PASTEL_HEXES.some((hex) => {
+    const c = new THREE.Color(hex);
+    return (
+      Math.abs(color[0] - c.r) < COLOR_TOLERANCE &&
+      Math.abs(color[1] - c.g) < COLOR_TOLERANCE &&
+      Math.abs(color[2] - c.b) < COLOR_TOLERANCE
+    );
+  });
+}
+
 function singleMesh(group: THREE.Group): THREE.SkinnedMesh {
   const meshes: THREE.SkinnedMesh[] = [];
   group.traverse((child) => {
@@ -80,13 +96,10 @@ function worldBox(group: THREE.Group): THREE.Box3 {
   return new THREE.Box3().setFromObject(group);
 }
 
-describe('baked pastel baby brachio variant params', () => {
-  it('pins the exact Polyfork call from the spec', () => {
+describe('baked pastel brachio variant params', () => {
+  it('pins the exact Polyfork call: authored size, colour only', () => {
     expect(BRACHIO_VARIANT_PARAMS).toEqual({
-      size: 0.6,
-      neck: 0,
-      head: 1,
-      tail: 1,
+      size: 1,
       colorway: 'dusty-umber',
       coat: '#b8a9d6',
       flank: '#c3b2e0',
@@ -96,20 +109,14 @@ describe('baked pastel baby brachio variant params', () => {
       nail: '#5a4a5e',
       eye: '#211b16',
     });
-    // Size 0.6 alone still stands ~5.0 m long with the head at 2.14 m on
-    // this species (non-linear down there), so the bake applies one extra
-    // uniform post-scale (total 0.6 x 0.27): a ~2.7 m grazing baby with the
-    // head just under the 1.2 m cap. Position tracks are stride-calibrated
-    // (scale 1.85): the group post-scale shrinks world travel, so the scale
-    // lands measured foot travel at the coded 0.24 m stride — see the stride
-    // test.
-    expect(BRACHIO_EXTRA_SCALE).toBe(0.27);
-    expect(BRACHIO_POSITION_TRACK_SCALE).toBe(1.85);
-    expect(BRACHIO_LOOP_SECONDS).toBe(1.0);
+    // `neck: 0` was the grazing-baby carve and it moves every neck bone; the
+    // authored clips were rigged on the module's default upright carriage.
+    // `size`, `head` and `tail` are absent for the same reason: they rebuild
+    // bones, and Phase 1 measured official rest pose == defaults at size 1.0.
   });
 });
 
-describe('baked pastel baby brachio variant geometry', () => {
+describe('baked pastel brachio variant geometry', () => {
   it('ships one flat-shaded vertex-colored mesh on a single material', () => {
     const mesh = singleMesh(createBrachioVariantGroup());
     const material = mesh.material as THREE.MeshStandardMaterial;
@@ -120,121 +127,118 @@ describe('baked pastel baby brachio variant geometry', () => {
 
   it('bakes every lavender zone into COLOR_0 and keeps no default colorway color', () => {
     const mesh = singleMesh(createBrachioVariantGroup());
-    const counts = PASTEL_HEXES.map(
-      (hex) => [hex, countMatchingVerts(mesh.geometry, hex)] as const,
-    );
-    console.log(`brachio pastel zones: ${counts.map(([hex, n]) => `${hex}=${n}`).join(' ')}`);
-    for (const [, n] of counts) {
-      expect(n).toBeGreaterThan(MIN_VERTS_PER_ZONE);
+    for (const hex of PASTEL_HEXES) {
+      expect(countMatchingVerts(mesh.geometry, hex)).toBeGreaterThan(MIN_VERTS_PER_ZONE);
     }
-    // Retired browns, derived at runtime from the adult default build rather
-    // than hand-converted: no default-colorway color survives the pastel bake.
-    const defaultColors = distinctColors(singleMesh(createBrachioDefaultGroup()).geometry);
+    // Retired browns are derived from the adult default build rather than
+    // hand-converted: no default-colorway colour survives the pastel bake.
     const variantColors = new Set(
       distinctColors(mesh.geometry).map(
         ([r, g, b]) => `${r.toFixed(6)},${g.toFixed(6)},${b.toFixed(6)}`,
       ),
     );
-    const surviving = defaultColors.filter(
-      ([r, g, b]) =>
-        !PASTEL_HEXES.some((hex) => {
-          const c = new THREE.Color(hex);
-          return (
-            Math.abs(r - c.r) < COLOR_TOLERANCE &&
-            Math.abs(g - c.g) < COLOR_TOLERANCE &&
-            Math.abs(b - c.b) < COLOR_TOLERANCE
-          );
-        }) && variantColors.has(`${r.toFixed(6)},${g.toFixed(6)},${b.toFixed(6)}`),
+    const surviving = distinctColors(singleMesh(createBrachioDefaultGroup()).geometry).filter(
+      (color) =>
+        !isPastel(color) &&
+        variantColors.has(`${color[0].toFixed(6)},${color[1].toFixed(6)},${color[2].toFixed(6)}`),
     );
     expect(surviving).toEqual([]);
   });
 
-  it('reads as a grazing baby under the 1.2 m head cap next to the adult default', () => {
+  it('keeps the authored proportions instead of a grazing baby carve', () => {
     const variantBox = worldBox(createBrachioVariantGroup());
     const adultBox = worldBox(createBrachioDefaultGroup());
     const variantLength = variantBox.max.z - variantBox.min.z;
     const adultLength = adultBox.max.z - adultBox.min.z;
-    console.log(
-      `brachio bounds: variant z=${variantLength.toFixed(3)} head=${variantBox.max.y.toFixed(3)} ` +
-        `adult z=${adultLength.toFixed(3)} adultHead=${adultBox.max.y.toFixed(3)}`,
-    );
-    // Adult reference as built: ~12.5 m long, upright head near ~12 m.
+    // Adult reference as built: ~12.5 m long, upright head near 12 m.
     expect(adultLength).toBeGreaterThan(11.5);
     expect(adultLength).toBeLessThan(13.5);
-    // Total 0.6 x 0.27 scale: a ~2.7 m grazing baby — a touch smaller than
-    // the 3.9 m Trike/Stego pen-mates, the price of the cap on a long-necked
-    // species — with the head just under the 1.2 m cap.
-    expect(variantLength).toBeGreaterThan(2.3);
-    expect(variantLength).toBeLessThan(3.1);
-    const ratio = variantLength / adultLength;
-    expect(ratio).toBeGreaterThan(0.18);
-    expect(ratio).toBeLessThan(0.25);
-    expect(variantBox.max.y).toBeLessThan(1.3);
-    expect(variantBox.max.y).toBeGreaterThan(0.9);
+    // The pinned call is the module's own default skeleton at size 1.0, so the
+    // variant IS the adult build: gameplay size is a viewer group scale (FR-4),
+    // never a bake knob.
+    expect(variantLength / adultLength).toBeGreaterThan(0.99);
+    expect(variantLength / adultLength).toBeLessThan(1.01);
+    expect(variantBox.max.y).toBeGreaterThan(11.5);
+    expect(variantBox.max.y).toBeLessThan(13);
   });
 
   it('keeps the Head bone the runtime blush pin targets, feet on y = 0', () => {
     const group = createBrachioVariantGroup();
     expect(group.getObjectByName('Head')).not.toBeNull();
-    const box = worldBox(group);
-    expect(Math.abs(box.min.y)).toBeLessThan(0.01);
+    expect(Math.abs(worldBox(group).min.y)).toBeLessThan(0.01);
   });
 });
 
-describe('Brachio Waddle rebuild from the Trike donor', () => {
-  /** Shipped Trike baby GLB: the 0.8 s Waddle donor for the Brachio bake. */
-  const DONOR_GLB = new URL('../../public/models/trike.glb', import.meta.url);
-
-  it('rebuilds the clip on the sauropod skeleton retimed to 1.0 s, dropping only ears', async () => {
-    const bytes = await readFile(DONOR_GLB);
-    const animation = extractAnimationTracks(bytes);
-    expect(animation.name).toBe('Waddle');
+describe('authored clips on the brachio rig', () => {
+  it('rebuilds the authored Walk clip with the published timing', async () => {
     const group = createBrachioVariantGroup();
-    const clip = buildBrachioWaddleClip(group, animation);
-    expect(clip.name).toBe('Waddle');
-    // Against the shipped Trike donor every channel maps by name, so
-    // nothing drops (the drop path is kept: a future donor with channels the
-    // sauropod lacks would land in userData.dropped and the bake would log
-    // them). All three paths pass through; unmapped extra bones (Neck1-7,
-    // Tail1-4, elbows, hocks) hold bind pose.
-    expect([...(clip.userData['dropped'] as string[])].sort()).toEqual([]);
-    expect(clip.tracks.length).toBe(animation.channels.length);
-    expect(clip.duration).toBeCloseTo(1.0, 5);
-    const sourceTranslation = animation.channels.find((channel) => channel.path === 'translation');
-    const rebuiltTranslation = clip.tracks.find((track) => track.name.endsWith('.position'));
-    expect(sourceTranslation).toBeDefined();
-    expect(rebuiltTranslation).toBeDefined();
-    const sourceValues = (sourceTranslation as { values: Float32Array }).values;
-    const rebuiltValues = (rebuiltTranslation as THREE.KeyframeTrack).values;
-    expect(rebuiltValues.length).toBe(sourceValues.length);
-    for (let i = 0; i < rebuiltValues.length; i += 1) {
-      expect(rebuiltValues[i]).toBeCloseTo(sourceValues[i] * BRACHIO_POSITION_TRACK_SCALE, 5);
+    const clips = buildBrachioClips(group, await readFile(SHIPPED_GLB));
+    expect(clips.map((clip) => clip.name)).toEqual(['Walk']);
+    for (const clip of clips) {
+      expect(clip.duration).toBeCloseTo(CLIP_SECONDS[clip.name as keyof typeof CLIP_SECONDS], 3);
+      expect(clip.tracks.length).toBe(CHANNELS_PER_CLIP);
     }
-    const sourceRotation = animation.channels.find((channel) => channel.path === 'rotation');
-    const rebuiltRotation = clip.tracks.find((track) => track.name.endsWith('.quaternion'));
-    expect(Array.from((rebuiltRotation as THREE.KeyframeTrack).values)).toEqual(
-      Array.from((sourceRotation as { values: Float32Array }).values),
+  });
+
+  it('drives the sauropod-only bones the Trike donor never animated', async () => {
+    const group = createBrachioVariantGroup();
+    const walk = buildBrachioClips(group, await readFile(SHIPPED_GLB)).find(
+      (clip) => clip.name === 'Walk',
+    ) as THREE.AnimationClip;
+    const animated = new Set(walk.tracks.map((track) => track.name.split('.')[0]));
+    for (const bone of ['Neck1', 'Neck7', 'Tail1', 'Tail4']) {
+      expect(animated.has(bone), bone).toBe(true);
+    }
+  });
+
+  it('carries translation and rotation only, no synthesised scale track', async () => {
+    const group = createBrachioVariantGroup();
+    const clips = buildBrachioClips(group, await readFile(SHIPPED_GLB));
+    for (const clip of clips) {
+      for (const track of clip.tracks) {
+        expect(track.name.endsWith('.position') || track.name.endsWith('.quaternion')).toBe(true);
+        expect((track as THREE.KeyframeTrack).getInterpolation()).toBe(THREE.InterpolateLinear);
+      }
+    }
+  });
+
+  it('copies the published key values verbatim — no position rescale', async () => {
+    const bytes = await readFile(SHIPPED_GLB);
+    const source = extractAnimationClips(bytes).find((animation) => animation.name === 'Walk');
+    expect(source).toBeDefined();
+    const group = createBrachioVariantGroup();
+    const walk = buildBrachioClips(group, bytes).find((clip) => clip.name === 'Walk');
+    expect(walk).toBeDefined();
+    const tracks = new Map(
+      (walk as THREE.AnimationClip).tracks.map((track) => [track.name, track]),
     );
-    for (const track of clip.tracks) {
-      expect((track as THREE.KeyframeTrack).getInterpolation()).toBe(THREE.InterpolateLinear);
+    for (const channel of source?.channels ?? []) {
+      const track = tracks.get(
+        `${channel.nodeName}.${channel.path === 'translation' ? 'position' : 'quaternion'}`,
+      );
+      expect(track, `${channel.nodeName}.${channel.path}`).toBeDefined();
+      // Exactly the published floats: this is the regression guard for the
+      // retired donor bake, which multiplied every translation by 1.85 and
+      // pulled each bone off its rest offset.
+      expect(Array.from((track as THREE.KeyframeTrack).values)).toEqual(Array.from(channel.values));
+      expect(Array.from((track as THREE.KeyframeTrack).times)).toEqual(Array.from(channel.times));
     }
-    // Loop closure is the donor's own: the rebuild copies every key verbatim
-    // (times only change by the uniform 1.0/donor retime), so the shipped
-    // endpoints match the donor Waddle exactly.
-    let maxSeamGap = 0;
-    for (const track of clip.tracks) {
+  });
+
+  it('loops cleanly: first and last Walk keys agree', async () => {
+    const group = createBrachioVariantGroup();
+    const walk = buildBrachioClips(group, await readFile(SHIPPED_GLB)).find(
+      (clip) => clip.name === 'Walk',
+    ) as THREE.AnimationClip;
+    for (const track of walk.tracks) {
       const keyTrack = track as THREE.KeyframeTrack;
       const itemSize = keyTrack.getValueSize();
       const keyCount = keyTrack.values.length / itemSize;
-      let trackGap = 0;
       for (let k = 0; k < itemSize; k += 1) {
-        trackGap = Math.max(
-          trackGap,
+        expect(
           Math.abs(keyTrack.values[k] - keyTrack.values[(keyCount - 1) * itemSize + k]),
-        );
+        ).toBeLessThan(0.05);
       }
-      maxSeamGap = Math.max(maxSeamGap, trackGap);
     }
-    expect(maxSeamGap).toBeLessThan(0.05);
   });
 });

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GROUND_RADIUS_METRES } from '../ranch/dressing.js';
 import { resolvePixelRatio } from './pixel-ratio.js';
 
 /**
@@ -6,6 +7,15 @@ import { resolvePixelRatio } from './pixel-ratio.js';
  * ground and the perspective camera, plus the resize helper the boot code
  * wires to the window event.
  */
+
+/**
+ * Camera far plane in metres: four ground radii. A preset stands on the walk
+ * circle (inside the prop ring) and must still see the tallest tree on the far
+ * rim, so the plane is derived from the ground the ranch actually occupies —
+ * 48.2 m for the 12.05 m circle the trio needs, against a fixed 50 m before.
+ * A nearer plane is also more depth precision, never less.
+ */
+export const CAMERA_FAR_METRES = GROUND_RADIUS_METRES * 4;
 export interface ViewerScene {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
@@ -54,14 +64,19 @@ export function createViewerScene(canvas: HTMLCanvasElement): ViewerScene | null
   scene.add(new THREE.HemisphereLight(0xbfe3ff, 0x7ec850, 0.9));
 
   const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(6, 32),
+    new THREE.CircleGeometry(GROUND_RADIUS_METRES, 64),
     new THREE.MeshStandardMaterial({ color: 0x7ec850, roughness: 1 }),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   scene.add(ground);
 
-  const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 50);
+  const camera = new THREE.PerspectiveCamera(
+    40,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    CAMERA_FAR_METRES,
+  );
 
   const resize = (): void => {
     camera.aspect = window.innerWidth / window.innerHeight;

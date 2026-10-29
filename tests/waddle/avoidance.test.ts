@@ -1,20 +1,57 @@
 import { describe, expect, it } from 'vitest';
 import {
   AVOIDANCE_NUDGE_RADIANS,
+  AVOIDANCE_REACTION_SECONDS,
   AVOIDANCE_TRIGGER_METRES,
+  LARGEST_DINO_BODY_LENGTH_METRES,
+  MAX_CLOSING_SPEED_METRES_PER_SECOND,
+  PAIR_BODY_CLEARANCE_METRES,
   avoidanceNudges,
 } from '../../src/ranch/avoidance.js';
 import { wrapAngle } from '../../src/ranch/waddle.js';
+import { gaitSpeedMetresPerSecond } from '../../src/ranch/waddle.js';
+import { BRACHIO_GAIT, STEGO_GAIT, TRIKE_GAIT } from '../../src/ranch/dino-player.js';
+import { DINO_GROUP_SCALE, worldGait } from '../../src/viewer/loaders.js';
+
+/** The gait the viewer actually applies, i.e. after the in-game size scale. */
+const WORLD_GAITS = [
+  worldGait(TRIKE_GAIT, 1),
+  worldGait(STEGO_GAIT, DINO_GROUP_SCALE),
+  worldGait(BRACHIO_GAIT, DINO_GROUP_SCALE),
+];
 
 /**
- * Soft-steer avoidance (FR-6): when the pair is closer than 0.4 m, each dino
- * gets a small bounded heading nudge away from the other. Never stops (pose
- * `moving` untouched), never bounces or teleports (continuous capped bias).
+ * Soft-steer avoidance (FR-6): when the pair is closer than the trigger, each
+ * dino gets a small bounded heading nudge away from the other. Never stops
+ * (pose `moving` untouched), never bounces or teleports (continuous capped
+ * bias). Since phase 5 the trigger is derived from the biggest body on the
+ * ranch rather than tuned to the 0.36 m/s Trike, because the Brachio alone
+ * halves the warning a meeting gets.
  */
 
 describe('avoidance trigger (FR-6)', () => {
-  it('biases headings apart inside 0.4 m', () => {
-    expect(AVOIDANCE_TRIGGER_METRES).toBe(0.4);
+  it('clears the biggest flank plus the ground a pair covers reacting', () => {
+    // Half a body length of beam each side is what two bodies need before a
+    // steer must start; the fastest pair is the Trike plus the Stego drawn at
+    // its in-game size (0.3625 + 0.4413 m/s).
+    expect(PAIR_BODY_CLEARANCE_METRES).toBe(LARGEST_DINO_BODY_LENGTH_METRES / 6);
+    expect(AVOIDANCE_TRIGGER_METRES).toBe(
+      PAIR_BODY_CLEARANCE_METRES + MAX_CLOSING_SPEED_METRES_PER_SECOND * AVOIDANCE_REACTION_SECONDS,
+    );
+    expect(AVOIDANCE_TRIGGER_METRES).toBeCloseTo(1.639, 3);
+    // The closing speed is derived from the gaits, not guessed: a stride change
+    // or a group-scale change must move it.
+    const worldSpeeds = WORLD_GAITS.map((gait) => gaitSpeedMetresPerSecond(gait));
+    const [fastest, secondFastest] = [...worldSpeeds].sort((a, b) => b - a);
+    expect(MAX_CLOSING_SPEED_METRES_PER_SECOND).toBeCloseTo(fastest + secondFastest, 2);
+  });
+
+  it('starts steering while the flanks are still apart', () => {
+    // The phase-4 requirement (a 0.6 m trigger for the worst pair covering
+    // ground for 0.5 s) is the floor; the body clearance is what the old tuned
+    // 0.4 m lacked.
+    expect(AVOIDANCE_TRIGGER_METRES).toBeGreaterThanOrEqual(0.6);
+    expect(AVOIDANCE_TRIGGER_METRES).toBeLessThan(LARGEST_DINO_BODY_LENGTH_METRES);
   });
 
   it('returns zero nudges when the pair is far apart', () => {

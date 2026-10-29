@@ -146,6 +146,29 @@ describe('rigged stego loader (FR-4)', () => {
     expect(loaded.player.clipDurationSeconds).toBeCloseTo(0.8, 5);
   });
 
+  it('picks the authored Walk clip, not the first animation in the file', async () => {
+    // What the re-baked Stego actually ships: Idle first, then Walk. Reading
+    // `animations[0]` walked the ranch on a breathing pose for a whole phase, so
+    // the load is pinned to the name and never to the file order (FR-1, AC-1).
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [
+        new THREE.AnimationClip('Idle', 9, []),
+        new THREE.AnimationClip('Walk', 2.4, []),
+      ],
+    });
+    const loaded = await loadStegoPlayer();
+    expect(loaded.player.clipDurationSeconds).toBeCloseTo(2.4, 5);
+  });
+
+  it('refuses a GLB that carries no walk clip rather than guessing at one', async () => {
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [new THREE.AnimationClip('Idle', 9, [])],
+    });
+    await expect(loadStegoPlayer()).rejects.toThrow('no walk clip');
+  });
+
   it('honours an injected shared DustPool instead of allocating its own', async () => {
     const shared = new DustPool({ random: () => 0.5 });
     loaderMocks.loadAsync.mockResolvedValue({

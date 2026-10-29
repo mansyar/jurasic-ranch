@@ -1,46 +1,48 @@
 import { readFile } from 'node:fs/promises';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { extractAnimationTracks } from '../../scripts/bake-trike-variant.js';
 import {
+  buildBrachioClips,
   createBrachioVariantGroup,
-  buildBrachioWaddleClip,
 } from '../../scripts/vendor/bake-brachio-variant.js';
 import { BRACHIO_GAIT } from '../../src/ranch/dino-player.js';
 import { gaitSpeedMetresPerSecond } from '../../src/ranch/waddle.js';
+import type { GaitParams } from '../../src/ranch/waddle.js';
+import { DINO_GROUP_SCALE, worldGait } from '../../src/viewer/loaders.js';
 
 /**
- * Brachio stride / foot-slide conformance (FR-4, AC-2): the rebuilt 1.0 s
- * Waddle loop must land the coded 0.24 m BRACHIO_GAIT stride in measured foot
- * travel, keep a walking duty cycle with real ground clearance, and hold
- * planted feet inside the shared slide tolerances at the coded 0.24 m/s walk
- * speed. Same harness as the Trike stride.test.ts; the longer sauropod legs
- * swing the same donor quaternions, so travel is tuned with
- * BRACHIO_POSITION_TRACK_SCALE (see the bake) rather than assumed.
+ * Brachio walk (FR-1, AC-1, AC-2, AC-5). The shipped clip is Polyfork's own
+ * authored `Walk` — 3.8 s, 70 channels over all 35 bones, so the neck and tail
+ * finally move with the step — and this harness derives the walking speed from
+ * it rather than asserting a tuned constant: the speed at which each planted
+ * foot stops travelling.
+ *
+ * Phase 4 re-pointed `BRACHIO_GAIT` at those measurements (1.767 m per 3.8 s,
+ * ~0.465 m/s) and the sweep test below holds the constant to the clip: the
+ * shipped speed must be the slide minimum, not a remembered number.
  */
 
-/** Trike donor GLB: only its animation tracks are extracted, not its geometry. */
-const DONOR_TRIKE_GLB = new URL('../../public/models/trike.glb', import.meta.url);
-const WALK_SPEED_METRES_PER_SECOND = gaitSpeedMetresPerSecond(BRACHIO_GAIT);
+const SHIPPED_GLB = new URL('../../public/models/brachio.glb', import.meta.url);
 const FEET = ['LeftFrontFoot', 'RightFrontFoot', 'LeftHindFoot', 'RightHindFoot'] as const;
 const SAMPLES = 121;
 /** Height above a foot's lowest sample that still counts as ground contact. */
 const CONTACT_METRES = 0.01;
-/** The coded stride must match the clip's measured foot travel this closely. */
-const STRIDE_TOLERANCE_METRES = 0.02;
-/** Max world-space drift of one planted foot during a single stance. */
-const STANCE_EXCURSION_METRES = 0.12;
-/**
- * Max sustained world-space speed of a planted foot: peak over 5-sample
- * windows inside the stance core (transient touchdown/liftoff samples
- * trimmed, loop-boundary windows skipped). Windowing dilutes single-sample
- * touchdown scrubs and the clip's own loop-closure pop; total drift is
- * bounded by the excursion metric above.
- */
-const STANCE_SUSTAINED_PEAK_SLIDE_METRES_PER_SECOND = 0.45;
-const STANCE_CORE_MEAN_SLIDE_METRES_PER_SECOND = 0.25;
 /** Stance samples trimmed from each end of a run before rating slide speed. */
 const TRANSIENT_TRIM = 3;
+/** Authored cadence (AC-1). */
+const CYCLE_SECONDS = 3.8;
+/** The four feet must agree on the clip's own walking speed within this ratio. */
+const FOOT_SPEED_SPREAD_RATIO = 0.03;
+/** Max world-space drift of one planted foot during a single stance. */
+const STANCE_EXCURSION_METRES = 0.2;
+/**
+ * Max sustained world-space speed of a planted foot: peak over 5-sample
+ * windows inside the stance core (transient touchdown/liftoff samples trimmed,
+ * loop-boundary windows skipped). On a 12 m sauropod these are large absolute
+ * numbers, so they are read against the ~0.42 m/s walk speed.
+ */
+const STANCE_SUSTAINED_PEAK_SLIDE_METRES_PER_SECOND = 0.25;
+const STANCE_CORE_MEAN_SLIDE_METRES_PER_SECOND = 0.12;
 
 interface FootSample {
   t: number;
@@ -53,21 +55,37 @@ interface FootReport {
   lift: number;
   travel: number;
   duty: number;
+  stanceRun: number;
+  /** Speed at which this foot's planted stance stops sliding, in m/s. */
+  footSpeed: number;
   excursion: number;
   corePeakSlide: number;
   coreMeanSlide: number;
 }
 
-/**
- * Sample each foot bone's world position across one clip loop with the body
- * fixed at the origin, then replay root motion at the coded walk speed to
- * measure how planted feet move in world space.
- */
-async function measureGait(): Promise<{ reports: Record<string, FootReport> }> {
-  const bytes = await readFile(DONOR_TRIKE_GLB);
-  const animation = extractAnimationTracks(bytes);
+interface BrachioWalkMeasurement {
+  duration: number;
+  reports: Record<string, FootReport>;
+  /** Mean of the four feet's own speeds: the clip's walking speed. */
+  walkSpeed: number;
+  /** Walk speed x cycle length: the ground one loop covers. */
+  strideMetres: number;
+  /**
+   * Mean world-space slide of every planted foot at a candidate root speed, in
+   * m/s. The gait constant minimises this, so the sweep test below holds the
+   * constant to the clip's own geometry instead of comparing it to itself.
+   */
+  slideAt: (speed: number) => number;
+}
+
+/** Play the shipped `Walk` clip once, sampling every foot at 121 instants. */
+async function measureBrachioWalk(): Promise<THREE.Group & BrachioWalkMeasurement> {
+  const bytes = await readFile(SHIPPED_GLB);
   const group = createBrachioVariantGroup();
-  const clip = buildBrachioWaddleClip(group, animation);
+  const clip = buildBrachioClips(group, bytes).find((entry) => entry.name === 'Walk');
+  if (clip === undefined) {
+    throw new Error('shipped brachio.glb carries no "Walk" clip');
+  }
   const mixer = new THREE.AnimationMixer(group);
   mixer.clipAction(clip).play();
   const series = new Map<string, FootSample[]>();
@@ -82,12 +100,13 @@ async function measureGait(): Promise<{ reports: Record<string, FootReport> }> {
     for (const foot of FEET) {
       const bone = group.getObjectByName(foot);
       if (bone === undefined) {
-        throw new Error(`variant skeleton is missing bone "${foot}"`);
+        throw new Error(`brachio variant skeleton is missing bone "${foot}"`);
       }
       bone.getWorldPosition(scratch);
       series.get(foot)?.push({ t, y: scratch.y, z: scratch.z });
     }
   }
+  const step = clip.duration / (SAMPLES - 1);
   const reports: Record<string, FootReport> = {};
   for (const foot of FEET) {
     const points = series.get(foot) ?? [];
@@ -118,15 +137,19 @@ async function measureGait(): Promise<{ reports: Record<string, FootReport> }> {
     while (runLength < points.length && contact[(start + runLength) % points.length]) {
       runLength += 1;
     }
+    // The clip is in place, so a planted foot sliding backwards at speed v in
+    // body space means the body walks forward at v. Solve v from the stance
+    // run's own displacement: that is the clip's speed, not an assumption.
+    const stanceSeconds = (runLength - 1) * step;
+    const stanceTravel = points[(start + runLength - 1) % points.length].z - points[start].z;
+    const footSpeed = -stanceTravel / stanceSeconds;
     // Replay root motion on unwrapped time: the stance run may straddle the
     // loop boundary, where wrapped sample time would inject a speed*loop
-    // discontinuity into world space. Continuous replay keeps the planted
-    // foot in one world frame for the whole run.
-    const step = clip.duration / (SAMPLES - 1);
+    // discontinuity into world space.
     const t0 = points[start].t;
     const worldAt = (k: number): number => {
       const i = (start + k) % points.length;
-      return points[i].z + WALK_SPEED_METRES_PER_SECOND * (t0 + k * step);
+      return points[i].z + footSpeed * (t0 + k * step);
     };
     let runMin = Infinity;
     let runMax = -Infinity;
@@ -138,8 +161,7 @@ async function measureGait(): Promise<{ reports: Record<string, FootReport> }> {
       runMin = Math.min(runMin, w);
       runMax = Math.max(runMax, w);
       if (k >= TRANSIENT_TRIM && k + 1 < runLength - TRANSIENT_TRIM) {
-        const slide = Math.abs(worldAt(k + 1) - w) / step;
-        coreSum += slide;
+        coreSum += Math.abs(worldAt(k + 1) - w) / step;
         coreCount += 1;
       }
     }
@@ -154,57 +176,155 @@ async function measureGait(): Promise<{ reports: Record<string, FootReport> }> {
       if (crosses) {
         continue; // Loop-boundary window: clip closure gap, not foot slide.
       }
-      const sustained = Math.abs(worldAt(k + 2) - worldAt(k - 2)) / (4 * step);
-      windowPeak = Math.max(windowPeak, sustained);
+      windowPeak = Math.max(windowPeak, Math.abs(worldAt(k + 2) - worldAt(k - 2)) / (4 * step));
     }
-    const excursion = runMax - runMin;
     reports[foot] = {
       minY,
       lift: maxY - minY,
       travel: maxZ - minZ,
       duty,
-      excursion,
+      stanceRun: runLength,
+      footSpeed,
+      excursion: runMax - runMin,
       corePeakSlide: windowPeak,
       coreMeanSlide: coreCount > 0 ? coreSum / coreCount : 0,
     };
   }
-  return { reports };
+  const walkSpeed = FEET.reduce((total, foot) => total + reports[foot].footSpeed, 0) / FEET.length;
+
+  // Contact floors recomputed once: slideAt runs a few hundred times below.
+  const contactFloors = new Map<string, number>();
+  for (const foot of FEET) {
+    let minY = Infinity;
+    for (const point of series.get(foot) ?? []) {
+      minY = Math.min(minY, point.y);
+    }
+    contactFloors.set(foot, minY + CONTACT_METRES);
+  }
+  const slideAt = (speed: number): number => {
+    let sum = 0;
+    let count = 0;
+    for (const foot of FEET) {
+      const points = series.get(foot) ?? [];
+      const floor = contactFloors.get(foot) ?? 0;
+      for (let i = 1; i < points.length; i += 1) {
+        const previous = points[i - 1];
+        const current = points[i];
+        if (previous.y > floor || current.y > floor) {
+          continue;
+        }
+        const travelled = current.z + speed * current.t - (previous.z + speed * previous.t);
+        sum += Math.abs(travelled) / step;
+        count += 1;
+      }
+    }
+    return count > 0 ? sum / count : Number.NaN;
+  };
+
+  return Object.assign(group, {
+    duration: clip.duration,
+    reports,
+    walkSpeed,
+    strideMetres: walkSpeed * clip.duration,
+    slideAt,
+  });
 }
 
-describe('brachio waddle stride (FR-4)', () => {
-  it("matches the coded stride to the clip's measured foot travel", async () => {
-    const { reports } = await measureGait();
+describe('brachio authored walk (FR-1, AC-1)', () => {
+  it('ships the authored 3.8 s Walk with four feet striding evenly', async () => {
+    const { duration, reports, strideMetres } = await measureBrachioWalk();
+    expect(duration).toBeCloseTo(CYCLE_SECONDS, 3);
     const travels = FEET.map((foot) => reports[foot].travel);
     const mean = travels.reduce((a, b) => a + b, 0) / travels.length;
-    console.log(
-      `brachio stride: ${FEET.map((foot) => `${foot}=${reports[foot].travel.toFixed(4)}`).join(' ')} mean=${mean.toFixed(4)} coded=${BRACHIO_GAIT.strideMetres}`,
-    );
+    expect(mean).toBeGreaterThan(0.8);
     for (const foot of FEET) {
-      expect(Math.abs(reports[foot].travel - BRACHIO_GAIT.strideMetres)).toBeLessThanOrEqual(
-        STRIDE_TOLERANCE_METRES,
-      );
+      expect(Math.abs(reports[foot].travel - mean)).toBeLessThanOrEqual(0.02);
     }
-    expect(Math.abs(mean - BRACHIO_GAIT.strideMetres)).toBeLessThanOrEqual(STRIDE_TOLERANCE_METRES);
+    expect(strideMetres).toBeGreaterThan(1.3);
   });
 
   it('keeps a walking duty cycle with real ground clearance', async () => {
-    const { reports } = await measureGait();
+    const { reports } = await measureBrachioWalk();
     for (const foot of FEET) {
       expect(reports[foot].duty).toBeGreaterThanOrEqual(0.5);
-      expect(reports[foot].duty).toBeLessThanOrEqual(0.85);
+      expect(reports[foot].duty).toBeLessThanOrEqual(0.9);
       expect(reports[foot].lift).toBeGreaterThanOrEqual(0.03);
-      expect(reports[foot].minY).toBeLessThan(0.1);
+      expect(reports[foot].minY).toBeLessThan(0.45);
     }
   });
 });
 
-describe('brachio foot-slide tolerance (AC-2)', () => {
-  it('keeps planted feet within tolerance at the coded walk speed', async () => {
-    const { reports } = await measureGait();
+describe('brachio foot plant (AC-2, AC-5, no skate)', () => {
+  it('agrees on one walking speed across all four feet', async () => {
+    const { reports, walkSpeed } = await measureBrachioWalk();
+    expect(walkSpeed).toBeGreaterThan(0.2);
     for (const foot of FEET) {
-      console.log(
-        `${foot} duty=${reports[foot].duty.toFixed(3)} excursion=${reports[foot].excursion.toFixed(4)} corePeak=${reports[foot].corePeakSlide.toFixed(4)} coreMean=${reports[foot].coreMeanSlide.toFixed(4)}`,
-      );
+      const ratio = reports[foot].footSpeed / walkSpeed;
+      expect(Math.abs(ratio - 1)).toBeLessThanOrEqual(FOOT_SPEED_SPREAD_RATIO);
+    }
+  });
+
+  it('walks at the speed that minimises planted-foot slide on the shipped clip', async () => {
+    const measurement = await measureBrachioWalk();
+    const gaitSpeed = gaitSpeedMetresPerSecond(BRACHIO_GAIT);
+    // Sweep the clip's own frames: the front and hind pairs disagree slightly
+    // on the exact minimiser, so the V is flatter than the Stego's.
+    let bestSlide = Infinity;
+    let bestSpeed = 0;
+    for (let i = 0; i <= 20; i += 1) {
+      const speed = 0.42 + i * 0.005;
+      const slide = measurement.slideAt(speed);
+      if (slide < bestSlide) {
+        bestSlide = slide;
+        bestSpeed = speed;
+      }
+    }
+    expect(Math.abs(bestSpeed - gaitSpeed)).toBeLessThanOrEqual(0.005);
+    expect(measurement.slideAt(gaitSpeed)).toBeLessThanOrEqual(0.07);
+    // The defect this phase pays: the pre-track 0.24 m / 1.0 s dragged the
+    // same feet at 0.25 m/s of world-space slide.
+    expect(measurement.slideAt(0.24 / 1.0)).toBeGreaterThan(0.2);
+  });
+
+  it('keeps one loop equal to one stride and sits at the slide optimum', async () => {
+    const measurement = await measureBrachioWalk();
+    const gaitSpeed = gaitSpeedMetresPerSecond(BRACHIO_GAIT);
+    expect(BRACHIO_GAIT.loopSeconds).toBeCloseTo(measurement.duration, 3);
+    expect(BRACHIO_GAIT.strideMetres).toBeCloseTo(gaitSpeed * measurement.duration, 6);
+    // The stance-run estimator reads 11 % below the slide minimiser on this
+    // clip (0.412 vs 0.465 m/s): its whole-stance mean carries the slow
+    // touchdown/liftoff transients that the slide fit ignores, so the two
+    // instruments are not expected to agree within 5 % here — a finding, not a
+    // tuning target (phase-4 evidence records both, and the stance-core fit
+    // agrees with the slide optimum at 0.465). What the constant must satisfy
+    // is the visual quantity: no better speed exists on the shipped clip.
+    let bestSlide = Infinity;
+    for (let i = 0; i <= 20; i += 1) {
+      bestSlide = Math.min(bestSlide, measurement.slideAt(0.42 + i * 0.005));
+    }
+    expect(measurement.slideAt(gaitSpeed)).toBeLessThanOrEqual(bestSlide * 1.05);
+    expect(gaitSpeed / measurement.walkSpeed).toBeGreaterThan(1.0);
+    expect(gaitSpeed / measurement.walkSpeed).toBeLessThan(1.15);
+  });
+
+  it('advances the world stride at the group scale, so the shipped feet do not skate', async () => {
+    // AC-5 as the viewer actually runs it: the constant is measured on the group
+    // at authored size, and the viewer draws the Brachio at DINO_GROUP_SCALE, so
+    // the root must advance the scaled stride. Sliding a scaled rig at speed v is
+    // the unscaled slide at v / S, scaled by S.
+    const measurement = await measureBrachioWalk();
+    const shipped = worldGait(BRACHIO_GAIT, DINO_GROUP_SCALE);
+    expect(shipped.strideMetres).toBeCloseTo(BRACHIO_GAIT.strideMetres * DINO_GROUP_SCALE, 10);
+    const worldSlide = (gait: GaitParams): number =>
+      measurement.slideAt(gaitSpeedMetresPerSecond(gait) / DINO_GROUP_SCALE) * DINO_GROUP_SCALE;
+    expect(worldSlide(shipped)).toBeLessThanOrEqual(0.07);
+    // Without the conversion the shipped Brachio skates ~0.19 m/s.
+    expect(worldSlide(BRACHIO_GAIT)).toBeGreaterThan(0.1);
+  });
+
+  it('holds planted feet still when root motion runs at that speed', async () => {
+    const { reports } = await measureBrachioWalk();
+    for (const foot of FEET) {
       expect(reports[foot].excursion).toBeLessThanOrEqual(STANCE_EXCURSION_METRES);
       expect(reports[foot].corePeakSlide).toBeLessThanOrEqual(
         STANCE_SUSTAINED_PEAK_SLIDE_METRES_PER_SECOND,

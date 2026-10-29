@@ -1,12 +1,13 @@
 import type * as THREE from 'three';
-import type { GlbAnimationData } from '../bake-trike-variant.js';
 
-/** Pinned Polyfork params for the pastel baby Stego variant (see bake-stego-variant.js). */
+/**
+ * Pinned Polyfork params for the pastel Stego variant (see bake-stego-variant.js):
+ * the colourway plus the authored size. Geometry knobs are absent on purpose —
+ * they rebuild bones, and the authored clips apply verbatim only to the module's
+ * default skeleton at size 1.0.
+ */
 export interface StegoVariantParams {
   size: number;
-  plates: number;
-  plateSize: number;
-  tail: number;
   plateColour: string;
   hide: string;
   belly: string;
@@ -20,9 +21,6 @@ export interface StegoVariantParams {
 
 export declare const STEGO_VARIANT_PARAMS: StegoVariantParams;
 
-/** Position-track scale applied when rebuilding Waddle onto the Stego skeleton. */
-export declare const STEGO_POSITION_TRACK_SCALE: number;
-
 /** Procedural variant group: the exact geometry the bake exports. */
 export declare function createStegoVariantGroup(): THREE.Group;
 
@@ -30,17 +28,24 @@ export declare function createStegoVariantGroup(): THREE.Group;
 export declare function createStegoDefaultGroup(): THREE.Group;
 
 /**
- * Rebuild the Trike donor Waddle clip on the Stego skeleton (quaternions
- * verbatim, positions scaled). Donor channels with no Stego counterpart are
- * dropped and recorded on the clip's userData.dropped.
+ * Graft the official GLB's authored Idle/Walk/Run onto the baked skeleton.
+ * Translation and rotation only, times and values verbatim; throws before the
+ * bake writes anything when a clip names a bone the rig lacks.
  */
-export declare function buildStegoWaddleClip(
+export declare function buildStegoClips(
   skeletonRoot: THREE.Object3D,
-  animation: GlbAnimationData,
-): THREE.AnimationClip;
+  officialBytes: Uint8Array,
+): THREE.AnimationClip[];
+
+/** One grafted clip, as reported by the bake. */
+export interface BakedClipSummary {
+  name: string;
+  durationSeconds: number;
+  trackCount: number;
+}
 
 export interface BakeStegoVariantOptions {
-  donorGlbPath?: string;
+  officialGlbPath?: string;
   outPath?: string;
   blenderBin?: string;
   keepTemp?: boolean;
@@ -48,11 +53,10 @@ export interface BakeStegoVariantOptions {
 
 export interface BakeStegoVariantSummary {
   outPath: string;
-  durationSeconds: number;
-  trackCount: number;
+  clips: BakedClipSummary[];
 }
 
-/** Run the full bake (procedural variant + rebuilt Waddle + Blender Draco pass). */
+/** Run the full bake (procedural variant + grafted authored clips + Blender Draco pass). */
 export declare function bakeStegoVariant(
   options?: BakeStegoVariantOptions,
 ): Promise<BakeStegoVariantSummary>;
