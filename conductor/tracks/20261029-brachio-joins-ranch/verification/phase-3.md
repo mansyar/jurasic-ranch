@@ -40,6 +40,13 @@
 
 None — all changes are inside the brief `Touches`. `public/manifest.webmanifest` and `vite.config.ts` needed no edit: the workbox `globPatterns` already precache `*.glb`, so `brachio.glb` has been in the precache since Phase 2 (17 entries). `SPAWN_OFFSET_METRES` stays exported (dual-viewer contract) while the trio spawns from `trioSpawnPositions()`.
 
+## Primary verification
+
+- Squashed 6010c33 + 3c43d0b + a3f753c → b2ecad6 (same author, conventional, non-empty, no merge — guard passes). Clean tree post-squash.
+- `pnpm verify` exit 0 post-squash: oxlint + oxfmt check + tsrs + 175 tests (20 files) + vite build; precache 17 entries / 3292.66 KiB (<22 MB).
+- Diff 4a6faf3..b2ecad6 = main.ts + index.html + trio-viewer test + phase-3 evidence — all within Touches.
+- Screenshot: tablet visual check remains a manual follow-up (workflow human-only exception); unit + build evidence recorded here.
+
 ## Notes
 
 - **Precache total: 17 entries / 3292.66 KiB** (build output above), far under the 22 MB NFR-2 budget. Delta vs Phase 2 (3290.43 KiB) is the trio wiring in the JS bundle; no new assets.

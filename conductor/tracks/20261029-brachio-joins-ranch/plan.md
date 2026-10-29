@@ -60,14 +60,20 @@ The primary appends after acceptance:
 - **Covers:** FR-5, FR-6, FR-7, FR-8, FR-9, AC-3, AC-4, AC-5, AC-6, AC-8
 - **Touches:** `src/viewer/main.ts`, `src/viewer/*.ts`, `src/ranch/*.ts`, `index.html`, `vite.config.ts`, `tests/**/trio-*.ts`, `tests/**/viewer-*.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P3.T1: Trio wander + pairwise avoidance integration** — covers: FR-5, FR-6
-  - [ ] **P3.T1.1: Load three DinoPlayers triangle spawn, pairwise steer each frame** — stay in-frame 30 s, min sep >0.25 m
-  - [ ] **P3.T1.2: Shared DustPool + Blink per-player, 60 fps tablet target** — pixelRatio 2, shadows low
-- [ ] **P3.T2: Viewer chrome + fallback + evidence** — covers: FR-7, FR-8, FR-9
-  - [ ] **P3.T2.1: Single Walk toggles three + status + 3 pills + persist + aria-pressed** — placeholder long-neck fallback warns, others continue
-  - [ ] **P3.T2.2: Precache brachio.glb, report total <22 MB + tablet screenshot + preview_scene** — visual + smoke evidence
+- [x] **P3.T1: Trio wander + pairwise avoidance integration** — covers: FR-5, FR-6
+  - [x] **P3.T1.1: Load three DinoPlayers triangle spawn, pairwise steer each frame** — stay in-frame 30 s, min sep >0.25 m
+  - [x] **P3.T1.2: Shared DustPool + Blink per-player, 60 fps tablet target** — pixelRatio 2, shadows low
+- [x] **P3.T2: Viewer chrome + fallback + evidence** — covers: FR-7, FR-8, FR-9
+  - [x] **P3.T2.1: Single Walk toggles three + status + 3 pills + persist + aria-pressed** — placeholder long-neck fallback warns, others continue
+  - [x] **P3.T2.2: Precache brachio.glb, report total <22 MB + tablet screenshot + preview_scene** — visual + smoke evidence
+
+<!--
+**Result:** verified
+**Checkpoint:** b2ecad6
+**Evidence:** conductor/tracks/20261029-brachio-joins-ranch/verification/phase-3.md
+-->
 
 <!--
 Review fixes are appended by `conductor-review` as:
