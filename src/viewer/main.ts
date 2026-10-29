@@ -5,6 +5,8 @@ import { DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from "../ranch/dino-player.js";
 import { avoidanceNudges } from "../ranch/avoidance.js";
 import { buildDressing } from "../ranch/dressing.js";
 import { DustPool } from "../ranch/dust.js";
+import { SleepyController } from "../ranch/sleepy.js";
+import { ensureSleepyOverlay, hintSuppressedBySleepy, setSleepyVisible } from "./sleepy-ui.js";
 import { WADDLE_LOOP_SECONDS, wrapAngle, type GaitParams } from "../ranch/waddle.js";
 import { unlockAudio } from "./audio.js";
 import { resolvePixelRatio } from "./pixel-ratio.js";
@@ -495,10 +497,19 @@ export async function bootViewer(): Promise<void> {
     setStatus(status, walkStatusText(walking));
   };
   // FR-5: hint glow after 5 s of no interaction; any press clears it.
+  // FR-4: the same press wakes the sleepy controller and hides the ZZZ.
   let lastInteractionMs = performance.now();
+  const sleepy = new SleepyController(lastInteractionMs);
+  const sleepyOverlay = ensureSleepyOverlay(document);
+  let sleepyShown = false;
   const markInteraction = (): void => {
     lastInteractionMs = performance.now();
     document.body.classList.remove("hint-glow", "hint-static");
+    sleepy.markInteraction(lastInteractionMs);
+    if (sleepyShown) {
+      setSleepyVisible(sleepyOverlay, false, false);
+      sleepyShown = false;
+    }
   };
   window.addEventListener("pointerdown", markInteraction, { passive: true });
   button.addEventListener("click", () => {
@@ -638,16 +649,32 @@ export async function bootViewer(): Promise<void> {
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.25);
     const now = clock.elapsedTime;
+    // FR-4: sleepy cues after ~90 s idle; any tap already reset the
+    // controller via markInteraction. Sleepy owns the stage over the hint
+    // glow (FR-5 precedence), and the ZZZ overlay only plays at full sleepy.
+    const sleepyState = sleepy.update(performance.now());
+    if (hintSuppressedBySleepy(sleepyState)) {
+      document.body.classList.remove("hint-glow", "hint-static");
+    }
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    for (const player of players) {
+      player.setSleepyWeight(sleepy.sleepyWeight);
+    }
+    const showSleepy = sleepyState === "sleepy";
+    if (showSleepy !== sleepyShown) {
+      setSleepyVisible(sleepyOverlay, showSleepy, reducedMotion);
+      sleepyShown = showSleepy;
+    }
     if (trikePlayer !== null && stegoPlayer !== null) {
       steerPairApart(trikePlayer, trikeModel, stegoPlayer, stegoModel);
     }
     if (trikePlayer !== null) {
-      trikePlayer.update(dt, now);
+      trikePlayer.update(dt, now, reducedMotion);
     } else if (walking) {
       updatePlaceholderWalk(trike, now);
     }
     if (stegoPlayer !== null) {
-      stegoPlayer.update(dt, now);
+      stegoPlayer.update(dt, now, reducedMotion);
     } else if (walking) {
       updatePlaceholderWalk(stego, now);
     }
