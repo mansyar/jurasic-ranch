@@ -3,9 +3,9 @@
 - **Track:** `20261029-authored-dino-walk-clips`
 - **Type:** bug
 - **Branch:** `fix/20261029-authored-dino-walk-clips`
-- **Range:** `1a96d6b.._round 1 reviewed the pre-R1 tip_`
+- **Range:** `1a96d6b..959d9fc` (round 1 reviewed the pre-R1 tip; round 2 reviewed `cc689c9`)
 - **Date:** 2026-10-30
-- **Verdict:** BLOCK (round 1) - one High, one Medium, three Low
+- **Verdict:** PASS - round 1 returned BLOCK (1 High, 1 Medium, 3 Low), round 2 confirmed all five closed and raised one Medium plus three Low, all fixed in Phase R2
 
 ## Summary
 
@@ -130,10 +130,13 @@ nothing. Repointed at the suites that actually assert those requirements.
 | --- | --- |
 | `NFR-3` determinism is recorded, not gated | two identical hashes prove it today; a hash constant in a test would need a rebake every time a mesh changes |
 | No device frame rate | NFR-1 numbers are software-rasterised; the tablet track owns the real one |
-| Stride suites measure at authored size | they now assert the scaling rule separately rather than duplicating the sweep |
+| Stride suites measure at authored size | they now assert the scaling rule separately rather than duplicating the sweep; the loader-boundary test covers the shipped rig |
+| `IN_FRAME_OVERSHOOT_METRES` is conservative, not tight | round 2 confirmed 0.91 is still an upper bound at the shipped speeds (0.770 / 0.530 / 0.753 m) and that the clearance test evaluates the stricter authored gaits |
 
 ## History
 
 | Round | Verdict | Critical | High | Medium | Low | Outcome |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | BLOCK | 0 | 1 | 1 | 3 | F1-F5 fixed in R1 |
+| 2 | PASS WITH FINDINGS | 0 | 0 | 1 | 3 | F2.1 (the fix had no test) + F2.2-F2.4 fixed in R2; round 1 findings all confirmed closed |
+| - | **PASS** | 0 | 0 | 0 | 0 | every finding closed, nothing deferred |
