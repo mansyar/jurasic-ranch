@@ -96,7 +96,7 @@
 - **Covers:** FR-4, FR-5, AC-5
 - **Touches:** `src/ranch/dino-player.ts`, `src/viewer/loaders.ts`, `src/viewer/placeholders.ts`, `tests/waddle/*.test.ts`, `tests/ranch/*.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 - **Tasks:**
   - [ ] **P4.T1: Measure the stride from the shipped clips** - covers: FR-5
     - [ ] **P4.T1.1: Derive metres per loop for Stego and Brachio from the clip length and authored gait step**
