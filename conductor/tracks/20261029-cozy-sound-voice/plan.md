@@ -14,16 +14,16 @@
 - **Covers:** FR-1, FR-5, FR-6, FR-7, NFR-5
 - **Touches:** `src/audio/catalog.ts`, `src/audio/mix.ts`, `tests/audio/catalog.test.ts`, `tests/audio/mix.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P1.T1: Define the catalog schema and all 15 entries** — covers: FR-1
-  - [ ] **P1.T1.1:** Add `AudioBus`, `AudioAsset`, `AUDIO_CATALOG`, `getAudioAsset`, and an `assetUrl` helper resolving through `import.meta.env.BASE_URL`.
-  - [ ] **P1.T1.2:** Add exactly 1 music, 6 SFX, and 8 voice entries with `path`, `loop`, `gain`, and `durationSeconds`; voice ids must match the spec.
-  - [ ] **P1.T1.3:** Test unique ids, exact bus counts, loop-only-on-music, unknown-id behavior, and base-path resolution.
-- [ ] **P1.T2: Add pure mix and overlap logic** — covers: FR-5, FR-6, FR-7
-  - [ ] **P1.T2.1:** Define `DEFAULT_VOLUME = 0.8`, `MUSIC_BUS_GAIN = 0.1`, `DUCK_FACTOR = 0.35`, `VOICE_TAIL_SECONDS = 0.3`, and `SFX_OVERLAP_CAP`.
-  - [ ] **P1.T2.2:** Add `clampVolume`, `musicGain`, `duckGain`, and `canPlaySfx` with no DOM or Howler dependency.
-  - [ ] **P1.T2.3:** Test volume bounds, mute, duck/restore arithmetic, overlap cap, and defaults.
+- [x] **P1.T1: Define the catalog schema and all 15 entries** — covers: FR-1
+  - [x] **P1.T1.1:** Add `AudioBus`, `AudioAsset`, `AUDIO_CATALOG`, `getAudioAsset`, and an `assetUrl` helper resolving through `import.meta.env.BASE_URL`.
+  - [x] **P1.T1.2:** Add exactly 1 music, 6 SFX, and 8 voice entries with `path`, `loop`, `gain`, and `durationSeconds`; voice ids must match the spec.
+  - [x] **P1.T1.3:** Test unique ids, exact bus counts, loop-only-on-music, unknown-id behavior, and base-path resolution.
+- [x] **P1.T2: Add pure mix and overlap logic** — covers: FR-5, FR-6, FR-7
+  - [x] **P1.T2.1:** Define `DEFAULT_VOLUME = 0.8`, `MUSIC_BUS_GAIN = 0.1`, `DUCK_FACTOR = 0.35`, `VOICE_TAIL_SECONDS = 0.3`, and `SFX_OVERLAP_CAP`.
+  - [x] **P1.T2.2:** Add `clampVolume`, `musicGain`, `duckGain`, and `canPlaySfx` with no DOM or Howler dependency.
+  - [x] **P1.T2.3:** Test volume bounds, mute, duck/restore arithmetic, overlap cap, and defaults.
 
 ## Phase 2: Starter Pack Assets & Offline Precache
 
