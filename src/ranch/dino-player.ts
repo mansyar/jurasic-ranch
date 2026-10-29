@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { DustPool } from "./dust.js";
+import { SLEEPY_DROOP_LID, yawnScaleFor } from "./sleepy.js";
 import {
   BLINK_CLOSE_SECONDS,
   createWaddlePose,
@@ -57,28 +58,53 @@ export class BlinkController {
   private eyeBaseScaleY = new Map<THREE.Object3D, number>();
   private headNode: THREE.Object3D | null = null;
   private headBaseRotationX = 0;
+  private applied = false;
 
   constructor(random: () => number = Math.random, startAtSeconds = 0) {
     this.random = random;
     this.nextBlinkAt = startAtSeconds + nextBlinkDelaySeconds(random());
   }
 
-  /** Advance the blink timer; returns true while a blink is visible. */
-  update(nowSeconds: number, targets: BlinkTargets): boolean {
+  /**
+   * Advance the blink timer; returns true while a blink (or droop) is
+   * visible. `droop01` holds the lids partly shut outside blink windows for
+   * the sleepy droop (FR-4): it floors the lid amount through the same
+   * base-captured path, so clearing it restores the base pose with no stuck
+   * droop. Defaults to 0, which keeps the classic blink bit-identical.
+   */
+  update(nowSeconds: number, targets: BlinkTargets, droop01 = 0): boolean {
+    const droop = Math.min(Math.max(droop01, 0), 1);
     if (this.blinkStartedAt < 0 && nowSeconds >= this.nextBlinkAt) {
       this.blinkStartedAt = nowSeconds;
     }
-    if (this.blinkStartedAt < 0) {
-      return false;
+    if (this.blinkStartedAt >= 0) {
+      const progress = (nowSeconds - this.blinkStartedAt) / BLINK_CLOSE_SECONDS;
+      if (progress >= 1) {
+        this.restore(targets);
+        this.blinkStartedAt = -1;
+        this.nextBlinkAt = nowSeconds + nextBlinkDelaySeconds(this.random());
+        this.applied = false;
+        if (droop <= 0) {
+          return false;
+        }
+      } else {
+        const blinkLid = Math.sin(Math.PI * Math.max(progress, 0));
+        this.applyLid(Math.max(blinkLid, droop), targets);
+        return true;
+      }
     }
-    const progress = (nowSeconds - this.blinkStartedAt) / BLINK_CLOSE_SECONDS;
-    if (progress >= 1) {
+    if (droop > 0) {
+      this.applyLid(droop, targets);
+      return true;
+    }
+    if (this.applied) {
       this.restore(targets);
-      this.blinkStartedAt = -1;
-      this.nextBlinkAt = nowSeconds + nextBlinkDelaySeconds(this.random());
-      return false;
+      this.applied = false;
     }
-    const lid = Math.sin(Math.PI * Math.max(progress, 0));
+    return false;
+  }
+
+  private applyLid(lid: number, targets: BlinkTargets): void {
     if (targets.eyes.length > 0) {
       for (const eye of targets.eyes) {
         const stored = this.eyeBaseScaleY.get(eye);
@@ -95,7 +121,7 @@ export class BlinkController {
       }
       targets.head.rotation.x = this.headBaseRotationX + 0.07 * lid;
     }
-    return true;
+    this.applied = true;
   }
 
   private restore(targets: BlinkTargets): void {
@@ -197,6 +223,11 @@ export class DinoPlayer {
   private prevPhase = 0;
   private baseScale: THREE.Vector3;
   private random: () => number;
+  /**
+   * Sleepy overlay weight 0..1 (FR-4): droopy lids plus a slow yawn swell.
+   * Visual only; back to 0 the next update renders the base pose exactly.
+   */
+  private sleepyLevel = 0;
   /** Scratch heading vector reused every frame: turn math never allocates. */
   private readonly forwardTemp = new THREE.Vector3();
   /** Scratch ground point reused for every dust puff: no per-plant vector. */
@@ -240,6 +271,21 @@ export class DinoPlayer {
 
   setWalking(walking: boolean): void {
     this.pose.moving = walking;
+  }
+
+  /** Current sleepy overlay weight 0..1 (FR-4). */
+  get sleepyWeight(): number {
+    return this.sleepyLevel;
+  }
+
+  /** Drive the sleepy overlay; clamps into 0..1. */
+  setSleepyWeight(weight: number): void {
+    this.sleepyLevel = Math.min(Math.max(weight, 0), 1);
+  }
+
+  /** Clear the sleepy overlay; the next update restores the base pose. */
+  clearSleepy(): void {
+    this.sleepyLevel = 0;
   }
 
   /** Walk-button toggle; returns the new walk state. */
@@ -293,8 +339,8 @@ export class DinoPlayer {
     this.pose.targetHeading = wrapAngle(toCenter + jitter);
   }
 
-  /** Advance mixer, root motion, squash, dust, and blink. */
-  update(dtSeconds: number, nowSeconds: number): void {
+  /** Advance mixer, root motion, squash, dust, blink, and sleepy. */
+  update(dtSeconds: number, nowSeconds: number, reducedMotion = false): void {
     const step = Math.min(Math.max(dtSeconds, 0), 0.25);
     updateWaddlePoseWithGait(this.pose, step, this.gait);
     this.action.weight = this.pose.blend;
@@ -321,12 +367,13 @@ export class DinoPlayer {
     this.steerInsideWanderRadius();
     this.model.rotation.y = this.pose.heading;
     const squash = squashScaleY(loopPhaseWithGait(this.loopTime, this.gait));
+    const yawn = yawnScaleFor(nowSeconds, this.sleepyLevel, reducedMotion);
     this.model.scale.set(
       this.baseScale.x,
-      this.baseScale.y * (1 - (1 - squash) * this.pose.blend),
+      this.baseScale.y * (1 - (1 - squash) * this.pose.blend) * yawn,
       this.baseScale.z,
     );
     this.dust.update(step);
-    this.blink.update(nowSeconds, this.targets);
+    this.blink.update(nowSeconds, this.targets, this.sleepyLevel * SLEEPY_DROOP_LID);
   }
 }

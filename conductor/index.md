@@ -19,9 +19,6 @@ Cozy tablet PWA dino ranch for 4yo. Source of truth for product vision, stack, a
 - [Tracks Registry](./tracks.md)
 - [Tracks Directory](./tracks/)
 
-- [Tracks Registry](./tracks.md)
-- [Tracks Directory](./tracks/)
-
 ## Capabilities
 
 - PWA offline game, real skeletal waddle first, Kokoro voice, CC0 music
