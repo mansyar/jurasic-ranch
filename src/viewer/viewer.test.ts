@@ -20,7 +20,6 @@ const ROOT_URL = new URL('../../', import.meta.url);
 const loaderMocks = vi.hoisted(() => ({
   loadAsync: vi.fn(),
   setDRACOLoader: vi.fn(),
-  setDecoderPath: vi.fn(),
   dispose: vi.fn(),
 }));
 
@@ -36,7 +35,6 @@ vi.mock('three/addons/loaders/GLTFLoader.js', () => ({
 vi.mock('three/addons/loaders/DRACOLoader.js', () => ({
   DRACOLoader: vi.fn(function (this: unknown) {
     return {
-      setDecoderPath: loaderMocks.setDecoderPath,
       dispose: loaderMocks.dispose,
     };
   }),
@@ -117,7 +115,6 @@ describe('rigged trike loader', () => {
   beforeEach(() => {
     loaderMocks.loadAsync.mockReset();
     loaderMocks.setDRACOLoader.mockReset();
-    loaderMocks.setDecoderPath.mockReset();
     loaderMocks.dispose.mockReset();
   });
 
@@ -128,9 +125,6 @@ describe('rigged trike loader', () => {
     const loaded = await loadTrikePlayer();
     expect(TRIKE_MODEL_URL).toBe('/models/trike.glb');
     expect(loaderMocks.loadAsync).toHaveBeenCalledWith('/models/trike.glb');
-    // Offline-first lock: the decoder must come from the vendored same-origin
-    // path, never the Google CDN default.
-    expect(loaderMocks.setDecoderPath).toHaveBeenCalledWith('/draco/');
     expect(loaderMocks.setDRACOLoader).toHaveBeenCalledTimes(1);
     expect(loaded.model).toBe(scene);
     expect(loaded.player).toBeInstanceOf(DinoPlayer);

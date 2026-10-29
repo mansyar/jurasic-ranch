@@ -12,7 +12,7 @@ export default defineConfig({
       manifest: false,
       workbox: {
         // Precache the app shell plus future dino GLBs for airplane-mode boot.
-        // `wasm` covers the vendored Draco decoder under public/draco.
+        // `wasm` covers the Draco decoder Vite emits under `assets/`.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,glb,wasm,webmanifest}'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,

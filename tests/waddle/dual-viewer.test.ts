@@ -121,13 +121,13 @@ describe('rigged stego loader (FR-4)', () => {
     loaderMocks.dispose.mockReset();
   });
 
-  it('requests /models/stego.glb through the same Draco path as the trike', async () => {
+  it('requests /models/stego.glb through the same bundled decoder as the trike', async () => {
     const scene = new THREE.Group();
     const clip = new THREE.AnimationClip('Waddle', 0.8, []);
     loaderMocks.loadAsync.mockResolvedValue({ scene, animations: [clip] });
     const loaded = await loadStegoPlayer();
     expect(loaderMocks.loadAsync).toHaveBeenCalledWith('/models/stego.glb');
-    expect(loaderMocks.setDecoderPath).toHaveBeenCalledWith('/draco/');
+    expect(loaderMocks.setDecoderPath).not.toHaveBeenCalled();
     expect(loaderMocks.setDRACOLoader).toHaveBeenCalledTimes(1);
     expect(loaded.model).toBe(scene);
     expect(loaded.player).toBeInstanceOf(DinoPlayer);

@@ -10,7 +10,7 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
-    "lint": "oxlint --ignore-pattern \"public/draco/**\" --ignore-pattern \"scripts/vendor/**\"",
+    "lint": "oxlint --ignore-pattern \"scripts/vendor/**\"",
     "format": "oxfmt index.html package.json vite.config.ts tsconfig.json .oxfmtrc.json \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/**/*.ts\"",
     "typecheck": "tsrs --noEmit",
     "verify": "pnpm lint && pnpm format --check && pnpm typecheck && pnpm coverage && pnpm build"

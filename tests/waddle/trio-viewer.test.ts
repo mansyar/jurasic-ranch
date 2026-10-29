@@ -138,13 +138,13 @@ describe('rigged brachio loader (FR-1, FR-4, FR-9)', () => {
     loaderMocks.dispose.mockReset();
   });
 
-  it('requests /models/brachio.glb through the same Draco path', async () => {
+  it('requests /models/brachio.glb through the same bundled decoder', async () => {
     const scene = new THREE.Group();
     const clip = new THREE.AnimationClip('Waddle', 1.0, []);
     loaderMocks.loadAsync.mockResolvedValue({ scene, animations: [clip] });
     const loaded = await loadBrachioPlayer();
     expect(loaderMocks.loadAsync).toHaveBeenCalledWith('/models/brachio.glb');
-    expect(loaderMocks.setDecoderPath).toHaveBeenCalledWith('/draco/');
+    expect(loaderMocks.setDecoderPath).not.toHaveBeenCalled();
     expect(loaderMocks.setDRACOLoader).toHaveBeenCalledTimes(1);
     expect(loaded.model).toBe(scene);
     expect(loaded.player).toBeInstanceOf(DinoPlayer);

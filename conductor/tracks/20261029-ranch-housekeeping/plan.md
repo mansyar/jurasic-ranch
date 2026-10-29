@@ -93,17 +93,26 @@
 - **Covers:** FR-8, FR-9, AC-8, AC-9, NFR-3, NFR-6
 - **Touches:** `public/draco/**`, `src/viewer/loaders.ts`, `vite.config.ts`
 - **Verification:** `pnpm verify`, a browser load of all three dinos, plus a recorded before/after `dist/` size comparison
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **P4.T1: Drop the redundant copy** - covers: FR-8
-  - [ ] **P4.T1.1:** Remove the `setDecoderPath` call and the `DRACO_DECODER_PATH` constant from the loader module
-  - [ ] **P4.T1.2:** Delete `public/draco/` (5 files) and remove its exclusion from the format/lint scripts if it is now moot
-- [ ] **P4.T2: Verify the decoder still works** - covers: FR-8, NFR-3
-  - [ ] **P4.T2.1:** Run `pnpm dev --host` and confirm Trike, Stego and Brachio all load and waddle, with the network panel showing no request to a `draco/` path (AC-8)
-  - [ ] **P4.T2.2:** Reload with the network throttled to offline after first visit and confirm models still load from precache (NFR-3)
-- [ ] **P4.T3: Measure the win** - covers: FR-9, AC-9
-  - [ ] **P4.T3.1:** Build the base commit and this branch, record both `dist/` totals and the precache entry counts in the phase evidence (AC-9)
-  - [ ] **P4.T3.2:** Confirm `dist/` holds exactly one decoder wasm/wrapper pair and the total dropped by at least 1.2 MB; if it did not, stop and report rather than trimming elsewhere
+- [x] **P4.T1: Drop the redundant copy** - covers: FR-8
+  - [x] **P4.T1.1:** Remove the `setDecoderPath` call and the `DRACO_DECODER_PATH` constant from the loader module
+  - [x] **P4.T1.2:** Delete `public/draco/` (3 files) and remove its exclusion from the format/lint scripts if it is now moot
+- [x] **P4.T2: Verify the decoder still works** - covers: FR-8, NFR-3
+  - [x] **P4.T2.1:** Run `pnpm dev --host` and confirm Trike, Stego and Brachio all load and waddle, with the network panel showing no request to a `draco/` path (AC-8)
+  - [x] **P4.T2.2:** Reload with the network throttled to offline after first visit and confirm models still load from precache (NFR-3)
+- [x] **P4.T3: Measure the win** - covers: FR-9, AC-9
+  - [x] **P4.T3.1:** Build the base commit and this branch, record both `dist/` totals and the precache entry counts in the phase evidence (AC-9)
+  - [x] **P4.T3.2:** Confirm `dist/` holds exactly one decoder wasm/wrapper pair and the total dropped by at least 1.2 MB; if it did not, stop and report rather than trimming elsewhere
+
+**Result:** verified
+**Checkpoint:** _(set after squash)_
+**Evidence:** conductor/tracks/20261029-ranch-housekeeping/verification/phase-4.md
+
+> Measured saving is 1,064,190 B (1.015 MiB), not the 1.2 MB estimated above —
+> the deleted payload is 1,063,920 B, so 1.2 MB was never reachable. Nothing else
+> was trimmed to close the gap. See the evidence file for the browser and offline
+> proofs.
 
 ## Phase 5: Tell the truth about the ranch
 

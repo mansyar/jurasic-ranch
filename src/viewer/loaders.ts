@@ -37,12 +37,6 @@ export const STEGO_MODEL_URL = `${BASE_URL}models/stego.glb`;
  */
 export const BRACHIO_MODEL_URL = `${BASE_URL}models/brachio.glb`;
 
-/**
- * Same-origin Draco decoder vendored under `public/draco` (offline-first:
- * never the Google CDN default decoder path).
- */
-const DRACO_DECODER_PATH = `${BASE_URL}draco/`;
-
 /** Name of the baked seamless loop inside the Trike GLB. */
 const WADDLE_CLIP_NAME = 'Waddle';
 
@@ -101,6 +95,10 @@ export type LoadedTrike = LoadedDino;
  * drive it with a stubbed GLTFLoader while the real viewer owns the WebGL
  * chrome. An injected DustPool is shared (FR-9); omitted, the player keeps a
  * private pool exactly as before.
+ *
+ * The decoder is three's own: `DRACOLoader` pre-resolves `../libs/draco/*`
+ * through `import.meta.url`, and Vite emits those files under `assets/`, so no
+ * decoder path is configured here (pointing it at a copy would fetch a second).
  */
 async function loadDinoPlayer(
   modelUrl: string,
@@ -109,7 +107,6 @@ async function loadDinoPlayer(
   sharedDust?: DustPool,
 ): Promise<LoadedDino> {
   const draco = new DRACOLoader();
-  draco.setDecoderPath(DRACO_DECODER_PATH);
   try {
     const loader = new GLTFLoader();
     loader.setDRACOLoader(draco);

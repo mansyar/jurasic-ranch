@@ -162,7 +162,7 @@ async function measureStegoGait(): Promise<{
 async function createStegoPlayer(): Promise<{ player: DinoPlayer; group: THREE.Group }> {
   // Drive the player from the shipped GLB's own clip (animation samplers are
   // never Draco-compressed, so the raw bytes parse headless): this is the
-  // exact clip the viewer loads via the /draco/ decoder path.
+  // exact clip the viewer loads through three's bundled Draco decoder.
   const shipped = await readFile(SHIPPED_GLB);
   const animation = extractAnimationTracks(shipped);
   const group = createStegoVariantGroup();
