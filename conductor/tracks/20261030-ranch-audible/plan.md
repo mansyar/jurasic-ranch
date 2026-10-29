@@ -71,18 +71,21 @@
 - **Covers:** FR-3, FR-6, FR-7, FR-8, FR-9, AC-2, AC-5, AC-6, AC-7, AC-8
 - **Touches:** `src/viewer/main.ts`, `src/viewer/audio.ts`, `src/viewer/audio-controls.ts`, `src/viewer/hud.ts` (two-line redirect to the facade only), `tests/viewer/audio-controls*.test.ts`, `tests/viewer/hud*.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
+- **Result:** Pass. `pnpm verify` exit 0 - 45 test files / 537 tests, coverage 80.34 % lines, 45 precache entries, build 306 ms, dist clean.
+- **Checkpoint:** `8fff83a`
+- **Evidence:** `verification/phase-3.md`
 
-- [ ] **P3.T1: First-press queue across unlock** — covers: FR-7
-  - [ ] **P3.T1.1:** Queue the unlocking press and flush it when `unlockAudio()` resolves
-  - [ ] **P3.T1.2:** Discard on reject and assert nothing throws
-- [ ] **P3.T2: Greeting** — covers: FR-6
-  - [ ] **P3.T2.1:** Play `hello` once, after the fade, never while muted or after a mute-first gesture
-- [ ] **P3.T3: Mute ordering** — covers: FR-3
-  - [ ] **P3.T3.1:** Dispatch before `setMuted(true)` and after `setMuted(false)`, asserted on call order
-- [ ] **P3.T4: Silence and failure paths** — covers: FR-8, FR-9
-  - [ ] **P3.T4.1:** Gear hold, Close and the slider produce no SFX
-  - [ ] **P3.T4.2:** A forced engine failure keeps all six surfaces silent and throws nothing
+- [x] **P3.T1: First-press queue across unlock** — covers: FR-7
+  - [x] **P3.T1.1:** Queue the unlocking press and flush it when `unlockAudio()` resolves
+  - [x] **P3.T1.2:** Discard on reject and assert nothing throws
+- [x] **P3.T2: Greeting** — covers: FR-6
+  - [x] **P3.T2.1:** Play `hello` once, after the fade, never while muted or after a mute-first gesture
+- [x] **P3.T3: Mute ordering** — covers: FR-3
+  - [x] **P3.T3.1:** Dispatch before `setMuted(true)` and after `setMuted(false)`, asserted on call order
+- [x] **P3.T4: Silence and failure paths** — covers: FR-8, FR-9
+  - [x] **P3.T4.1:** Gear hold, Close and the slider produce no SFX
+  - [x] **P3.T4.2:** A forced engine failure keeps all six surfaces silent and throws nothing
 
 ## Phase 4: Tablet listening pass and evidence
 
