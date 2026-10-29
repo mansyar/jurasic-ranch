@@ -12,7 +12,7 @@
 - **Covers:** FR-2, AC-2
 - **Touches:** `scripts/vendor/inspect-dino-clips.mjs`, `conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-1.md`
 - **Verification:** `pnpm verify` plus the inspection script's recorded output
-- **Status:** pending
+- **Status:** in_progress
 - **Tasks:**
   - [ ] **P1.T1: Build the inspection tool** - covers: FR-2
     - [ ] **P1.T1.1: Parse a GLB and print nodes, skins, joints, rest TRS and every animation channel**
