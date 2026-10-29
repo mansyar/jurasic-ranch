@@ -141,7 +141,7 @@
 - **Covers:** FR-11, FR-12, AC-1, AC-9, AC-10
 - **Touches:** `src/ranch/ambient.ts`, `src/viewer/main.ts`, `src/ranch/layout.ts`, `src/ranch/dressing.ts`, `src/ranch/ground.ts`, `src/viewer/pov.ts`, `tests/ranch/ambient.test.ts`, `tests/ranch/layout.test.ts`, `tests/ranch/dressing.test.ts`, `tests/ranch/ground.test.ts`, `tests/viewer/pov.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P5.T1: Sway driver** - covers: FR-11
   - [ ] **P5.T1.1:** per-object sine phase from the seeded stream, driven by the loop's `dt`
