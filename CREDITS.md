@@ -48,7 +48,7 @@
 
 ## Ranch dressing props
 
-Every prop below was downloaded from Polyfork's CDN as a GLB by
+Every prop below (nineteen, all reused or newly vendored for the Ranch Vista track) was downloaded from Polyfork's CDN as a GLB by
 `scripts/vendor-dressing.mjs` and used unmodified — no rescale, no rebake, no
 re-export. Sizes live in `DRESSING_CATALOGUE`
 (`src/ranch/layout.ts`), measured from each file's own accessor bounds.
@@ -73,6 +73,7 @@ re-export. Sizes live in `DRESSING_CATALOGUE`
 | Cycad | `public/models/dressing/cycad-05ad50.glb` | https://polyfork.dev/asset/cycad | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
 | Tree fern | `public/models/dressing/tree-fern-78320e.glb` | https://polyfork.dev/asset/tree-fern | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
 | Windpump tower | `public/models/dressing/windpump-tower-1633a9.glb` | https://polyfork.dev/asset/windpump-tower | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| River stone cluster | `public/models/dressing/river-stone-cluster-0b55bc.glb` | https://polyfork.dev/asset/river-stone-cluster | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
 
 ## Starter-pack audio
 

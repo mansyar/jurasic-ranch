@@ -33,7 +33,9 @@ Open → waddle hello + coo → feed (counting) → wash → cuddle (body vocab)
 
 IN (MVP):
 - 3 herbivores forever-babies (Trike, Stego, Brachio), species names only
-- Fixed cozy cam + 3 POV buttons (Ranch / Nest / Garden), no orbit
+- Fixed cozy cam + 4 POV buttons (Ranch / Nest / Garden / Sky), no orbit. Sky is
+  a tilted helicopter view (75°, never straight down) that frames the whole ranch
+  with the trio still reading in profile
 - Real skeletal waddle walk first, 6 clips max (idle, waddle, eat_nom, blink, happy_wiggle, sleep_droop)
 - CC0 kalimba + coos, Kokoro af_bella 0.85x pre-generated mp3s
 - Offline PWA, English only
@@ -78,4 +80,5 @@ OUT:
 - [ ] Track 5 — Wash + cuddle (scrub mud, tap hearts, body-tap vocab surprise)
 - [ ] Track 6 — Surprises + sticker book (TSB bubbles, twinkle invites, auto-save moments)
 - [x] Track 7 - Ranch Warmth UI (3 POV buttons, nest/garden markers, sleepy cues; lullaby delivered by Cozy Sound & Voice as a 40 s kalimba loop)
+- [x] Track 9 - Ranch Vista (staged paddock: 19 Polyfork dressing props in three bands, worn trefoil, gate track, gradient sky with four clouds, and a fourth Sky helicopter POV so the whole ranch is visible at once)
 - [ ] Track 8 — Tablet pass + release (real-device 60 fps, airplane-mode, parent-voice review, Add-to-Homescreen)

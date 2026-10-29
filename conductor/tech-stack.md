@@ -27,6 +27,19 @@
   in the bundle. In-game size is a viewer group scale (`DINO_GROUP_SCALE`), never
   a bake knob. `Idle` and `Run` stay withdrawn: no code path plays them and they
   cost 1.0-1.6 MiB of precache per species (20261029-authored-dino-walk-clips).
+- Ranch staging (20261030-ranch-vista): placements are data, not literals -
+  `src/ranch/layout.ts` holds `DRESSING_CATALOGUE` (measured footprints and
+  heights), the derived band ranges, and `ring` / `arc` / `row` / `cluster` /
+  `scatter` helpers; `dressing.ts` only loads and clones. `src/ranch/ground.ts`
+  derives the meadow apron, the seam and the worn discs from
+  `GROUND_RADIUS_METRES` plus each gait's wander radius, and proves the ground
+  edge never enters a preset's frame by intersecting that lens's edge rays with
+  the ground plane - never by eyeballing a capture. `src/viewer/sky.ts` owns the
+  gradient dome and the four clouds, placed by the elevation they subtend from a
+  lens eye, and `src/ranch/ambient.ts` owns the sway and tap reactions. Every
+  dressing GLB is baked to one draw call; a bake that merges geometry **must**
+  re-enable `vertexColors` when the source carries `COLOR_0`, or the prop renders
+  white (the windpump bug).
 
 ## Audio
 
