@@ -17,7 +17,7 @@ export const IDLE_AFTER_MS = 90_000;
 export const DROWSY_AFTER_MS = IDLE_AFTER_MS / 2;
 
 /** Idle stage of the sleepy state machine. */
-export type SleepyState = 'awake' | 'drowsy' | 'sleepy';
+export type SleepyState = "awake" | "drowsy" | "sleepy";
 
 /**
  * Lid closure held by the droop at full sleepy weight (fraction of a full
@@ -47,10 +47,10 @@ const SLEEPY_MAX_DT_SECONDS = 0.25;
 
 /** Overlay weight target per idle stage: awake 0, drowsy half, sleepy full. */
 export function sleepyWeightTargetFor(state: SleepyState): number {
-  if (state === 'sleepy') {
+  if (state === "sleepy") {
     return 1;
   }
-  if (state === 'drowsy') {
+  if (state === "drowsy") {
     return 0.5;
   }
   return 0;
@@ -69,12 +69,12 @@ export function sleepyStateFor(
 ): SleepyState {
   const idle = nowMs - lastInteractionMs;
   if (idle >= idleMs) {
-    return 'sleepy';
+    return "sleepy";
   }
   if (idle >= drowsyMs) {
-    return 'drowsy';
+    return "drowsy";
   }
-  return 'awake';
+  return "awake";
 }
 
 /**
@@ -108,7 +108,7 @@ export function yawnScaleFor(
 export class SleepyController {
   private lastInteractionMs: number;
   private lastUpdateMs: number;
-  private currentState: SleepyState = 'awake';
+  private currentState: SleepyState = "awake";
   private weight = 0;
 
   constructor(nowMs = 0) {
@@ -130,7 +130,7 @@ export class SleepyController {
   markInteraction(nowMs: number): void {
     this.lastInteractionMs = nowMs;
     this.lastUpdateMs = nowMs;
-    this.currentState = 'awake';
+    this.currentState = "awake";
     this.weight = 0;
   }
 

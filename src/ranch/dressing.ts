@@ -1,5 +1,5 @@
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 /**
  * Valley + Farm dressing (FR-3, AC-3): the 12 vendored Polyfork CC0 GLBs in
@@ -52,11 +52,11 @@ export interface DressingSummary {
  * of the fixed POV cameras.
  */
 const VALLEY_PLACEMENTS: readonly DressingPlacement[] = [
-  { file: 'ginkgo-tree-baa895.glb', position: [-3.0, 0, -2.5], rotationY: 0.6 },
-  { file: 'dawn-redwood-001c29.glb', position: [3.1, 0, -2.2], rotationY: -0.4 },
-  { file: 'flowering-magnolia-dd76cb.glb', position: [-0.5, 0, -4.2], rotationY: 2.1 },
-  { file: 'fern-covered-boulder-2e0375.glb', position: [4.0, 0, 0.8], rotationY: 1.2 },
-  { file: 'moss-covered-stump-7253ab.glb', position: [-4.0, 0, 0.6], rotationY: -1.0 },
+  { file: "ginkgo-tree-baa895.glb", position: [-3.0, 0, -2.5], rotationY: 0.6 },
+  { file: "dawn-redwood-001c29.glb", position: [3.1, 0, -2.2], rotationY: -0.4 },
+  { file: "flowering-magnolia-dd76cb.glb", position: [-0.5, 0, -4.2], rotationY: 2.1 },
+  { file: "fern-covered-boulder-2e0375.glb", position: [4.0, 0, 0.8], rotationY: 1.2 },
+  { file: "moss-covered-stump-7253ab.glb", position: [-4.0, 0, 0.6], rotationY: -1.0 },
 ];
 
 /**
@@ -66,23 +66,23 @@ const VALLEY_PLACEMENTS: readonly DressingPlacement[] = [
  * walk circle and clear of the fixed POV cameras.
  */
 const FARM_PLACEMENTS: readonly DressingPlacement[] = [
-  { file: 'wooden-fence-section-d72055.glb', position: [-3.4, 0, -3.2], rotationY: 0 },
-  { file: 'wooden-fence-section-d72055.glb', position: [-1.4, 0, -3.2], rotationY: 0 },
-  { file: 'wooden-fence-section-d72055.glb', position: [0.6, 0, -3.2], rotationY: 0 },
-  { file: 'farm-gate-8ab320.glb', position: [2.6, 0, -3.2], rotationY: 0 },
-  { file: 'water-trough-df3ced.glb', position: [2.2, 0, 1.6], rotationY: -0.5 },
-  { file: 'hand-water-pump-448037.glb', position: [2.9, 0, 0.9], rotationY: -0.9 },
-  { file: 'stone-well-b2dfcd.glb', position: [1.4, 0, 2.3], rotationY: 0.3 },
-  { file: 'corn-crop-b71f2f.glb', position: [-1.4, 0, 2.0], rotationY: 0.1 },
-  { file: 'corn-crop-b71f2f.glb', position: [-0.9, 0, 2.0], rotationY: -0.1 },
-  { file: 'corn-crop-b71f2f.glb', position: [-0.4, 0, 2.0], rotationY: 0.1 },
-  { file: 'corn-crop-b71f2f.glb', position: [-1.4, 0, 2.8], rotationY: -0.1 },
-  { file: 'corn-crop-b71f2f.glb', position: [-0.9, 0, 2.8], rotationY: 0.1 },
-  { file: 'corn-crop-b71f2f.glb', position: [-0.4, 0, 2.8], rotationY: -0.1 },
-  { file: 'river-stone-cluster-0b55bc.glb', position: [-1.75, 0, -0.6], rotationY: 0 },
-  { file: 'river-stone-cluster-0b55bc.glb', position: [-2.2, 0, -0.15], rotationY: 1.6 },
-  { file: 'river-stone-cluster-0b55bc.glb', position: [-2.65, 0, -0.6], rotationY: 3.1 },
-  { file: 'river-stone-cluster-0b55bc.glb', position: [-2.2, 0, -1.05], rotationY: 4.7 },
+  { file: "wooden-fence-section-d72055.glb", position: [-3.4, 0, -3.2], rotationY: 0 },
+  { file: "wooden-fence-section-d72055.glb", position: [-1.4, 0, -3.2], rotationY: 0 },
+  { file: "wooden-fence-section-d72055.glb", position: [0.6, 0, -3.2], rotationY: 0 },
+  { file: "farm-gate-8ab320.glb", position: [2.6, 0, -3.2], rotationY: 0 },
+  { file: "water-trough-df3ced.glb", position: [2.2, 0, 1.6], rotationY: -0.5 },
+  { file: "hand-water-pump-448037.glb", position: [2.9, 0, 0.9], rotationY: -0.9 },
+  { file: "stone-well-b2dfcd.glb", position: [1.4, 0, 2.3], rotationY: 0.3 },
+  { file: "corn-crop-b71f2f.glb", position: [-1.4, 0, 2.0], rotationY: 0.1 },
+  { file: "corn-crop-b71f2f.glb", position: [-0.9, 0, 2.0], rotationY: -0.1 },
+  { file: "corn-crop-b71f2f.glb", position: [-0.4, 0, 2.0], rotationY: 0.1 },
+  { file: "corn-crop-b71f2f.glb", position: [-1.4, 0, 2.8], rotationY: -0.1 },
+  { file: "corn-crop-b71f2f.glb", position: [-0.9, 0, 2.8], rotationY: 0.1 },
+  { file: "corn-crop-b71f2f.glb", position: [-0.4, 0, 2.8], rotationY: -0.1 },
+  { file: "river-stone-cluster-0b55bc.glb", position: [-1.75, 0, -0.6], rotationY: 0 },
+  { file: "river-stone-cluster-0b55bc.glb", position: [-2.2, 0, -0.15], rotationY: 1.6 },
+  { file: "river-stone-cluster-0b55bc.glb", position: [-2.65, 0, -0.6], rotationY: 3.1 },
+  { file: "river-stone-cluster-0b55bc.glb", position: [-2.2, 0, -1.05], rotationY: 4.7 },
 ];
 
 /**
@@ -102,7 +102,7 @@ export const DRESSING_MANIFEST: readonly DressingPlacement[] = [
  */
 export async function buildDressing(scene: THREE.Scene): Promise<DressingSummary> {
   const group = new THREE.Group();
-  group.name = 'RanchDressing';
+  group.name = "RanchDressing";
 
   const loader = new GLTFLoader();
   const cache = new Map<string, THREE.Object3D>();

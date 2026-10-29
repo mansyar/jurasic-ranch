@@ -523,9 +523,7 @@ export async function bootViewer(): Promise<void> {
   syncChrome();
 
   // FR-1: fixed POV buttons cut the camera instantly (no tween, AC-1).
-  const povButtons = Array.from(
-    document.querySelectorAll<HTMLButtonElement>("#pov [data-pov]"),
-  );
+  const povButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("#pov [data-pov]"));
   const syncPov = (): void => {
     for (const povButton of povButtons) {
       povButton.setAttribute(
