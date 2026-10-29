@@ -77,5 +77,5 @@ OUT:
 - [ ] Track 4 — Feed mini + snack counting 1-5 (drag berry/leaf, Kokoro counts, eat_nom clip)
 - [ ] Track 5 — Wash + cuddle (scrub mud, tap hearts, body-tap vocab surprise)
 - [ ] Track 6 — Surprises + sticker book (TSB bubbles, twinkle invites, auto-save moments)
-- [x] Track 7 - Ranch Warmth UI (3 POV buttons, nest/garden markers, sleepy cues; lullaby deferred to Cozy Sound track)
+- [x] Track 7 - Ranch Warmth UI (3 POV buttons, nest/garden markers, sleepy cues; lullaby delivered by Cozy Sound & Voice as a 40 s kalimba loop)
 - [ ] Track 8 — Tablet pass + release (real-device 60 fps, airplane-mode, parent-voice review, Add-to-Homescreen)

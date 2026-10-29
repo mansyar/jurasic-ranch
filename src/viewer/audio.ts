@@ -1,18 +1,41 @@
 /**
- * Phase 1 audio stub. The waddle walk is silent (FR-8); Howler music and
- * voice sprites land in a later track. The dynamic import keeps the Howler
- * dependency in the offline precache so the unlock path is proven early.
+ * Thin viewer facade over the shared engine (FR-2, FR-3). Importing this module
+ * creates no engine and touches no audio library: the singleton is built on the
+ * first gesture, so boot stays silent until a pointerdown or keydown.
  */
 
-let unlocked = false;
+import { AudioEngine, type AudioEngineOptions } from '../audio/engine.js';
 
-/** Whether the first tap has unlocked audio. */
-export function isAudioUnlocked(): boolean {
-  return unlocked;
+let engine: AudioEngine | null = null;
+let engineOptions: AudioEngineOptions = {};
+
+/**
+ * Configure the lazily built engine with the persisted mute/volume providers
+ * (FR-6, FR-7). Call it before the first gesture builds the singleton.
+ */
+export function configureAudio(options: AudioEngineOptions): void {
+  engineOptions = options;
+  engine?.configure(options);
 }
 
-/** Unlock audio on first tap; resolves once Howler is available offline. */
+/** The lazily built engine shared by unlock, visibility, and the dev bridge. */
+export function audioEngine(): AudioEngine {
+  engine ??= new AudioEngine(engineOptions);
+  return engine;
+}
+
+/** Whether the first gesture finished unlocking audio. */
+export function isAudioUnlocked(): boolean {
+  return engine !== null && engine.unlocked;
+}
+
+/** Unlock audio on the first gesture; resolves once ready or safely silent. */
 export async function unlockAudio(): Promise<void> {
-  await import('howler');
-  unlocked = true;
+  await audioEngine().unlock();
+}
+
+/** Drop the singleton and its Howls; a test-only reset, never called at boot. */
+export function disposeAudio(): void {
+  engine?.dispose();
+  engine = null;
 }

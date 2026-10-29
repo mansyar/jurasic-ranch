@@ -10,3 +10,4 @@
 - [x] **Track: Ranch Housekeeping** - [20261029-ranch-housekeeping](./archive/20261029-ranch-housekeeping/index.md) - refactor - medium
 - [x] **Track: Stego and Brachio Walk on Their Own Bones** - [20261029-authored-dino-walk-clips](./archive/20261029-authored-dino-walk-clips/index.md) - bug - high
 - [x] **Track: Dev Harness for Debugging & Verification** - [20261029-dev-harness](./archive/20261029-dev-harness/index.md) - chore - medium
+- [x] **Track: Cozy Sound & Voice Foundation** — [20261029-cozy-sound-voice](./tracks/20261029-cozy-sound-voice/index.md) — feature — high

@@ -1,0 +1,19 @@
+{
+  "engine": "kokoro-onnx",
+  "model": "kokoro-v1.0.onnx",
+  "voices": "voices-v1.0.bin",
+  "voice": "af_bella",
+  "lang": "en-us",
+  "speed": 0.85,
+  "tailSeconds": 0.3,
+  "lines": [
+    { "id": "hello", "text": "Hello!" },
+    { "id": "nom", "text": "Nom nom!" },
+    { "id": "all-done", "text": "All done!" },
+    { "id": "count-1", "text": "One" },
+    { "id": "count-2", "text": "Two" },
+    { "id": "count-3", "text": "Three" },
+    { "id": "count-4", "text": "Four" },
+    { "id": "count-5", "text": "Five" }
+  ]
+}

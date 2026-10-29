@@ -9,8 +9,10 @@ import {
   installDevHarness,
   type DevBridge,
   type DevDinoHandle,
+  type DevRanchApi,
 } from '../../src/dev/harness.js';
 import type { DevSpeciesId } from '../../src/dev/dev-options.js';
+import type { SnapshotAudio } from '../../src/dev/snapshot.js';
 import { type FakeDom, type FakeElement, installFakeDom } from './fake-dom.js';
 
 /**
@@ -22,9 +24,30 @@ import { type FakeDom, type FakeElement, installFakeDom } from './fake-dom.js';
 const IDS: readonly DevSpeciesId[] = ['trike', 'stego', 'brachio'];
 const LABELS: Record<DevSpeciesId, string> = { trike: 'Trike', stego: 'Stego', brachio: 'Brachio' };
 
+/** Recording audio stand-in: no engine and no Howler in these tests. */
+interface FakeAudio {
+  state: SnapshotAudio;
+  actions: string[];
+}
+
 interface FakeBridge {
   bridge: DevBridge;
   models: Record<DevSpeciesId, THREE.Group>;
+  audio: FakeAudio;
+}
+
+function createAudio(): FakeAudio {
+  return {
+    state: {
+      unlocked: false,
+      muted: false,
+      volume: 0.8,
+      musicPlaying: false,
+      activeLine: null,
+      lastStartLatencyMs: 0,
+    },
+    actions: [],
+  };
 }
 
 function createBridge(): FakeBridge {
@@ -46,6 +69,7 @@ function createBridge(): FakeBridge {
   const renderer = {
     info: { render: { calls: 0, triangles: 0 } },
   } as unknown as THREE.WebGLRenderer;
+  const audio = createAudio();
   const bridge: DevBridge = {
     scene,
     camera,
@@ -59,8 +83,26 @@ function createBridge(): FakeBridge {
     forceSleepy: () => undefined,
     forceHint: () => undefined,
     getSleepyState: () => 'awake',
+    getAudioState: () => ({ ...audio.state }),
+    mute: (muted: boolean) => {
+      audio.state.muted = muted;
+      audio.actions.push(`mute:${muted}`);
+    },
+    setVolume: (volume: number) => {
+      audio.state.volume = volume;
+      audio.actions.push(`volume:${volume}`);
+    },
+    play: (id) => {
+      audio.state.activeLine = id;
+      audio.actions.push(`play:${id}`);
+    },
+    stopAll: () => {
+      audio.state.activeLine = null;
+      audio.state.musicPlaying = false;
+      audio.actions.push('stop-all');
+    },
   };
-  return { bridge, models };
+  return { bridge, models, audio };
 }
 
 function findRow(body: FakeElement, label: string): FakeElement {
@@ -230,5 +272,112 @@ describe('HUD accessibility (FR-4, F6)', () => {
     installDevHarness(bridge, parseDevQuery('?dev=1'));
     const panels = dom.body.queryAll((element) => element.getAttribute(DEV_PANEL_ATTRIBUTE) === '');
     expect(panels).toHaveLength(1);
+  });
+});
+
+/** The api the harness published on the fake window. */
+function ranchApi(dom: FakeDom): DevRanchApi {
+  const api = dom.window['__ranch'];
+  if (api === undefined) {
+    throw new Error('window.__ranch was not published');
+  }
+  return api as DevRanchApi;
+}
+
+describe('audio bridge (FR-10, AC-11)', () => {
+  let dom: FakeDom;
+
+  beforeEach(() => {
+    dom = installFakeDom();
+  });
+
+  afterEach(() => {
+    dom.restore();
+  });
+
+  it('publishes the live audio state on window.__ranch.audio', () => {
+    const { bridge, audio } = createBridge();
+    audio.state = {
+      unlocked: true,
+      muted: false,
+      volume: 0.55,
+      musicPlaying: true,
+      activeLine: null,
+      lastStartLatencyMs: 4.2,
+    };
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+
+    const state = ranchApi(dom).audio;
+    expect(state.unlocked).toBe(true);
+    expect(state.muted).toBe(false);
+    expect(state.volume).toBe(0.55);
+    expect(state.musicPlaying).toBe(true);
+    expect(state.activeLine).toBeNull();
+    expect(state.lastStartLatencyMs).toBeCloseTo(4.2, 12);
+  });
+
+  it('routes mute and volume through the injected controls', () => {
+    const { bridge, audio } = createBridge();
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+    const api = ranchApi(dom);
+
+    api.audio.mute(true);
+    expect(audio.actions).toEqual(['mute:true']);
+    expect(audio.state.muted).toBe(true);
+
+    api.audio.setVolume(0.4);
+    expect(audio.actions).toEqual(['mute:true', 'volume:0.4']);
+    expect(api.audio.volume).toBe(0.4);
+  });
+
+  it('forwards play and stopAll and reflects them in the state', () => {
+    const { bridge, audio } = createBridge();
+    audio.state.musicPlaying = true;
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+    const api = ranchApi(dom);
+
+    api.audio.play('hello');
+    expect(audio.actions).toEqual(['play:hello']);
+    expect(api.audio.activeLine).toBe('hello');
+
+    api.audio.stopAll();
+    expect(audio.actions).toEqual(['play:hello', 'stop-all']);
+    expect(api.audio.activeLine).toBeNull();
+    expect(api.audio.musicPlaying).toBe(false);
+  });
+
+  it('carries the same audio block in the snapshot', () => {
+    const { bridge, audio } = createBridge();
+    audio.state = {
+      unlocked: true,
+      muted: true,
+      volume: 0.25,
+      musicPlaying: false,
+      activeLine: 'nom',
+      lastStartLatencyMs: 1.5,
+    };
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+
+    const snapshot = ranchApi(dom).snapshot();
+    expect(snapshot.audio).toEqual(audio.state);
+    expect(snapshot.audio).not.toBe(audio.state);
+  });
+
+  it('drives mute, play hello and stop from the Sound row', () => {
+    const { bridge, audio } = createBridge();
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+    const row = findRow(dom.body, 'Sound');
+    const mute = button(row, 'Mute');
+
+    expect(pressed(mute)).toBe('false');
+    mute.click();
+    expect(audio.actions).toEqual(['mute:true']);
+    expect(pressed(mute)).toBe('true');
+
+    button(row, 'Play hello').click();
+    expect(audio.actions).toEqual(['mute:true', 'play:hello']);
+
+    button(row, 'Stop').click();
+    expect(audio.actions).toEqual(['mute:true', 'play:hello', 'stop-all']);
   });
 });

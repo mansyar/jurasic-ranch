@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DinoPlayer } from '../ranch/dino-player.js';
 import { WADDLE_LOOP_SECONDS } from '../ranch/waddle.js';
-import { isAudioUnlocked } from './audio.js';
+import { audioEngine, disposeAudio, isAudioUnlocked } from './audio.js';
 import { BLUSH_HEX, loadTrikePlayer, TRIKE_MODEL_URL } from './loaders.js';
 import {
   createPlaceholderTrike,
@@ -256,9 +256,52 @@ describe('no runtime pastel remap', () => {
   });
 });
 
-describe('audio stub', () => {
-  it('starts locked and silent', () => {
+describe('audio facade', () => {
+  it('starts locked without touching Howler', async () => {
     expect(isAudioUnlocked()).toBe(false);
+    const source = await readText('src/viewer/audio.ts');
+    // The engine is built lazily on the first gesture; the facade must never
+    // import Howler or construct an AudioContext at module load (FR-2).
+    expect(source).not.toMatch(/howler/);
+    expect(source).toMatch(/new AudioEngine\(engineOptions\)/);
+  });
+
+  it('builds one lazy engine that stays locked until the first gesture', () => {
+    expect(isAudioUnlocked()).toBe(false);
+    const engine = audioEngine();
+    expect(audioEngine()).toBe(engine);
+    expect(engine.unlocked).toBe(false);
+    expect(isAudioUnlocked()).toBe(false);
+    disposeAudio();
+    expect(isAudioUnlocked()).toBe(false);
+  });
+
+  it('unlocks from the first document gesture, not the Walk toggle', async () => {
+    const source = await readText('src/viewer/main.ts');
+    expect(source).toContain('installGestureUnlock');
+    expect(source).toContain('installVisibilityHandling');
+    expect(source).not.toMatch(/void unlockAudio\(\)/);
+  });
+
+  it('configures persisted providers for the early engine (FR-6, FR-7)', async () => {
+    const source = await readText('src/viewer/main.ts');
+    const configureAt = source.indexOf('configureAudio({');
+    expect(configureAt).toBeGreaterThan(-1);
+    expect(source.indexOf('createAudioControls(')).toBeGreaterThan(configureAt);
+    // The gesture guard must exist before the first storage await (F8).
+    expect(source.indexOf('installGestureUnlock')).toBeLessThan(
+      source.indexOf('await loadAudioSettings'),
+    );
+    // The first gesture ignores taps inside the sound controls (AC-6 edge).
+    expect(source).toContain('shouldIgnore');
+    expect(source).toContain('isAudioControlTarget');
+  });
+
+  it('continues booting when the sound controls are missing (FR-9, F4)', async () => {
+    const source = await readText('src/viewer/main.ts');
+    expect(source).toContain('continuing without sound');
+    expect(source).toContain("'Sound unavailable'");
+    expect(source).toContain('audioReadyControl.resolve()');
   });
 });
 
@@ -275,6 +318,30 @@ describe('offline shell', () => {
     expect(html).toContain('/src/viewer/main.ts');
     expect(html).toContain('walk-button');
     expect(html).toContain('72px');
+  });
+
+  it('ships the sound controls and parent panel (FR-6, FR-7, FR-8)', async () => {
+    const html = await readText('index.html');
+    for (const id of [
+      'audio-controls',
+      'audio-mute',
+      'audio-parent',
+      'audio-panel',
+      'audio-panel-title',
+      'audio-panel-mute',
+      'audio-volume',
+      'audio-volume-value',
+      'audio-panel-close',
+    ]) {
+      expect(html).toContain(`id="${id}"`);
+    }
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain('role="dialog"');
+    expect(html).toContain('type="range"');
+    expect(html).toContain('--hold-progress');
+    // Walk, POV, mute/gear, close, and the slider all meet the 72 px target.
+    const touchTargets = html.match(/min-height: 72px/g) ?? [];
+    expect(touchTargets.length).toBeGreaterThanOrEqual(4);
   });
 
   it('ships a standalone manifest with installable icons', async () => {

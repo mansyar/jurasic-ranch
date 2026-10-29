@@ -25,6 +25,17 @@ export interface SnapshotPair {
   distance: number;
 }
 
+/** Audio state published beside the scene fields (FR-10). */
+export interface SnapshotAudio {
+  unlocked: boolean;
+  muted: boolean;
+  volume: number;
+  musicPlaying: boolean;
+  activeLine: string | null;
+  /** Dispatch latency of the last voice start, in ms (not DAC onset). */
+  lastStartLatencyMs: number;
+}
+
 /** Documented snapshot shape published on `window.__ranch`. */
 export interface DevSnapshot {
   walking: boolean;
@@ -35,6 +46,7 @@ export interface DevSnapshot {
   dinos: SnapshotDino[];
   pairs: SnapshotPair[];
   minSeparation: number | null;
+  audio: SnapshotAudio;
 }
 
 /**
@@ -51,8 +63,10 @@ export function buildSnapshot(input: {
   sleepy: 'awake' | 'drowsy' | 'sleepy';
   fps: number;
   dinos: SnapshotDino[];
+  audio: SnapshotAudio;
 }): DevSnapshot {
   const dinos = input.dinos.map((dino) => ({ ...dino }));
+  const audio: SnapshotAudio = { ...input.audio };
   const pairs: SnapshotPair[] = [];
   for (let i = 0; i < dinos.length; i += 1) {
     for (let j = i + 1; j < dinos.length; j += 1) {
@@ -80,5 +94,6 @@ export function buildSnapshot(input: {
     dinos,
     pairs,
     minSeparation,
+    audio,
   };
 }
