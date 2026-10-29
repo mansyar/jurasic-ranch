@@ -132,7 +132,7 @@
 - **Covers:** FR-6, FR-7, FR-8, NFR-1, AC-4, AC-6, AC-7
 - **Touches:** `src/viewer/scene.ts`, `src/viewer/pov.ts`, `src/ranch/dressing.ts`, `src/ranch/avoidance.ts`, `src/ranch/dino-player.ts`, `src/viewer/placeholders.ts`, `tests/ranch/*.test.ts`, `tests/viewer/*.test.ts`
 - **Verification:** `pnpm verify` plus dev-harness screenshots per POV in the phase evidence
-- **Status:** pending
+- **Status:** in_progress
 - **Tasks:**
   - [ ] **P5.T1: Grow the walkable area** - covers: FR-6
     - [ ] **P5.T1.1: Increase ground radius, camera far plane, spawn ring and wander radius to derive from body length**
