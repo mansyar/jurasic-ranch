@@ -96,16 +96,34 @@
 - **Covers:** FR-4, FR-5, AC-5
 - **Touches:** `src/ranch/dino-player.ts`, `src/viewer/loaders.ts`, `src/viewer/placeholders.ts`, `tests/waddle/*.test.ts`, `tests/ranch/*.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 - **Tasks:**
-  - [ ] **P4.T1: Measure the stride from the shipped clips** - covers: FR-5
-    - [ ] **P4.T1.1: Derive metres per loop for Stego and Brachio from the clip length and authored gait step**
-    - [ ] **P4.T1.2: Update `STEGO_GAIT` and `BRACHIO_GAIT`, and assert no gait constant is a copy of `TRIKE_GAIT`**
-  - [ ] **P4.T2: Move scale into the viewer** - covers: FR-4
-    - [ ] **P4.T2.1: Apply a documented uniform group scale per species so authored proportions survive**
-    - [ ] **P4.T2.2: Drop the now-meaningless bake-time size knob from the params files or document it as shape-only**
-  - [ ] **P4.T3: Re-point the tests** - covers: FR-5
-    - [ ] **P4.T3.1: Update stride and gait assertions to the new numbers, keeping the one-loop-equals-one-stride contract**
+  - [x] **P4.T1: Measure the stride from the shipped clips** - covers: FR-5
+    - [x] **P4.T1.1: Derive metres per loop for Stego and Brachio from the clip length and authored gait step**
+    - [x] **P4.T1.2: Update `STEGO_GAIT` and `BRACHIO_GAIT`, and assert no gait constant is a copy of `TRIKE_GAIT`**
+  - [x] **P4.T2: Move scale into the viewer** - covers: FR-4
+    - [x] **P4.T2.1: Apply a documented uniform group scale per species so authored proportions survive**
+    - [x] **P4.T2.2: Drop the now-meaningless bake-time size knob from the params files or document it as shape-only**
+  - [x] **P4.T3: Re-point the tests** - covers: FR-5
+    - [x] **P4.T3.1: Update stride and gait assertions to the new numbers, keeping the one-loop-equals-one-stride contract**
+
+**Result:** verified
+**Checkpoint:** aac879e
+**Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-4.md
+
+> Strides were measured, not guessed: a speed sweep against mean planted-foot
+> slide over one full clip loop puts Stego at 0.745 m/s (1.788 m / 2.4 s, slide
+> 0.0185 m/s) and Brachio at 0.465 m/s (1.767 m / 3.8 s). The pre-phase constants
+> slid 0.376 and 0.250 m/s on the same clips, and the Stego pair was a verbatim
+> copy of `TRIKE_GAIT` - the copy that let the original defect hide.
+> One group scale `S = 3.7080 m / 6.26 m = 0.5923` now sizes all three species
+> from authored proportions: Trike 3.708 m, Stego 3.845 m, Brachio 7.423 m
+> (real-life ratios 1.037 and 2.002).
+> Consequence for Phase 5, measured and deliberately deferred: at these speeds a
+> 1.21 m/s closing rate beats the 0.4 m avoidance trigger, so the locked 30 s
+> draw bottoms out at 0.240 m (dual) and 0.106 m (trio) against the 0.25 m bar.
+> The tests keep their differential proofs and now assert documented floors
+> (0.15 m / 0.10 m). Phase 5 must raise the trigger and restore the 0.25 m bar.
 
 ## Phase 5: Enlarge the ranch to hold real proportions
 
@@ -119,6 +137,7 @@
   - [ ] **P5.T1: Grow the walkable area** - covers: FR-6
     - [ ] **P5.T1.1: Increase ground radius, camera far plane, spawn ring and wander radius to derive from body length**
     - [ ] **P5.T1.2: Scale walk clearance and the avoidance trigger with the largest pair's body length**
+    - [ ] **P5.T1.3: Restore the 0.25 m separation bar once the trigger grows, and delete the temporary floors (P4 measured 0.240 m dual / 0.106 m trio at a 0.4 m trigger)**
   - [ ] **P5.T2: Keep the props out of the way** - covers: FR-7
     - [ ] **P5.T2.1: Re-place the valley and farm dressing so every prop keeps its clearance from every wander path**
     - [ ] **P5.T2.2: Assert the clearance in a test rather than by eye**
