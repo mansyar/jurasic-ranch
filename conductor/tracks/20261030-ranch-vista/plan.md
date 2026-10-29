@@ -14,7 +14,7 @@
 - **Covers:** FR-1, FR-2, AC-5
 - **Touches:** `src/ranch/layout.ts`, `src/ranch/dressing.ts`, `tests/ranch/layout.test.ts`, `tests/ranch/dressing.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P1.T1: Extract placement helpers** - covers: FR-1
   - [ ] **P1.T1.1:** `ring(file, azimuth, radius, facing)` generalising the current `onRing`, plus `arc(file, from, to, count, radius)` and `row(file, start, count, axis, step)`
