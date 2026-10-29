@@ -187,6 +187,27 @@ describe('rigged brachio loader (FR-1, FR-4, FR-9)', () => {
     expect(loaded.player.clipDurationSeconds).toBeCloseTo(1.0, 5);
   });
 
+  it('picks the authored Walk clip, not the first animation in the file', async () => {
+    // The re-baked Brachio ships Idle first; the walk loop is 3.8 s (FR-1, AC-1).
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [
+        new THREE.AnimationClip('Idle', 8, []),
+        new THREE.AnimationClip('Walk', 3.8, []),
+      ],
+    });
+    const loaded = await loadBrachioPlayer();
+    expect(loaded.player.clipDurationSeconds).toBeCloseTo(3.8, 5);
+  });
+
+  it('refuses a GLB that carries no walk clip rather than guessing at one', async () => {
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [new THREE.AnimationClip('Idle', 8, [])],
+    });
+    await expect(loadBrachioPlayer()).rejects.toThrow('no walk clip');
+  });
+
   it('shares one DustPool across all three players', async () => {
     const shared = new DustPool({ random: () => 0.5 });
     loaderMocks.loadAsync.mockResolvedValue({

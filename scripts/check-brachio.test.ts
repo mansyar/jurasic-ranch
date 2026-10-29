@@ -7,12 +7,13 @@ import { describe, expect, it } from 'vitest';
  * three). NFR-2 sets the app-wide offline precache budget; Phase 6 audits the
  * total, this caps the one file against a runaway bake.
  */
-const MAX_BYTES = 3 * 1024 * 1024;
+// Sized to catch a runaway bake, not to bless the budget: the shipped file is
+// 690 KB (Walk only). Re-check NFR-2 before raising this.
+const MAX_BYTES = 900 * 1024;
 /** Authored clip lengths in seconds, as published (AC-1). */
 const CLIP_SECONDS = [
-  ['Idle', 8],
   ['Walk', 3.8],
-  ['Run', 2.5],
+  // ['Run', 2.5] is withdrawn: see SHIPPED_CLIP_NAMES in scripts/bake-trike-variant.js.
 ] as const;
 /** 35 bones x translation + rotation: the authored channel count. */
 const CHANNELS_PER_CLIP = 70;
@@ -140,7 +141,7 @@ describe('brachio glb', () => {
     expect(parsed.json.meshes.length).toBeGreaterThan(0);
   });
 
-  it('carries the authored Idle, Walk and Run clips at their published lengths', async () => {
+  it('carries the authored Walk clip at its published length', async () => {
     const parsed = await parseGlb();
     const animations = parsed.json.animations ?? [];
     // AC-1: the authored set, and no donor "Waddle" anywhere.
@@ -148,6 +149,10 @@ describe('brachio glb', () => {
       CLIP_SECONDS.map(([name]) => name).sort(),
     );
     expect(animations.some((animation) => animation.name === 'Waddle')).toBe(false);
+    // Idle and Run are withdrawn by the bake (NFR-2 cache budget): absent, not
+    // silently dropped.
+    expect(animations.some((animation) => animation.name === 'Run')).toBe(false);
+    expect(animations.some((animation) => animation.name === 'Idle')).toBe(false);
     for (const animation of animations) {
       const expected = CLIP_SECONDS.find(([name]) => name === animation.name)?.[1];
       expect(expected).toBeDefined();

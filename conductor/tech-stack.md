@@ -15,9 +15,18 @@
 
 ## Architecture Notes
 
-- Ranch players: `DinoPlayer` is the single player class — species behaviour is
+- Ranch players: `DinoPlayer` is the single player class - species behaviour is
   a gait config (`TRIKE_GAIT`, `STEGO_GAIT`, `BRACHIO_GAIT`), never a species
   subclass or shim (Trike alias retired in 20261029-ranch-housekeeping).
+- Dino bake (`pnpm` scripts in `scripts/vendor/`): the Polyfork parametric module
+  builds the pastel mesh at authored proportions; the published asset GLB is the
+  clip source, and its `Walk` is grafted verbatim per joint name (translation and
+  rotation only - a glTF translation channel is absolute, so rescaling it pulls
+  the bone off its rest offset, which is exactly the bug this replaced). The bake
+  then re-exports through headless Blender for Draco and keeps one decoder family
+  in the bundle. In-game size is a viewer group scale (`DINO_GROUP_SCALE`), never
+  a bake knob. `Idle` and `Run` stay withdrawn: no code path plays them and they
+  cost 1.0-1.6 MiB of precache per species (20261029-authored-dino-walk-clips).
 
 ## Package Manager & Build
 

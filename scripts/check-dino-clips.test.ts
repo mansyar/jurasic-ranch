@@ -147,13 +147,15 @@ describe.each(SPECIES)('$file bone displacement', (species) => {
     expect(displacementViolations(rows)).toEqual([]);
   });
 
-  it('ships the authored Walk clip at its published length, beside Idle and Run (FR-1)', async () => {
+  it('ships the authored Walk clip at its published length and nothing else (FR-1)', async () => {
     const clips = clipFacts(await loadGlb(species.file));
     const byName = new Map(clips.map((clip) => [clip.name, clip.durationSeconds]));
     // The clip must be the species' own authored one; `Waddle` is the donor
     // transfer this gate exists to keep out.
     expect(byName.has('Waddle')).toBe(false);
-    expect([...byName.keys()].sort()).toEqual(['Idle', 'Run', 'Walk']);
+    expect([...byName.keys()].sort()).toEqual(['Walk']);
+    // Run is withdrawn (NFR-2): the bake ships two of the three published clips.
+    expect(byName.has('Run')).toBe(false);
     expect(byName.get('Walk')).toBeCloseTo(species.walkSeconds, 3);
   });
 });

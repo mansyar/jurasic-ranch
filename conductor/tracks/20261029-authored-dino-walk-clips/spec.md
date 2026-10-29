@@ -73,7 +73,7 @@ This track replaces that with the locomotion Polyfork actually authored for each
 
 | ID | Requirement | Priority |
 |---|---|---|
-| FR-1 | Each of Stego and Brachio ships locale-locomotion clips authored by Polyfork, named `Walk` (plus `Idle` and `Run`), instead of a clip extracted from the Trike donor. | must |
+| FR-1 | Each of Stego and Brachio ships locomotion clips authored by Polyfork, named `Walk` (plus `Idle` and `Run`), instead of a clip extracted from the Trike donor. **Amended 2026-10-30 (Phase 6):** `Idle` and `Run` are withdrawn - the shipped file carries `Walk` only (see NFR-2 and the edge case). | must |
 | FR-2 | Both GLBs are re-baked from the vendored module at authored proportions (`size: 1.0`) so the rig matches the source GLB's rig bone-for-bone. | must |
 | FR-3 | A regression test asserts, for every animated bone in each shipped GLB, that first-frame translation displacement from rest is ≤ 25 % of that bone's rest distance to its parent. | must |
 | FR-4 | In-game size is a uniform per-species group scale in the viewer; no bake-time `size` knob decides gameplay scale. | must |
@@ -88,7 +88,7 @@ This track replaces that with the locomotion Polyfork actually authored for each
 | ID | Requirement |
 |---|---|
 | NFR-1 | The re-baked trio keeps the render loop inside the current frame budget: ≤ 30k triangles and ≤ 100 draw calls in the dev harness at 1280×800, no PCF shadow regression. |
-| NFR-2 | Offline precache grows by no more than 2 MiB over the current 3,426 KiB, and `pnpm build` stays free of dev-harness markers. |
+| NFR-2 | Offline precache grows by no more than 2 MiB over the current 3,426 KiB, and `pnpm build` stays free of dev-harness markers. Measured 2026-10-30: 4,221.80 KiB, i.e. +796 KiB. |
 | NFR-3 | The bake is reproducible: re-running it on a clean tree produces byte-identical GLBs (sorted JSON chunk, fixed generator string, no timestamps). |
 | NFR-4 | No runtime network dependency is added; the authored clips ship inside the GLBs. |
 | NFR-5 | Every new pure function (rest-pose resolver, displacement check, stride measurement) is unit-tested and the global coverage floor of 60 % lines is maintained. |
@@ -97,7 +97,7 @@ This track replaces that with the locomotion Polyfork actually authored for each
 
 | ID | Criterion | Verifies |
 |---|---|---|
-| AC-1 | `stego.glb` and `brachio.glb` contain a `Walk` clip of 2.4 s and 3.8 s respectively, plus `Idle` and `Run`, and no clip named `Waddle`. | FR-1 |
+| AC-1 | `stego.glb` and `brachio.glb` contain a `Walk` clip of 2.4 s and 3.8 s respectively, and no clip named `Waddle`, `Idle` or `Run` (amended 2026-10-30: `Idle` and `Run` withdrawn for the cache budget). | FR-1 |
 | AC-2 | The new regression test fails against the pre-track GLBs (`1a96d6b`) and passes against the re-baked ones. | FR-3 |
 | AC-3 | In the dev harness at the Garden POV, Stego and Brachio walk with no visible bone collapse; a screenshot pair is recorded in the phase evidence. | FR-1, FR-2 |
 | AC-4 | Body-length ratios Stego/Trike and Brachio/Trike sit within 1.04 ± 0.03 and 2.00 ± 0.05 as measured from the model bounds in the browser. | FR-4, FR-6 |
@@ -113,7 +113,7 @@ This track replaces that with the locomotion Polyfork actually authored for each
 - **Clip rig vs mesh rig.** If a module default knob changes between now and a future re-bake, the grafted clip's rig can diverge from the baked rig again. FR-3's test is the guard; the bake must also fail loudly when a grafted bone has no counterpart, which is what the current script does for donor channels.
 - **Authored proportions vs game size.** Scale lives in one place only (the viewer's per-species group scale). A bake-time size knob would silently reintroduce the translation mismatch.
 - **Spawn overlap.** A Brachio twice the Trike's length cannot spawn 0.4 m from it; the spawn ring and avoidance trigger must both grow with the body lengths.
-- **Offline precache.** Three clips per GLB is more binary than one; if the budget in NFR-2 is exceeded, ship `Idle` and `Walk` and withdraw `Run` explicitly rather than trimming precision.
+- **Offline precache.** Measured 2026-10-30, the budget in NFR-2 is breached by the published keyframe density, not by the clip count alone: shipping `Idle` + `Walk` cost +2.86 MiB (6,873 KiB precache), and `Run` alone was 102-370 KiB per species. Resolution: **withdraw both secondary clips** - `Idle` and `Run` are carried by no code path - and ship `Walk` only, which lands at +796 KiB. A track that needs `Idle` re-bakes with it in `SHIPPED_CLIP_NAMES` and amends NFR-2 with the measured cost.
 - **Older snapshots.** A stale `dist/` or cached GLB will still show the broken Stego. Calc must invalidate the workbox precache on the GLB hashes, which the existing config already does.
 
 ## Dependencies

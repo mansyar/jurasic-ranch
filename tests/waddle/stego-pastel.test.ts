@@ -13,7 +13,7 @@ import {
  * Baked pastel Stego (FR-1 / FR-2 / FR-3): the pinned bake params, the
  * procedural geometry they produce (pastel COLOR_0, one material, authored
  * proportions), and the authored clips the bake carries — Polyfork's own
- * `Idle`/`Walk`/`Run`, copied verbatim. The GLB-level checks (Draco, single
+ * `Walk`, copied verbatim; `Idle` and `Run` are withdrawn (cache budget).`n * The GLB-level checks (Draco, single
  * material, clip durations, bounds) live in scripts/check-stego.test.ts, which
  * cannot read colours out of Draco bytes.
  */
@@ -33,7 +33,8 @@ const COLOR_TOLERANCE = 1e-4;
 const MIN_VERTS_PER_ZONE = 50;
 const SHIPPED_GLB = new URL('../../public/models/stego.glb', import.meta.url);
 /** Authored cycle lengths, as published (AC-1). */
-const CLIP_SECONDS = { Idle: 9, Walk: 2.4, Run: 1 } as const;
+// Shipped set: Run is withdrawn (see SHIPPED_CLIP_NAMES), so it is not here.
+const CLIP_SECONDS = { Walk: 2.4 } as const;
 
 /** Count verts whose linear-space color matches the hex within tolerance. */
 function countMatchingVerts(geometry: THREE.BufferGeometry, hex: string): number {
@@ -166,10 +167,10 @@ describe('baked pastel stego variant geometry', () => {
 });
 
 describe('authored clips on the stego rig', () => {
-  it('rebuilds Idle, Walk and Run with the published timing', async () => {
+  it('rebuilds the authored Walk clip with the published timing', async () => {
     const group = createStegoVariantGroup();
     const clips = buildStegoClips(group, await readFile(SHIPPED_GLB));
-    expect(clips.map((clip) => clip.name)).toEqual(['Idle', 'Walk', 'Run']);
+    expect(clips.map((clip) => clip.name)).toEqual(['Walk']);
     for (const clip of clips) {
       expect(clip.duration).toBeCloseTo(CLIP_SECONDS[clip.name as keyof typeof CLIP_SECONDS], 3);
       expect(clip.tracks.length).toBe(48);

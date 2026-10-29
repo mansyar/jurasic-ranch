@@ -54,8 +54,23 @@ export interface AuthoredClip {
 /** Every animation in raw GLB bytes, in file order. */
 export declare function extractAnimationClips(bytes: Uint8Array): AuthoredClip[];
 
+/** Clips Polyfork publishes on the dino GLBs; only the source set is checked against it. */
+export declare const PUBLISHED_CLIP_NAMES: string[];
+
+/** Clips the shipped GLBs carry, in order: Idle and Walk. Run is withdrawn. */
+export declare const SHIPPED_CLIP_NAMES: string[];
+
+/**
+ * Keep only the clips that ship, after asserting the download still carries the
+ * full published set. Returns them in `PUBLISHED_CLIP_NAMES` order.
+ */
+export declare function selectShippedClips(
+  authored: AuthoredClip[],
+  names?: string[],
+): AuthoredClip[];
+
 export interface GraftAuthoredClipsOptions {
-  /** Clip names the GLB must carry exactly; defaults to Idle, Walk and Run. */
+  /** Clip names the GLB must carry exactly; defaults to `SHIPPED_CLIP_NAMES`. */
   requiredClipNames?: string[];
 }
 
@@ -71,7 +86,7 @@ export declare function graftAuthoredClips(
 ): THREE.AnimationClip[];
 
 export interface InjectGlbAnimationsOptions {
-  /** Clip names the authored set must be exactly; defaults to Idle, Walk and Run. */
+  /** Clip names the authored set must be exactly; defaults to `SHIPPED_CLIP_NAMES`. */
   requiredClipNames?: string[];
 }
 

@@ -157,16 +157,31 @@ subagent's shell could not drive a browser), and AC-7 needed one more fix.
 
 ## Phase 6: Tell the truth about the trio
 
-- **Goal:** the conductor docs, the credits and the budget evidence describe the shipped pipeline; the Brachio scale cap is retired.
+- **Goal:** the viewer plays the species' own walk clip, the conductor docs, the credits and the budget evidence describe the shipped pipeline, and the Brachio scale cap is retired.
 - **Depends on:** Phase 5
-- **Covers:** FR-9, NFR-2, NFR-5, AC-8, AC-9
-- **Touches:** `conductor/product.md`, `conductor/tech-stack.md`, `CREDITS.md`, `src/viewer/loaders.ts`, `scripts/**`, `conductor/tracks/20261029-authored-dino-walk-clips/`
+- **Covers:** FR-1, FR-2, FR-9, NFR-2, NFR-5, AC-1, AC-8, AC-9
+- **Touches:** `conductor/product.md`, `conductor/tech-stack.md`, `CREDITS.md`, `src/viewer/loaders.ts`, `src/viewer/viewer.test.ts`, `tests/waddle/*.test.ts`, `scripts/**`, `conductor/tracks/20261029-authored-dino-walk-clips/`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 - **Tasks:**
-  - [ ] **P6.T1: Retire the stale cap and document the pipeline** - covers: FR-9
-    - [ ] **P6.T1.1: Replace the 1.2 m Brachio cap in `product.md` with the real proportion rule**
-    - [ ] **P6.T1.2: Describe the module-mesh-plus-grafted-clips bake in `tech-stack.md`**
-  - [ ] **P6.T2: Record the budget** - covers: NFR-2
-    - [ ] **P6.T2.1: Record precache before and after, and confirm the growth stays within 2 MiB**
-    - [ ] **P6.T2.2: If the budget is exceeded, withdraw `Run` explicitly rather than trimming precision**
+  - [x] **P6.T1: Retire the stale cap and document the pipeline** - covers: FR-9
+    - [x] **P6.T1.1: Replace the 1.2 m Brachio cap in `product.md` with the real proportion rule**
+    - [x] **P6.T1.2: Describe the module-mesh-plus-grafted-clips bake in `tech-stack.md`**
+  - [x] **P6.T2: Record the budget** - covers: NFR-2
+    - [x] **P6.T2.1: Record precache before and after, and confirm the growth stays within 2 MiB**
+    - [x] **P6.T2.2: If the budget is exceeded, withdraw the unused clips explicitly rather than trimming precision**
+  - [x] **P6.T3: Ask for the clip that exists** - covers: FR-1, FR-2, AC-1
+    - [x] **P6.T3.1: Replace the `Waddle` lookup and the `animations[0]` fallback with an ordered walk-clip lookup that refuses to guess**
+    - [x] **P6.T3.2: Re-bake with the withdrawn clips dropped, shrink the byte caps to the shipped sizes, and capture a walk screenshot per species**
+
+**Result:** verified
+**Checkpoint:** _(set after squash)_
+**Evidence:** conductor/tracks/20261029-authored-dino-walk-clips/verification/phase-6.md
+
+> The re-bake left `Idle` first in the file, and the viewer was still looking for
+> `Waddle` with an `animations[0]` fallback - so both new species walked on a
+> breathing pose. Phase 6 found it by pressing Walk in the dev harness, not by a
+> test. The same harness screenshots then measured the budget: `Idle` + `Walk` +
+> `Run` is +3.4 MiB of precache, `Idle` + `Walk` is +2.86 MiB, so the shipped set
+> is `Walk` alone (+796 KiB). FR-1 and AC-1 are amended inline rather than
+> quietly reinterpreted.

@@ -340,6 +340,50 @@ function assertAuthoredClipSet(animations, requiredClipNames) {
 }
 
 /**
+ * The clip set Polyfork publishes for a dino base. Used as a name allow-list,
+ * never as a requirement: a re-bake reads a file that already shipped.
+ */
+export const PUBLISHED_CLIP_NAMES = ['Idle', 'Walk', 'Run'];
+
+/**
+ * The clip set this game ships: `Walk`, and nothing else. Both secondary clips
+ * are withdrawn on purpose - no code path plays `Idle` or `Run`, and carrying
+ * them would cost 1.0-1.6 MiB of keyframes per species against a 2 MiB
+ * precache budget (spec FR-1, edge case). A track that needs `Idle` re-bakes
+ * with it in this list and amends NFR-2 with the measured cost.
+ */
+export const SHIPPED_CLIP_NAMES = ['Walk'];
+
+/**
+ * Keep only the clips that ship, refusing a clip set that drifted.
+ *
+ * Accepts either the published download (Idle, Walk, Run) or an already-shipped
+ * GLB (Idle, Walk): anything outside `PUBLISHED_CLIP_NAMES` throws rather than
+ * being dropped silently, and a missing shipped clip throws too. The result is
+ * ordered by `PUBLISHED_CLIP_NAMES`, so the same clip set always serialises to
+ * the same bytes whichever GLB it was read from.
+ */
+export function selectShippedClips(authored, names = SHIPPED_CLIP_NAMES) {
+  const found = authored.map((animation) => animation.name);
+  const unexpected = found.filter((name) => !PUBLISHED_CLIP_NAMES.includes(name));
+  if (unexpected.length > 0) {
+    throw new Error(
+      `GLB carries clip(s) ${unexpected.join(', ')} and Polyfork publishes ${PUBLISHED_CLIP_NAMES.join(', ')}; ` +
+        'decide what to ship rather than dropping them silently.',
+    );
+  }
+  const missing = names.filter((name) => !found.includes(name));
+  if (missing.length > 0) {
+    throw new Error(
+      `GLB is missing clip(s) ${missing.join(', ')}; it carries ${found.join(', ') || 'none'}.`,
+    );
+  }
+  return PUBLISHED_CLIP_NAMES.filter((name) => names.includes(name)).flatMap((name) =>
+    authored.filter((animation) => animation.name === name),
+  );
+}
+
+/**
  * glTF sampler interpolation → three's track interpolation. `CUBICSPLINE` is
  * deliberately absent: its sampler values are in-tangent / point / out-tangent
  * triplets, so copying them into a linear track would misread every key.
@@ -364,10 +408,10 @@ const TRACK_INTERPOLATION = {
  * Throws — before the caller writes anything — when a clip names a bone the
  * baked rig lacks (every missing bone is listed), when a channel targets
  * another path, when a sampler is not LINEAR or STEP, or when the GLB's clip
- * set is not exactly `requiredClipNames`.
+ * set is not exactly `requiredClipNames` (defaults to `SHIPPED_CLIP_NAMES`).
  */
 export function graftAuthoredClips(skeletonRoot, animations, options = {}) {
-  assertAuthoredClipSet(animations, options.requiredClipNames ?? ['Idle', 'Walk', 'Run']);
+  assertAuthoredClipSet(animations, options.requiredClipNames ?? SHIPPED_CLIP_NAMES);
   const missingBones = new Set();
   const clips = [];
   for (const animation of animations) {
@@ -474,7 +518,7 @@ export function writeGlb(json, bin) {
  */
 export function injectGlbAnimations(glbBytes, authored, options = {}) {
   const { json, bin } = parseGlb(glbBytes);
-  assertAuthoredClipSet(authored, options.requiredClipNames ?? ['Idle', 'Walk', 'Run']);
+  assertAuthoredClipSet(authored, options.requiredClipNames ?? SHIPPED_CLIP_NAMES);
   const nodeIndexByName = new Map();
   const nodes = json.nodes ?? [];
   for (let index = 0; index < nodes.length; index += 1) {

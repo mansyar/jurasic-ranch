@@ -13,8 +13,9 @@ import {
  * Baked pastel Brachio (FR-1 / FR-2 / FR-3): the pinned bake params, the
  * procedural geometry they produce (lavender-blush pastel COLOR_0, one
  * material, authored proportions with the upright default neck carriage), and
- * the authored clips the bake carries — Polyfork's own `Idle`/`Walk`/`Run` over
- * all 35 bones, copied verbatim. The GLB-level checks (Draco, single material,
+ * the authored clip the bake carries - Polyfork's own `Walk` over all 35 bones,
+ * copied verbatim; `Idle` and `Run` are withdrawn (cache budget, FR-1). The
+ * GLB-level checks (Draco, single material,
  * clip durations, bounds) live in scripts/check-brachio.test.ts, which cannot
  * read colours out of Draco bytes.
  */
@@ -33,7 +34,8 @@ const COLOR_TOLERANCE = 1e-4;
 const MIN_VERTS_PER_ZONE = 50;
 const SHIPPED_GLB = new URL('../../public/models/brachio.glb', import.meta.url);
 /** Authored cycle lengths, as published (AC-1). */
-const CLIP_SECONDS = { Idle: 8, Walk: 3.8, Run: 2.5 } as const;
+// Shipped set: Run is withdrawn (see SHIPPED_CLIP_NAMES), so it is not here.
+const CLIP_SECONDS = { Walk: 3.8 } as const;
 /** Authored channels: 35 bones x translation + rotation. */
 const CHANNELS_PER_CLIP = 70;
 
@@ -168,10 +170,10 @@ describe('baked pastel brachio variant geometry', () => {
 });
 
 describe('authored clips on the brachio rig', () => {
-  it('rebuilds Idle, Walk and Run with the published timing', async () => {
+  it('rebuilds the authored Walk clip with the published timing', async () => {
     const group = createBrachioVariantGroup();
     const clips = buildBrachioClips(group, await readFile(SHIPPED_GLB));
-    expect(clips.map((clip) => clip.name)).toEqual(['Idle', 'Walk', 'Run']);
+    expect(clips.map((clip) => clip.name)).toEqual(['Walk']);
     for (const clip of clips) {
       expect(clip.duration).toBeCloseTo(CLIP_SECONDS[clip.name as keyof typeof CLIP_SECONDS], 3);
       expect(clip.tracks.length).toBe(CHANNELS_PER_CLIP);

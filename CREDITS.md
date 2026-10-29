@@ -20,9 +20,10 @@
   (`size: 1.0`) with the pastel colourway; baked game file `public/models/stego.glb`
   (pastel-coloured, Draco-compressed).
 - Clips: the published asset GLB (`https://polyfork.dev/cdn/stegosaurus-base.glb`),
-  which is the only place Polyfork ships its authored animation. Its `Idle`,
-  `Walk` and `Run` are grafted verbatim (name, duration, keyframes) onto the
-  baked rig. Not derived from the Trike.
+  which is the only place Polyfork ships its authored animation. Its `Walk` is
+  grafted verbatim (name, duration, keyframes) onto the baked rig. `Idle` and
+  `Run` are withdrawn from the game file (cache budget, spec FR-1). Not derived
+  from the Trike.
 - License: commercial use allowed, no attribution required. No redistribution of the
   standalone files; vendoring into this game counts as use, not redistribution.
   See https://polyfork.dev/licensing.
@@ -37,9 +38,10 @@
   `public/models/brachio.glb` (pastel-coloured, Draco-compressed). Gameplay size
   is a viewer group scale, never a bake knob.
 - Clips: the published asset GLB (`https://polyfork.dev/cdn/brachiosaurus-base.glb`).
-  Its `Idle`, `Walk` and `Run` are grafted verbatim onto the baked rig, so all 35
-  bones — including the neck and tail chains — move on the sauropod's own
-  authored motion. Not derived from the Trike.
+  Its `Walk` is grafted verbatim onto the baked rig, so all 35 bones - including
+  the neck and tail chains - move on the sauropod's own authored motion. `Idle`
+  and `Run` are withdrawn from the game file (cache budget, spec FR-1). Not
+  derived from the Trike.
 - License: commercial use allowed, no attribution required. No redistribution of the
   standalone files; vendoring into this game counts as use, not redistribution.
   See https://polyfork.dev/licensing.

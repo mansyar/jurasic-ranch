@@ -83,6 +83,7 @@ import {
   extractAnimationClips,
   graftAuthoredClips,
   injectGlbAnimations,
+  selectShippedClips,
 } from '../bake-trike-variant.js';
 import { createAsset } from './brachiosaurus-base.mjs';
 
@@ -147,14 +148,17 @@ export function createBrachioDefaultGroup() {
 }
 
 /**
- * Load the authored `Idle`, `Walk` and `Run` from a published GLB and rebuild
- * them as three clips on `skeletonRoot`. Species-named wrapper over the shared
- * graft; see `graftAuthoredClips` for the copy rules. The bake uses it as a
+ * Load the published GLB's authored clips and rebuild the SHIPPED set on
+ * `skeletonRoot`: `Idle` and `Walk`, in that order. `Run` is withdrawn - it
+ * costs 102-370 KiB of keyframes that no code path plays, and the offline-cache
+ * budget is 2 MiB - so the bake grafts two of the three (see
+ * `SHIPPED_CLIP_NAMES` in `bake-trike-variant.js`). Species-named wrapper over
+ * the shared graft; see `graftAuthoredClips` for the copy rules. The bake uses it as a
  * pre-flight check against the baked skeleton, and the tests use it to play the
  * shipped clips headless.
  */
 export function buildBrachioClips(skeletonRoot, officialBytes) {
-  return graftAuthoredClips(skeletonRoot, extractAnimationClips(officialBytes));
+  return graftAuthoredClips(skeletonRoot, selectShippedClips(extractAnimationClips(officialBytes)));
 }
 
 /** Read the official clip source, naming both fetch routes when it is absent. */
@@ -190,7 +194,7 @@ export async function bakeBrachioVariant(options = {}) {
   const outPath = options.outPath ?? DEFAULT_OUT_GLB;
   const blenderBin = options.blenderBin ?? process.env['BRACHIO_BLENDER_BIN'] ?? 'blender';
   const officialBytes = await readOfficialGlb(officialGlbPath);
-  const authored = extractAnimationClips(officialBytes);
+  const shipped = selectShippedClips(extractAnimationClips(officialBytes));
   const group = createBrachioVariantGroup();
   // Pre-flight against the real baked skeleton: a missing bone fails here, with
   // the full list, instead of after Blender has written a GLB.
@@ -211,8 +215,8 @@ export async function bakeBrachioVariant(options = {}) {
     if (result.status !== 0) {
       throw new Error(`Blender Draco pass failed (exit ${result.status}). Uncompressed export kept at ${tmpIn}.`);
     }
-    const injected = injectGlbAnimations(await readFile(tmpOut), authored);
-    assertAuthoredClipsPreserved(injected, authored);
+    const injected = injectGlbAnimations(await readFile(tmpOut), shipped);
+    assertAuthoredClipsPreserved(injected, shipped);
     await writeFile(tmpOut, injected);
     await rename(tmpOut, outPath);
   } catch (error) {
@@ -225,7 +229,7 @@ export async function bakeBrachioVariant(options = {}) {
   }
   return {
     outPath,
-    clips: authored.map((animation) => ({
+    clips: shipped.map((animation) => ({
       name: animation.name,
       durationSeconds: animation.durationSeconds,
       trackCount: animation.channels.length,

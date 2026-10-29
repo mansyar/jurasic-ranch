@@ -25,20 +25,42 @@ export const TRIKE_MODEL_URL = `${BASE_URL}models/trike.glb`;
 
 /**
  * Path of the baked Stego GLB (Phase 2 pastel baby variant, Draco). Loads
- * through the same Draco path and prefer-Waddle-else-first contract as the
- * Trike, wrapped in a DinoPlayer with STEGO_GAIT.
+ * through the same Draco path and walk-clip contract as the Trike, wrapped in a
+ * DinoPlayer with STEGO_GAIT.
  */
 export const STEGO_MODEL_URL = `${BASE_URL}models/stego.glb`;
 
 /**
  * Path of the baked Brachio GLB (Phase 3 pastel baby variant, Draco). Loads
- * through the same Draco path and prefer-Waddle-else-first contract as the
- * Trike and Stego, wrapped in a DinoPlayer with BRACHIO_GAIT.
+ * through the same Draco path and walk-clip contract as the Trike and Stego,
+ * wrapped in a DinoPlayer with BRACHIO_GAIT.
  */
 export const BRACHIO_MODEL_URL = `${BASE_URL}models/brachio.glb`;
 
-/** Name of the baked seamless loop inside the Trike GLB. */
-const WADDLE_CLIP_NAME = 'Waddle';
+/**
+ * Clip names a dino GLB may give its walk loop, most preferred first.
+ *
+ * Walk is what Polyfork's authored clips are called and what the re-baked
+ * Stego and Brachio ship; Waddle is the donor-retarget name the Trike's bake
+ * still carries. The first match wins.
+ *
+ * There is deliberately no `animations[0]` fallback. The re-bake that renamed the
+ * clips shipped Idle first, and the old fallback walked both new species on a
+ * breathing pose for a whole phase without a single test noticing - a GLB with no
+ * walk clip is a bake that needs looking at, not something to guess around.
+ */
+const WALK_CLIP_NAMES = ['Walk', 'Waddle'];
+
+/** The walk loop out of a loaded GLB, or undefined when it ships no walk clip. */
+function findWalkClip(animations: THREE.AnimationClip[]): THREE.AnimationClip | undefined {
+  for (const name of WALK_CLIP_NAMES) {
+    const clip = THREE.AnimationClip.findByName(animations, name);
+    if (clip != null) {
+      return clip;
+    }
+  }
+  return undefined;
+}
 
 /**
  * Per-species in-game size, in one place (FR-4).
@@ -130,7 +152,7 @@ export interface LoadedDino {
 export type LoadedTrike = LoadedDino;
 
 /**
- * Load a baked Draco GLB and wrap its `Waddle` clip in a DinoPlayer with the
+ * Load a baked Draco GLB and wrap its walk clip in a DinoPlayer with the
  * given gait. DOM- and renderer-free (loader boundary only), so tests can
  * drive it with a stubbed GLTFLoader while the real viewer owns the WebGL
  * chrome. An injected DustPool is shared (FR-9); omitted, the player keeps a
@@ -154,10 +176,12 @@ async function loadDinoPlayer(
     const loader = new GLTFLoader();
     loader.setDRACOLoader(draco);
     const gltf = await loader.loadAsync(modelUrl);
-    const clip: THREE.AnimationClip | undefined =
-      THREE.AnimationClip.findByName(gltf.animations, WADDLE_CLIP_NAME) ?? gltf.animations[0];
+    const clip = findWalkClip(gltf.animations);
     if (clip === undefined) {
-      throw new Error(`${species} GLB has no animations (expected "${WADDLE_CLIP_NAME}")`);
+      throw new Error(
+        `${species} GLB has no walk clip (expected "${WALK_CLIP_NAMES.join('" or "')}"; it carries ` +
+          `${gltf.animations.map((animation) => animation.name).join(', ') || 'none'})`,
+      );
     }
     // In-game size is a uniform group scale, applied before the player exists so
     // DinoPlayer captures it as its squash/sleepy base (FR-4). One scalar: x/y/z

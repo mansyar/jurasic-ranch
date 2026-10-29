@@ -144,6 +144,20 @@ describe('rigged trike loader', () => {
     expect(loaded.player.clipDurationSeconds).toBeCloseTo(0.8, 5);
   });
 
+  it('accepts the authored Walk name as well as the Trike bake s Waddle', async () => {
+    // A re-bake of the Trike would carry Polyfork's own `Walk`; the loader reads
+    // either name and never falls back to `animations[0]` (FR-1, AC-1).
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [
+        new THREE.AnimationClip('Idle', 9, []),
+        new THREE.AnimationClip('Walk', 0.8, []),
+      ],
+    });
+    const loaded = await loadTrikePlayer();
+    expect(loaded.player.clipDurationSeconds).toBeCloseTo(0.8, 5);
+  });
+
   it('rejects when the GLB cannot load so the viewer keeps the placeholder', async () => {
     loaderMocks.loadAsync.mockRejectedValue(new Error('offline'));
     await expect(loadTrikePlayer()).rejects.toThrow('offline');
