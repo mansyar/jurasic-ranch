@@ -4,15 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DinoPlayer } from "../ranch/dino-player.js";
 import { WADDLE_LOOP_SECONDS } from "../ranch/waddle.js";
 import { isAudioUnlocked } from "./audio.js";
+import { BLUSH_HEX, loadTrikePlayer, TRIKE_MODEL_URL } from "./loaders.js";
 import {
-  BLUSH_HEX,
   createPlaceholderTrike,
-  loadTrikePlayer,
   PLACEHOLDER_BODY_HEX,
   PLACEHOLDER_BODY_NAME,
-  TRIKE_MODEL_URL,
   updatePlaceholderWalk,
-} from "./main.js";
+} from "./placeholders.js";
 import { FALLBACK_PIXEL_RATIO, MAX_PIXEL_RATIO, resolvePixelRatio } from "./pixel-ratio.js";
 import { readSetting } from "./storage.js";
 
@@ -238,7 +236,7 @@ describe("rigged baked look", () => {
 
 describe("no runtime pastel remap", () => {
   it("wires no recolor helper into the viewer", async () => {
-    const source = await readText("src/viewer/main.ts");
+    const source = await readText("src/viewer/loaders.ts");
     expect(source).not.toContain("applyPastelRemap");
     expect(source).not.toContain("remapColorAttribute");
     expect(source).not.toContain("pastelRemap");

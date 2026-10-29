@@ -102,7 +102,13 @@ describe('sleepy versus hint-glow precedence (P3.T3)', () => {
   });
 
   it('wires the controller, overlay, and player weight into the viewer', async () => {
-    const viewer = await readFile(new URL('src/viewer/main.ts', ROOT_URL), 'utf8');
+    const viewer = (
+      await Promise.all(
+        ['hud.ts', 'loop.ts', 'main.ts'].map((name) =>
+          readFile(new URL(`src/viewer/${name}`, ROOT_URL), 'utf8'),
+        ),
+      )
+    ).join('\n');
     expect(viewer).toContain('SleepyController');
     expect(viewer).toContain('ensureSleepyOverlay');
     expect(viewer).toContain('setSleepyVisible');
@@ -117,7 +123,7 @@ describe('sleepy versus hint-glow precedence (P3.T3)', () => {
     expect(hintSuppressedBySleepy('sleepy')).toBe(true);
     // The interval guard mirrors that precedence: suppression is checked
     // before the hint class is added.
-    const viewer = await readFile(new URL('src/viewer/main.ts', ROOT_URL), 'utf8');
+    const viewer = await readFile(new URL('src/viewer/hud.ts', ROOT_URL), 'utf8');
     const interval = viewer.slice(viewer.indexOf('window.setInterval'));
     expect(interval).toContain('hintSuppressedBySleepy');
     expect(interval.slice(0, interval.indexOf('classList.add'))).toContain('hintSuppressedBySleepy');

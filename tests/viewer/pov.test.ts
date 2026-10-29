@@ -93,7 +93,7 @@ describe('POV shell wiring', () => {
   });
 
   it('wires instant POV cuts, hint reset, and zoom guards in the viewer', async () => {
-    const source = await readText('src/viewer/main.ts');
+    const source = await readText('src/viewer/hud.ts');
     expect(source).toContain('applyPovPreset');
     expect(source).toContain('shouldShowHint');
     expect(source).toContain('isPortraitViewport');

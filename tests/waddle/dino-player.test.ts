@@ -479,7 +479,7 @@ describe("stay-in-frame wander", () => {
 
 describe("no TrikePlayer duplication (AC-7)", () => {
   it("wires only DinoPlayer into the viewer", async () => {
-    const viewer = await readFile(new URL("src/viewer/main.ts", ROOT_URL), "utf8");
+    const viewer = await readFile(new URL("src/viewer/loaders.ts", ROOT_URL), "utf8");
     // The Trike loader keeps its species name (loadTrikePlayer), but the
     // player class it wires must be the generic one.
     expect(viewer).toMatch(/DinoPlayer/);

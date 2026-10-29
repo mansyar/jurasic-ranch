@@ -5,23 +5,23 @@ import { trioSpawnPositions } from "../../src/ranch/avoidance.js";
 import { BRACHIO_GAIT, DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from "../../src/ranch/dino-player.js";
 import { DustPool } from "../../src/ranch/dust.js";
 import { WADDLE_LOOP_SECONDS } from "../../src/ranch/waddle.js";
+import { walkStatusText } from "../../src/viewer/hud.js";
 import {
-  BRACHIO_BODY_HEX,
   BRACHIO_MODEL_URL,
-  createPlaceholderBrachio,
   loadBrachioPlayer,
   loadStegoPlayer,
   loadTrikePlayer,
+} from "../../src/viewer/loaders.js";
+import { setAllWalking, steerTrioApart, TRIO_SPAWN_HEADINGS_RADIANS } from "../../src/viewer/loop.js";
+import {
+  BRACHIO_BODY_HEX,
+  createPlaceholderBrachio,
   PLACEHOLDER_BODY_HEX,
   PLACEHOLDER_BODY_NAME,
-  setAllWalking,
   STEGO_BODY_HEX,
   STEGO_PLATE_HEX,
-  steerTrioApart,
-  TRIO_SPAWN_HEADINGS_RADIANS,
   updatePlaceholderWalk,
-  walkStatusText,
-} from "../../src/viewer/main.js";
+} from "../../src/viewer/placeholders.js";
 
 const ROOT_URL = new URL("../../", import.meta.url);
 
@@ -322,12 +322,16 @@ describe("trio ranch shell (NFR-4, FR-7, FR-8, FR-9)", () => {
     expect(html).toContain("min-height: 72px");
     expect(html).toContain('aria-pressed="false"');
     expect(html).toContain('id="status"');
-    const source = await readText("src/viewer/main.ts");
+    const source = await readText("src/viewer/hud.ts");
     expect(source).toContain("aria-pressed");
   });
 
   it("constructs a single shared DustPool for all three players", async () => {
-    const source = await readText("src/viewer/main.ts");
+    const source = (
+      await Promise.all(
+        ["main.ts", "loaders.ts", "loop.ts"].map((file) => readText(`src/viewer/${file}`)),
+      )
+    ).join("\n");
     const constructions = source.match(/new DustPool\(/g) ?? [];
     expect(constructions.length).toBe(1);
     expect(source).toContain("loadBrachioPlayer");
@@ -336,7 +340,11 @@ describe("trio ranch shell (NFR-4, FR-7, FR-8, FR-9)", () => {
   });
 
   it("adds no new player class: only DinoPlayer drives all three gaits", async () => {
-    const source = await readText("src/viewer/main.ts");
+    const source = (
+      await Promise.all(
+        ["main.ts", "loaders.ts", "loop.ts"].map((file) => readText(`src/viewer/${file}`)),
+      )
+    ).join("\n");
     expect(source).not.toMatch(/class BrachioPlayer/);
     expect(source).not.toMatch(/class TrikePlayer/);
     expect(source).not.toMatch(/class StegoPlayer/);

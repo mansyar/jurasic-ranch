@@ -4,21 +4,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DinoPlayer } from "../../src/ranch/dino-player.js";
 import { DustPool } from "../../src/ranch/dust.js";
 import { WADDLE_LOOP_SECONDS } from "../../src/ranch/waddle.js";
+import { walkStatusText } from "../../src/viewer/hud.js";
+import { loadStegoPlayer, loadTrikePlayer, STEGO_MODEL_URL } from "../../src/viewer/loaders.js";
+import { setAllWalking, steerPairApart } from "../../src/viewer/loop.js";
 import {
   createPlaceholderStego,
-  loadStegoPlayer,
-  loadTrikePlayer,
   PLACEHOLDER_BODY_HEX,
   PLACEHOLDER_BODY_NAME,
-  setAllWalking,
   SPAWN_OFFSET_METRES,
   STEGO_BODY_HEX,
-  STEGO_MODEL_URL,
   STEGO_PLATE_HEX,
-  steerPairApart,
   updatePlaceholderWalk,
-  walkStatusText,
-} from "../../src/viewer/main.js";
+} from "../../src/viewer/placeholders.js";
 
 const ROOT_URL = new URL("../../", import.meta.url);
 
@@ -253,7 +250,7 @@ describe("dual ranch shell (NFR-4, FR-7, FR-9)", () => {
     expect(html).toContain("min-height: 72px");
     expect(html).toContain('aria-pressed="false"');
     expect(html).toContain('id="status"');
-    const source = await readText("src/viewer/main.ts");
+    const source = await readText("src/viewer/hud.ts");
     expect(source).toContain("aria-pressed");
   });
 
