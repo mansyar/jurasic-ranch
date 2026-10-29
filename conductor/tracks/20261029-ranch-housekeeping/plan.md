@@ -177,9 +177,12 @@ The primary appends after acceptance:
 - **Covers:** F5, F6, F7
 - **Touches:** `conductor/tracks/20261029-ranch-housekeeping/metadata.json`, `conductor/tracks/20261029-ranch-housekeeping/verification/integrated.md`
 - **Verification:** `pnpm verify`
-- **Status:** in_progress
+- **Status:** verified
 
-- [ ] **R2.T1: Reconcile the task counter with the plan** - covers: F5
-- [ ] **R2.T2: Use the fix-head precache figures** - covers: F6
-- [ ] **R2.T3: Restate the FR-9 row to match the spec** - covers: F7
+- [x] **R2.T1: Reconcile the task counter with the plan** - covers: F5
+- [x] **R2.T2: Use the fix-head precache figures** - covers: F6
+- [x] **R2.T3: Restate the FR-9 row to match the spec** - covers: F7
 
+**Result:** verified
+**Checkpoint:** _(set after squash)_
+**Evidence:** conductor/tracks/20261029-ranch-housekeeping/verification/phase-R2.md
