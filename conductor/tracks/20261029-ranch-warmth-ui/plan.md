@@ -63,7 +63,7 @@ The primary appends after acceptance:
 - **Covers:** FR-4, FR-7, FR-8, NFR-1, NFR-3, NFR-5, AC-4, AC-7
 - **Touches:** `src/ranch/dino-player.ts`, `src/ranch/sleepy.ts`, `src/viewer/sleepy-ui.ts`, `tests/ranch/sleepy*`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
 - [ ] **P3.T1: Idle sleepy state machine (90s)** - covers: FR-4
 - [ ] **P3.T2: ZZZ particles + yawn/droopy** - covers: FR-4
