@@ -137,7 +137,7 @@
   - [x] **P5.T3.3:** Confirm no other `index.html` change slipped in — layout, styles and element ids stay identical (NFR-2)
 
 **Result:** verified
-**Checkpoint:** _(set after squash)_
+**Checkpoint:** 608de48
 **Evidence:** conductor/tracks/20261029-ranch-housekeeping/verification/phase-5.md
 
 > `pnpm-workspace.yaml` gained `onlyBuiltDependencies` for `sharp` (see the
