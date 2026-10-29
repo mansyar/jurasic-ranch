@@ -77,10 +77,10 @@ The primary appends after acceptance:
 - **Covers:** F1, F2
 - **Touches:** `src/viewer/main.ts`, `tests/ranch/sleepy-ui.test.ts`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** verified
 
-- [ ] **R1.T1: Guard hint interval with sleepy state** - covers: F1
-- [ ] **R1.T2: Hoist matchMedia query off hot paths** - covers: F2
+- [x] **R1.T1: Guard hint interval with sleepy state** - covers: F1
+- [x] **R1.T2: Hoist matchMedia query off hot paths** - covers: F2
 
 <!--
 Review fixes are appended by `conductor-review` as:

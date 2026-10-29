@@ -4,8 +4,8 @@
 - Branch: feat/20261029-ranch-warmth-ui
 - Range: 502be829090e6f7e40579d99c29462c21c6f426a..4340dbe (code: P1 4b88642..2596cda, P2 f64709f..2e5976a, P3 2338ed3..293d2ae)
 - Date: 2026-10-29
-- Verdict: PASS WITH FINDINGS
-- Reviewer: conductor-reviewer subagent (read-only) + primary validation
+- Verdict: PASS
+- Reviewer: conductor-reviewer subagent (read-only) + primary validation + primary re-review of R1 delta
 
 ## Summary
 
@@ -66,7 +66,7 @@ All three phases deliver their spec: fixed Ranch/Nest/Garden POV with 72px touch
 
 ## History
 
-- Round 1: PASS WITH FINDINGS, 0 Critical / 0 High / 0 Medium / 2 Low, 2 fixed in R1 (pending).
+- Round 1: PASS WITH FINDINGS, 0 Critical / 0 High / 0 Medium / 2 Low → R1 fixed both, re-reviewed by primary (fix delta read, `pnpm verify` 175 pass), verdict PASS.
 
 ## Doc sync
 
