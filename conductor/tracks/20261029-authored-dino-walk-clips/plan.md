@@ -70,7 +70,7 @@
 - **Covers:** FR-3, AC-2
 - **Touches:** `scripts/check-dino-clips.test.ts`, `scripts/vendor/inspect-dino-clips.mjs`
 - **Verification:** `pnpm verify`, plus a recorded run that fails against `1a96d6b`'s GLBs
-- **Status:** pending
+- **Status:** in_progress
 - **Tasks:**
   - [ ] **P3.T1: Assert the displacement envelope** - covers: FR-3
     - [ ] **P3.T1.1: For every animated bone, resolve rest translation and first-frame translation, and assert displacement ≤ 25 % of the bone's rest distance to its parent**
