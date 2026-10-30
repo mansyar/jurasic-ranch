@@ -19,7 +19,14 @@ import {
   isAudioControlTarget,
   type AudioControls,
 } from './audio-controls.js';
-import { audioEngine, configureAudio, isAudioUnlocked, unlockAudio } from './audio.js';
+import {
+  audioEngine,
+  configureAudio,
+  createUnlockFeedback,
+  isAudioUnlocked,
+  playFeedback,
+  unlockAudio,
+} from './audio.js';
 import {
   CANVAS_ID,
   STATUS_ID,
@@ -94,6 +101,9 @@ export async function bootViewer(): Promise<void> {
   const audioReady = new Promise<void>((resolve) => {
     audioReadyControl.resolve = resolve;
   });
+  // FR-6/FR-7: one flush and one greeting timer for the whole session, shared
+  // by the first gesture and the mute button's unlock.
+  const unlockFeedback = createUnlockFeedback();
 
   // FR-2: install the first-gesture listener before any awaited settings read,
   // so a tap during boot is not lost. It waits for the controls and engine
@@ -104,6 +114,7 @@ export async function bootViewer(): Promise<void> {
       await audioReady;
       if (audio !== null) {
         await unlockAudio();
+        unlockFeedback.afterUnlock();
       }
     },
     shouldIgnore: (event) => isAudioControlTarget(event.target),
@@ -157,7 +168,14 @@ export async function bootViewer(): Promise<void> {
         audioEngine().setVolume(volume);
         void saveVolume(volume);
       },
-      onUnlock: () => unlockAudio(),
+      onSfx: (assetId) => {
+        playFeedback(assetId);
+      },
+      onUnlock: async () => {
+        await unlockAudio();
+        // FR-6: a mute control unlocked, so the greeting stays suppressed.
+        unlockFeedback.afterUnlock({ viaMuteControl: true });
+      },
     });
   } else {
     console.warn('Audio controls are missing from the shell; continuing without sound.');

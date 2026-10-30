@@ -1,0 +1,32 @@
+{
+  "id": "20261030-ranch-audible",
+  "title": "The Ranch Answers Back",
+  "type": "feature",
+  "status": "complete",
+  "priority": "medium",
+  "depends_on": [],
+  "created_at": "2026-10-30T05:14:09+11:00",
+  "updated_at": "2026-10-30T06:35:31+11:00",
+  "spec": "spec.md",
+  "plan": "plan.md",
+  "branch": "feat/20261030-ranch-audible",
+  "base_branch": "main",
+  "base_sha": "94178c427a47c0d5b47e66c9b9d9a03a5e392b2c",
+  "progress": {
+    "phases_total": 6,
+    "phases_verified": 6,
+    "tasks_total": 23,
+    "tasks_done": 23
+  },
+  "last_checkpoint": "26a7b59",
+  "review_verdict": "PASS WITH FINDINGS",
+  "review_rounds": 2,
+  "doc_sync": "pending",
+  "pr_url": "https://github.com/mansyar/jurasic-ranch/pull/14",
+  "pr_state": "open",
+  "reverted_at": null,
+  "revert_commit": null,
+  "revert_pr_url": null,
+  "archived_at": "2026-10-30T06:35:31+11:00",
+  "archive_path": "conductor/archive/20261030-ranch-audible"
+}

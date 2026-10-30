@@ -6,6 +6,8 @@
  * by the caller, so this module only owns the in-memory UI state.
  */
 
+import type { AudioAssetId } from '../audio/catalog.js';
+import { sfxForSurface } from '../audio/feedback.js';
 import { HOLD_DURATION_MS, HoldGate } from '../audio/gate.js';
 import { clampVolume } from '../audio/mix.js';
 
@@ -88,6 +90,8 @@ export interface AudioControlsOptions {
   onMutedChange(muted: boolean): void;
   /** Apply a new clamped master volume (engine + persistence). */
   onVolumeChange(volume: number): void;
+  /** Kid-facing feedback for a press; the mute boundary depends on call order. */
+  onSfx?(assetId: AudioAssetId): void;
   /** Fire-and-forget unlock; the first mute tap must stay silent (FR-2). */
   onUnlock(): void | Promise<void>;
   ticker?: HoldTicker;
@@ -155,6 +159,7 @@ export function createAudioControls(options: AudioControlsOptions): AudioControl
     onMutedChange,
     onVolumeChange,
     onUnlock,
+    onSfx,
   } = options;
   const ticker = options.ticker ?? defaultTicker();
   const windowTarget =
@@ -289,14 +294,31 @@ export function createAudioControls(options: AudioControlsOptions): AudioControl
     frameId = ticker.requestFrame(stepHold);
   };
 
+  // FR-3/FR-11: the tap lands on the audible side of the boundary - before
+  // muting silences it, after unmuting lifts the silence - then unlock has its
+  // go. The id comes from the pure surface table, never a literal.
+  const toggleMute = (): void => {
+    if (muted) {
+      setMuted(false);
+      unlock();
+      onSfx?.(sfxForSurface('mute'));
+      return;
+    }
+    onSfx?.(sfxForSurface('mute'));
+    // A muting press while audio is still locked dispatches and is then refused
+    // by the muted engine by design (FR-9): the held press flushes after the
+    // mute applies. Deferring the mute until unlock resolved would read the
+    // stale unmuted state and blip the music for the length of the unlock.
+    setMuted(true);
+    unlock();
+  };
+
   // FR-6: one tap mutes everything; the label, icon, and aria-pressed all move.
   on(muteButton, 'click', () => {
-    setMuted(!muted);
-    unlock();
+    toggleMute();
   });
   on(panelMuteButton, 'click', () => {
-    setMuted(!muted);
-    unlock();
+    toggleMute();
   });
 
   // FR-8: hold the gear for 2 s; any early release, cancel, or blur resets it.

@@ -143,8 +143,11 @@ interface Harness {
   windowTarget: FakeElement;
   ticker: ManualTicker;
   controls: AudioControls;
+  /** Shared call log, so a test can assert the mute boundary by order. */
+  calls: string[];
   onMutedChange: ReturnType<typeof vi.fn>;
   onVolumeChange: ReturnType<typeof vi.fn>;
+  onSfx: ReturnType<typeof vi.fn>;
   onUnlock: ReturnType<typeof vi.fn>;
 }
 
@@ -163,9 +166,17 @@ function createHarness(
   const volumeValue = new FakeElement();
   const windowTarget = new FakeElement();
   const ticker = new ManualTicker();
-  const onMutedChange = vi.fn();
+  const calls: string[] = [];
+  const onMutedChange = vi.fn(() => {
+    calls.push('muted');
+  });
   const onVolumeChange = vi.fn();
-  const onUnlock = vi.fn();
+  const onSfx = vi.fn(() => {
+    calls.push('sfx');
+  });
+  const onUnlock = vi.fn(() => {
+    calls.push('unlock');
+  });
   const controls = createAudioControls({
     muteButton: mute,
     parentButton: parent,
@@ -178,6 +189,7 @@ function createHarness(
     initialVolume: overrides.initialVolume ?? DEFAULT_VOLUME,
     onMutedChange,
     onVolumeChange,
+    onSfx,
     onUnlock,
     ticker,
     windowTarget,
@@ -193,8 +205,10 @@ function createHarness(
     windowTarget,
     ticker,
     controls,
+    calls,
     onMutedChange,
     onVolumeChange,
+    onSfx,
     onUnlock,
   };
 }
@@ -255,7 +269,7 @@ describe('mute button (FR-6, AC-6)', () => {
     expect(harness.panelMute.textContent).toBe(MUTED_LABEL);
   });
 
-  it('toggles sound, reports the change, and unlocks after the tap', () => {
+  it('toggles sound, reports the change, and unlocks on both presses', () => {
     const harness = createHarness();
     expect(harness.mute.textContent).toBe(SOUND_LABEL);
 
@@ -266,6 +280,7 @@ describe('mute button (FR-6, AC-6)', () => {
     expect(harness.controls.isMuted()).toBe(true);
     expect(harness.onMutedChange).toHaveBeenCalledTimes(1);
     expect(harness.onMutedChange).toHaveBeenCalledWith(true);
+    expect(harness.onSfx).toHaveBeenCalledWith('tap');
     expect(harness.onUnlock).toHaveBeenCalledTimes(1);
 
     harness.mute.dispatch('click');
@@ -273,6 +288,7 @@ describe('mute button (FR-6, AC-6)', () => {
     expect(harness.controls.isMuted()).toBe(false);
     expect(harness.onMutedChange).toHaveBeenLastCalledWith(false);
     expect(harness.onUnlock).toHaveBeenCalledTimes(2);
+    expect(harness.onSfx).toHaveBeenCalledTimes(2);
   });
 
   it('keeps the panel mute button in sync and stays silent on a failed unlock', async () => {
@@ -296,6 +312,38 @@ describe('mute button (FR-6, AC-6)', () => {
   });
 });
 
+describe('mute ordering (AC-2, FR-3)', () => {
+  for (const button of ['mute', 'panelMute'] as const) {
+    it(`taps before muting and after unmuting from the ${button} button`, () => {
+      const harness = createHarness();
+
+      harness[button].dispatch('click');
+      expect(harness.calls).toEqual(['sfx', 'muted', 'unlock']);
+      expect(harness.onSfx).toHaveBeenCalledWith('tap');
+
+      harness.calls.length = 0;
+
+      harness[button].dispatch('click');
+      expect(harness.calls).toEqual(['muted', 'unlock', 'sfx']);
+      expect(harness.onSfx).toHaveBeenLastCalledWith('tap');
+    });
+  }
+});
+
+describe('silent surfaces (AC-7, FR-8)', () => {
+  it('never taps for the gear hold, the Close button or the slider', () => {
+    const harness = createHarness();
+
+    completeHold(harness);
+    expect(harness.controls.isPanelOpen()).toBe(true);
+    harness.close.dispatch('click');
+    harness.slider.value = '40';
+    harness.slider.dispatch('input');
+
+    expect(harness.onSfx).not.toHaveBeenCalled();
+    expect(harness.onVolumeChange).toHaveBeenCalledTimes(1);
+  });
+});
 describe('parent slider (FR-7, AC-7)', () => {
   it('renders the initial volume as a clamped percent', () => {
     const harness = createHarness({ initialVolume: 0.8 });
