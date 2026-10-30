@@ -2,11 +2,11 @@
   "id": "20261030-wallow-nest-life",
   "title": "Wallow and Nest Life",
   "type": "feature",
-  "status": "in_progress",
+  "status": "complete",
   "priority": "medium",
   "depends_on": [],
   "created_at": "2026-10-30T14:50:57+11:00",
-  "updated_at": "2026-10-30T20:15:00+11:00",
+  "updated_at": "2026-10-30T20:40:00+11:00",
   "spec": "spec.md",
   "plan": "plan.md",
   "branch": "feat/20261030-wallow-nest-life",
@@ -27,6 +27,6 @@
   "reverted_at": null,
   "revert_commit": null,
   "revert_pr_url": null,
-  "archived_at": null,
-  "archive_path": null
+  "archived_at": "2026-10-30T20:40:00+11:00",
+  "archive_path": "conductor/archive/20261030-wallow-nest-life"
 }
