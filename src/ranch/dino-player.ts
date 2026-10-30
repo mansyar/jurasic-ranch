@@ -239,8 +239,21 @@ export const BRACHIO_GAIT: GaitParams = {
 };
 
 export interface DinoPlayerOptions {
-  /** Baked `Waddle` clip (0.8 s loop for Trike). */
+  /** Walk clip: the baked `Waddle` (0.8 s loop for Trike) or the authored `Walk`. */
   clip: THREE.AnimationClip;
+  /**
+   * Resting loop played at full weight when the walk weight reaches zero (FR-2).
+   * Optional so every existing call site keeps today's single-action behaviour
+   * exactly: omitted, the mixer drives one clip and nothing about the pose,
+   * dust, squash or blink changes.
+   */
+  idleClip?: THREE.AnimationClip;
+  /**
+   * The one-shot an animal plays at its corner (FR-6: Stego's `MudRoll`).
+   * Optional, and it must stay optional: a Trike or Brachio GLB carries no such
+   * clip, and asking for one there has to be a no-op rather than a throw.
+   */
+  arrivalClip?: THREE.AnimationClip;
   texture?: THREE.Texture;
   random?: () => number;
   /**
@@ -264,6 +277,18 @@ export interface DinoPlayerOptions {
 /** Random steering spread (radians) when turning back toward the center. */
 export const WANDER_STEER_JITTER_RADIANS = 0.6;
 
+/** Ground-plane point in world metres (x/z, +Z at heading 0). */
+export interface WanderCentre {
+  x: number;
+  z: number;
+}
+
+/** The circle a player steers back inside: a centre and a radius (FR-3). */
+export interface WanderRing {
+  centre: WanderCentre;
+  radius: number;
+}
+
 /**
  * Mixer + root-motion player. Heading bends into slow stroller arcs while the
  * dino keeps walking (no in-place spin), walk weight eases over ~0.2 s, and
@@ -276,6 +301,19 @@ export class DinoPlayer {
   private model: THREE.Object3D;
   private mixer: THREE.AnimationMixer;
   private action: THREE.AnimationAction;
+  /** Resting loop, or null when the caller supplied no `idleClip` (FR-2). */
+  private idleAction: THREE.AnimationAction | null;
+  /**
+   * The corner one-shot (FR-6), or null when the GLB carries no such clip. It is
+   * a third action on the same mixer, but it never shares the pose: it only ever
+   * plays while the walk weight is 0, and it holds the idle action at 0 for its
+   * duration so the two do not average into a half-roll.
+   */
+  private arrivalAction: THREE.AnimationAction | null;
+  /** Whether the one-shot is on screen right now. */
+  private arrivalPlaying = false;
+  /** A one-shot asked for while the walk is still blending out (FR-6). */
+  private arrivalRequested = false;
   private pose: WaddlePose;
   private blink: BlinkController;
   private targets: BlinkTargets;
@@ -284,6 +322,14 @@ export class DinoPlayer {
   private prevPhase = 0;
   private baseScale: THREE.Vector3;
   private random: () => number;
+  /**
+   * The wander ring this player steers inside (FR-3). Defaults to the world
+   * origin at the gait radius, which is exactly the pre-FR-3 circle: the steer
+   * then subtracts exact zeros, so positions stay bit-identical.
+   */
+  private ringCentreX = 0;
+  private ringCentreZ = 0;
+  private ringRadiusMetres: number;
   /**
    * Sleepy overlay weight 0..1 (FR-4): droopy lids plus a slow yawn swell.
    * Visual only; back to 0 the next update renders the base pose exactly.
@@ -298,11 +344,32 @@ export class DinoPlayer {
     this.model = model;
     this.random = options.random ?? Math.random;
     this.gait = options.gait ?? TRIKE_GAIT;
+    this.ringRadiusMetres = this.gait.wanderRadiusMetres;
     this.mixer = new THREE.AnimationMixer(model);
     this.action = this.mixer.clipAction(options.clip);
     this.action.setLoop(THREE.LoopRepeat, Infinity);
     this.action.weight = 0;
     this.action.play();
+    // FR-2: the resting loop shares the mixer with the walk, so one eased weight
+    // ramp crossfades them. It starts at weight 1 because the pose starts stopped
+    // (blend 0), which is exactly the complement the walk action starts at.
+    this.idleAction =
+      options.idleClip === undefined ? null : this.mixer.clipAction(options.idleClip);
+    if (this.idleAction !== null) {
+      this.idleAction.setLoop(THREE.LoopRepeat, Infinity);
+      this.idleAction.weight = 1;
+      this.idleAction.play();
+    }
+    // FR-6: the corner one-shot is built once and parked. It is `LoopOnce` and
+    // clamped, and it is not played until the visit director asks for it at the
+    // corner, so a player that never visits never spends a mixer slot on it.
+    this.arrivalAction =
+      options.arrivalClip === undefined ? null : this.mixer.clipAction(options.arrivalClip);
+    if (this.arrivalAction !== null) {
+      this.arrivalAction.setLoop(THREE.LoopOnce, 1);
+      this.arrivalAction.clampWhenFinished = true;
+      this.arrivalAction.weight = 1;
+    }
     this.pose = createWaddlePose();
     // Seeded callers must pass an explicit blink stream: when this falls back
     // to `random`, wall-clock blink draws shift the values that drive wander
@@ -332,6 +399,58 @@ export class DinoPlayer {
 
   get clipDurationSeconds(): number {
     return this.action.getClip().duration;
+  }
+
+  /**
+   * The two action weights the mixer is holding right now (FR-2, AC-2): the walk
+   * loop at the eased blend, the resting loop at its complement. Read straight off
+   * the actions rather than recomputed from the pose, so a test asserts what the
+   * mixer actually has. A player built without an `idleClip` reports 0 there,
+   * because no action carries that weight.
+   */
+  get blendWeights(): { idle: number; walk: number } {
+    return { idle: this.idleAction?.weight ?? 0, walk: this.action.weight };
+  }
+
+  /** Whether the corner one-shot is on screen (FR-6, AC-6). */
+  get arrivalClipPlaying(): boolean {
+    return this.arrivalPlaying;
+  }
+
+  /**
+   * Play the corner one-shot once (FR-6): Stego's mud roll at the wallow.
+   *
+   * Returns false — and changes nothing — when this player has no such clip, so
+   * a Trike or a Brachio asked for one is a no-op rather than a throw. It is
+   * called at the corner, at rest, where the walk weight is already 0; the idle
+   * action is held at 0 for the clip's duration so the roll is the only thing
+   * driving the pose, and the idle action takes the weight back the moment the
+   * roll finishes. Nothing here touches the walk blend.
+   */
+  playArrivalClip(): boolean {
+    if (this.arrivalAction === null) {
+      return false;
+    }
+    // FR-6: the request is buffered, not started. `arrive` asks for the roll on
+    // the same frame it stops the animal, when the walk weight is still 1 and
+    // needs ~0.2 s to fall. Starting it there meant the stop-on-walk guard in
+    // `update` killed it before the mixer ever evaluated a frame, so the clip
+    // never played at all. `update` starts it on the first frame the walk has
+    // actually let go.
+    this.arrivalRequested = true;
+    return true;
+  }
+
+  /** Start the buffered one-shot once the walk blend has reached zero. */
+  private startRequestedArrivalClip(): void {
+    this.arrivalRequested = false;
+    if (this.arrivalAction === null) {
+      return;
+    }
+    this.arrivalAction.reset();
+    this.arrivalAction.weight = 1;
+    this.arrivalAction.play();
+    this.arrivalPlaying = true;
   }
 
   setWalking(walking: boolean): void {
@@ -365,6 +484,31 @@ export class DinoPlayer {
   }
 
   /**
+   * Give this player its own wander ring (FR-3): it steers back inside the
+   * given circle instead of the world-origin one. Only the circle moves — the
+   * gait, the steer jitter and the turn-then-walk behaviour are untouched, so
+   * an overridden ring changes where the animal goes, never how it walks.
+   */
+  setWanderRing(centre: WanderCentre, radius: number): void {
+    this.ringCentreX = centre.x;
+    this.ringCentreZ = centre.z;
+    this.ringRadiusMetres = radius;
+  }
+
+  /**
+   * The ring the player is steering inside right now (FR-3): the override when
+   * one was set, else the world-origin circle at the gait radius, which is
+   * exactly the pre-FR-3 behaviour. A fresh object each read, so a caller
+   * cannot reach into the player's state through it.
+   */
+  get wanderRing(): WanderRing {
+    return {
+      centre: { x: this.ringCentreX, z: this.ringCentreZ },
+      radius: this.ringRadiusMetres,
+    };
+  }
+
+  /**
    * Force a blink on the next `update()` (dev harness, FR-5). A no-op when
    * the model exposes no blink target, so a failed GLB load never throws.
    */
@@ -391,19 +535,25 @@ export class DinoPlayer {
   }
 
   /**
-   * Stay-in-frame wander: once the model leaves the gait wander radius,
-   * retarget the heading back toward the center with a small random offset.
-   * The pose controller bends toward it in a walk arc, so translation never
-   * pauses while steering. Only steers while walking (Stop still halts) and
-   * never overrides a turn already in progress.
+   * Stay-in-frame wander: once the model leaves its wander ring, retarget the
+   * heading back toward the ring centre with a small random offset. The pose
+   * controller bends toward it in a walk arc, so translation never pauses while
+   * steering. Only steers while walking (Stop still halts) and never overrides
+   * a turn already in progress.
+   *
+   * The ring is the player's own (FR-3): an override when one was set, else the
+   * gait circle around the world origin. Both distances are measured from the
+   * centre by subtracting it first, in this order of operations, so the default
+   * centre subtracts exact zeros and pre-FR-3 positions stay bit-identical.
    */
   private steerInsideWanderRadius(): void {
     if (!this.pose.moving) {
       return;
     }
-    const x = this.model.position.x;
-    const z = this.model.position.z;
-    if (Math.hypot(x, z) <= this.gait.wanderRadiusMetres) {
+    // Subtract the centre first: with the default (0, 0) this is exact.
+    const x = this.model.position.x - this.ringCentreX;
+    const z = this.model.position.z - this.ringCentreZ;
+    if (Math.hypot(x, z) <= this.ringRadiusMetres) {
       return;
     }
     const remaining = Math.abs(wrapAngle(this.pose.targetHeading - this.pose.heading));
@@ -415,16 +565,61 @@ export class DinoPlayer {
     this.pose.targetHeading = wrapAngle(toCenter + jitter);
   }
 
+  /** Whether the corner one-shot still has frames to run. */
+  private isArrivalRunning(): boolean {
+    return this.arrivalAction !== null && this.arrivalAction.isRunning();
+  }
+
+  /**
+   * Take the corner one-shot off the mixer and give the pose back. `stop()`
+   * deactivates the action, so it contributes nothing on the very next frame
+   * while the idle action's weight — restored by `update` — takes over.
+   */
+  private stopArrivalClip(): void {
+    if (this.arrivalAction !== null) {
+      this.arrivalAction.stop();
+    }
+    this.arrivalPlaying = false;
+    // A buffered request dies with it: the walk took the animal somewhere else,
+    // so a roll asked for at the corner must not fire later at a random stop.
+    this.arrivalRequested = false;
+  }
+
   /** Advance mixer, root motion, squash, dust, blink, and sleepy. */
   update(dtSeconds: number, nowSeconds: number, reducedMotion = false): void {
     const step = Math.min(Math.max(dtSeconds, 0), 0.25);
     updateWaddlePoseWithGait(this.pose, step, this.gait);
+    // FR-6: the corner one-shot owns the pose while it runs, and it yields to
+    // the walk the instant the walk blend leaves zero — a roll can never fight
+    // the walk, because the walk always wins. A finished (clamped) one-shot
+    // hands the pose back here, before the mixer runs, so `Idle` is what is left
+    // on screen rather than a third action parked on the last frame.
+    if (this.arrivalPlaying && (this.pose.blend > 0 || !this.isArrivalRunning())) {
+      this.stopArrivalClip();
+    }
+    // The buffered request fires only once the walk has let go and the animal is
+    // standing, which is the frame `arrive` was really asking for. If the animal
+    // strides again first, the walk wins and the request is dropped.
+    if (this.arrivalRequested && this.pose.moving) {
+      this.arrivalRequested = false;
+    }
+    if (this.arrivalRequested && this.pose.blend === 0) {
+      this.startRequestedArrivalClip();
+    }
     this.action.weight = this.pose.blend;
+    if (this.idleAction !== null) {
+      this.idleAction.weight = this.arrivalPlaying ? 0 : 1 - this.pose.blend;
+    }
+    // FR-2: the mixer advances on every frame, not only above the walk deadband.
+    // Two actions share it, so advancing only while striding would freeze the
+    // resting loop at the exact moment it becomes visible - the same statue in a
+    // new pose. Everything that reads the walk's foot-plant phase stays gated
+    // below, because only the walk has footfalls to spend.
+    this.mixer.update(step);
     const striding = this.pose.blend > 0.5;
     if (striding) {
       // Legs and plant phase advance together so dust/squash stay in sync
       // with the visible gait across walk stop/start cycles.
-      this.mixer.update(step);
       this.loopTime += step;
       const phase = loopPhaseWithGait(this.loopTime, this.gait);
       const crossed = plantsCrossed(this.prevPhase, phase);

@@ -40,6 +40,23 @@
   dressing GLB is baked to one draw call; a bake that merges geometry **must**
   re-enable `vertexColors` when the source carries `COLOR_0`, or the prop renders
   white (the windpump bug).
+- Animal life (20261030-wallow-nest-life): a dino's wander ring is data, not a
+  constant - `DinoPlayer.setWanderRing(centre, radius)` defaults to the
+  world-origin circle, so a visit is a ring change rather than a second movement
+  mode, and the walk clip never learns about it. `src/ranch/visit.ts` is the
+  director: idle -> approach -> arrive -> dwell -> return, driven only through
+  `setWanderRing` / `turnTo` / `setWalking` (which is why it is testable against
+  a stub), advancing on frame `dt` so `?pause=1` freezes it and a seeded run
+  reproduces. Durations are derived from the world gait and the clip, never
+  typed. `src/ranch/visit-effects.ts` spends one preallocated `DustPool` on the
+  arrival payoff. Clips: `SHIPPED_CLIP_NAMES` is `['Idle','Walk']` again -
+  `Idle` costs ~2.2 MiB of precache and a stopped dino otherwise freezes
+  mid-stride - and `BESPOKE_CLIP_NAMES` lists clips authored in this repo
+  (`MudRoll`) so a re-bake does not treat its own output as foreign. A bespoke
+  clip is authored in Node (`scripts/vendor/mud-roll-clip.js`), never in
+  Blender: the bake compresses the mesh headlessly then injects clip channels
+  into the compressed GLB, and Blender's glTF round trip re-times animation onto
+  its own clock, so a Blender action can never reach the shipped file.
 
 ## Audio
 

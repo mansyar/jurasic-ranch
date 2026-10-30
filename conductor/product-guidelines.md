@@ -12,6 +12,7 @@
 - 5s hint glow if stuck, all anims interruptible, no fail states, no timers.
 - Care-plus-surprise loop, twinkle invites (not forced), sticker every 60-90s play.
 - Sleepy cues (droopy eyes, yawn) not forced quits. Fixed cozy cam + 4 POV buttons (Ranch / Nest / Garden / Sky), no orbit.
+- The animals go where the things are: the mud wallow, the hay nest, the browse tree. Tapping a corner calls its animal, but a slow timer sends it out anyway, so a child never has to find the tap to see the good bit.
 
 ## Accessibility
 

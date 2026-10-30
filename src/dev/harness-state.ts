@@ -6,6 +6,7 @@
  */
 
 import { seededRandom } from './seeded-random.js';
+import type { VisitState } from '../ranch/visit.js';
 import type { DevSpeciesId } from './dev-options.js';
 
 /** Fixed simulation delta per stepped frame (1/60 s, spec assumption). */
@@ -108,6 +109,62 @@ export function nextPausedFrame(paused: boolean, stepFrames: number): PausedFram
     return { paused: true, stepFrames: queued - 1, advance: true };
   }
   return { paused: true, stepFrames: 0, advance: false };
+}
+
+/** How far a visit-targeted step has got; carried from frame to frame. */
+export interface VisitStepProgress {
+  /** True once the animal has been seen in the target state. Sticky. */
+  reached: boolean;
+  /** Frames the seek may still spend before giving up. */
+  budget: number;
+  /** Frames still to advance *after* the target was reached. */
+  extra: number;
+}
+
+/** What one frame of a visit-targeted step should do. */
+export interface VisitStepDecision extends VisitStepProgress {
+  /** True when the simulation may advance this frame. */
+  advance: boolean;
+  /** True when the step is over and its caller may be answered. */
+  done: boolean;
+}
+
+/** Clamp a frame count to a whole number of frames, never negative. */
+function frames(value: number): number {
+  return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+}
+
+/**
+ * One frame of "step until this animal is in that state" (FR-14, AC-14).
+ *
+ * A capture cannot guess how many frames an approach takes — it depends on
+ * where the animal started and how it steered — so the queue runs until the
+ * director reports the state instead of until a number runs out. `budget`
+ * bounds the wait (a missing rig or a refused call can never hang a caller),
+ * and `extra` then runs on past the transition so a caller can land *inside* a
+ * dwell rather than on its first frame.
+ *
+ * The state is read before the frame advances, so the moment the target is
+ * seen the simulation stops: the caller's next screenshot is the frame the
+ * state was entered on, not one beyond it. Inputs are copied, never mutated.
+ */
+export function nextVisitStep(
+  current: VisitState | 'unknown' | null,
+  target: VisitState,
+  progress: VisitStepProgress,
+): VisitStepDecision {
+  const budget = frames(progress.budget);
+  const extra = frames(progress.extra);
+  if (progress.reached || current === target) {
+    if (extra > 0) {
+      return { advance: true, done: false, reached: true, budget, extra: extra - 1 };
+    }
+    return { advance: false, done: true, reached: true, budget, extra: 0 };
+  }
+  if (budget > 0) {
+    return { advance: true, done: false, reached: false, budget: budget - 1, extra };
+  }
+  return { advance: false, done: true, reached: false, budget: 0, extra };
 }
 
 /** One dino's live ground state, as the overlay projection needs it. */

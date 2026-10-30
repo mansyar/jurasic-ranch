@@ -57,13 +57,15 @@ interface SpeciesSpec {
   readonly file: string;
   /** The authored `Walk` length in seconds (AC-1); the export rounds in float32. */
   readonly walkSeconds: number;
+  /** The authored `Idle` rest-loop length in seconds (FR-1). */
+  readonly idleSeconds: number;
   /** Skin joints: 24 for the Stego, 35 for the Brachio (11 of them sauropod-only). */
   readonly jointCount: number;
 }
 
 const SPECIES: readonly SpeciesSpec[] = [
-  { file: 'stego.glb', walkSeconds: 2.4, jointCount: 24 },
-  { file: 'brachio.glb', walkSeconds: 3.8, jointCount: 35 },
+  { file: 'stego.glb', walkSeconds: 2.4, idleSeconds: 9, jointCount: 24 },
+  { file: 'brachio.glb', walkSeconds: 3.8, idleSeconds: 8, jointCount: 35 },
 ];
 
 /**
@@ -147,15 +149,21 @@ describe.each(SPECIES)('$file bone displacement', (species) => {
     expect(displacementViolations(rows)).toEqual([]);
   });
 
-  it('ships the authored Walk clip at its published length and nothing else (FR-1)', async () => {
+  it('ships the authored Idle and Walk clips at their published lengths (FR-1)', async () => {
     const clips = clipFacts(await loadGlb(species.file));
     const byName = new Map(clips.map((clip) => [clip.name, clip.durationSeconds]));
     // The clip must be the species' own authored one; `Waddle` is the donor
     // transfer this gate exists to keep out.
     expect(byName.has('Waddle')).toBe(false);
-    expect([...byName.keys()].sort()).toEqual(['Walk']);
+    // FR-1: the rest loop rides along with the walk, so a stopped dino breathes.
+    // MudRoll is Stego's own wallow clip (track 20261030-wallow-nest-life);
+    // it is the only bespoke clip, so only Stego carries a third.
+    const expectedClips =
+      species.file === 'stego.glb' ? ['Idle', 'MudRoll', 'Walk'] : ['Idle', 'Walk'];
+    expect([...byName.keys()].sort()).toEqual(expectedClips);
     // Run is withdrawn (NFR-2): the bake ships two of the three published clips.
     expect(byName.has('Run')).toBe(false);
+    expect(byName.get('Idle')).toBeCloseTo(species.idleSeconds, 3);
     expect(byName.get('Walk')).toBeCloseTo(species.walkSeconds, 3);
   });
 });

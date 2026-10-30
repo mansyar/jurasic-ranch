@@ -6,6 +6,7 @@ import {
   LARGEST_DINO_BODY_LENGTH_METRES,
 } from '../../src/ranch/avoidance.js';
 import { DUST_POOL_SIZE } from '../../src/ranch/dust.js';
+import { seededRandom } from '../../src/dev/seeded-random.js';
 import {
   BlinkController,
   DinoPlayer,
@@ -18,6 +19,7 @@ import {
   WADDLE_CYCLE_METRES,
   WADDLE_LOOP_SECONDS,
   WADDLE_STRIDE_METRES,
+  WALK_BLEND_SECONDS,
   WALK_SPEED_METRES_PER_SECOND,
   wrapAngle,
 } from '../../src/ranch/waddle.js';
@@ -68,6 +70,25 @@ function createWaddleClip(): THREE.AnimationClip {
 
 function createPlayer(rig: THREE.Group): DinoPlayer {
   return new DinoPlayer(rig, { clip: createWaddleClip(), random: () => 0.5 });
+}
+
+/** A 6 s rest loop that lifts the hips and sets them back down. */
+function createIdleClip(): THREE.AnimationClip {
+  const track = new THREE.VectorKeyframeTrack(
+    'Hips.position',
+    [0, 3, 6],
+    [0, 0, 0, 0, 0.05, 0, 0, 0, 0],
+  );
+  return new THREE.AnimationClip('Idle', 6, [track]);
+}
+
+/** Both actions on one mixer, which is what the loader now always builds. */
+function createBlendedPlayer(rig: THREE.Group): DinoPlayer {
+  return new DinoPlayer(rig, {
+    clip: createWaddleClip(),
+    idleClip: createIdleClip(),
+    random: () => 0.5,
+  });
 }
 
 function findHead(root: THREE.Object3D): THREE.Object3D {
@@ -533,5 +554,262 @@ describe('silent cheap walk (FR-7, FR-8)', () => {
     const playerSource = await readRanchSource('dino-player.ts');
     expect(playerSource).not.toMatch(/walk-button/);
     expect(playerSource).not.toMatch(/unlockAudio/);
+  });
+});
+
+/**
+ * A 60 s trajectory recorded from the pre-FR-3 player (phase base `3ebcecd`,
+ * before the ring was parameterised): Trike gait, world origin, walking from
+ * frame 0, one `seededRandom(0x51ee)` stream for wander + dust and
+ * `seededRandom(0xb1a2c)` for blinks. Pinning these numbers is AC-3's proof:
+ * any change that moves the ring default, reorders the centre subtraction, or
+ * shifts when the steer draws its jitter moves at least one of them.
+ */
+const GOLDEN_WANDER_POSITIONS: readonly { t: number; x: number; z: number }[] = [
+  { t: 1, x: 0, z: 0.32927083333333335 },
+  { t: 2, x: 0, z: 0.69177083333333167 },
+  { t: 5, x: 0, z: 1.779270833333336 },
+  { t: 10, x: 0, z: 3.5917708333332943 },
+  { t: 20, x: -0.5500812142270125, z: 1.0843760364497754 },
+  { t: 30, x: -1.8521648132890887, z: -2.2986999752670219 },
+  { t: 40, x: -0.51855034531869471, z: -1.4250202086968915 },
+  { t: 50, x: 1.5107235709481892, z: 1.5787561432905279 },
+  { t: 60, x: 1.4059488656971091, z: 1.8475159936385848 },
+];
+const GOLDEN_MAX_RADIUS_METRES = 3.9384440842210675;
+const GOLDEN_FINAL_HEADING = -2.6991812750673865;
+
+describe('wander ring (FR-3, AC-3)', () => {
+  it('reports the world-origin gait circle until one is set', () => {
+    const player = createPlayer(createTestRig());
+    expect(player.wanderRing).toEqual({
+      centre: { x: 0, z: 0 },
+      radius: TRIKE_GAIT.wanderRadiusMetres,
+    });
+    const centre = { x: 5, z: -3 };
+    player.setWanderRing(centre, 1.5);
+    expect(player.wanderRing).toEqual({ centre: { x: 5, z: -3 }, radius: 1.5 });
+    // The ring is copied in, so a caller's own point cannot drift underneath it.
+    centre.x = 100;
+    expect(player.wanderRing.centre).toEqual({ x: 5, z: -3 });
+  });
+
+  it('reproduces the pre-FR-3 60 s seeded positions with no ring override', () => {
+    const rig = createTestRig();
+    const player = new DinoPlayer(rig, {
+      clip: createWaddleClip(),
+      random: seededRandom(0x51ee),
+      blinkRandom: seededRandom(0xb1a2c),
+    });
+    player.setWalking(true);
+    let now = 0;
+    let maxRadius = 0;
+    let compared = 0;
+    for (let step = 0; step < 60 * 60; step += 1) {
+      player.update(DT, now);
+      now += DT;
+      maxRadius = Math.max(maxRadius, Math.hypot(rig.position.x, rig.position.z));
+      const second = (step + 1) / 60;
+      const golden = GOLDEN_WANDER_POSITIONS.find((sample) => sample.t === second);
+      if (golden !== undefined) {
+        expect(rig.position.x, `x at ${second} s`).toBeCloseTo(golden.x, 9);
+        expect(rig.position.z, `z at ${second} s`).toBeCloseTo(golden.z, 9);
+        compared += 1;
+      }
+    }
+    // The whole 60 s is pinned, not just the frames a sample happens to hit.
+    expect(compared).toBe(GOLDEN_WANDER_POSITIONS.length);
+    expect(maxRadius).toBeCloseTo(GOLDEN_MAX_RADIUS_METRES, 9);
+    expect(player.heading).toBeCloseTo(GOLDEN_FINAL_HEADING, 9);
+  });
+
+  it('walks bit-identically when the default ring is set explicitly', () => {
+    const untouchedRig = createTestRig();
+    const explicitRig = createTestRig();
+    const untouched = new DinoPlayer(untouchedRig, {
+      clip: createWaddleClip(),
+      random: seededRandom(0x51ee),
+      blinkRandom: seededRandom(0xb1a2c),
+    });
+    const explicit = new DinoPlayer(explicitRig, {
+      clip: createWaddleClip(),
+      random: seededRandom(0x51ee),
+      blinkRandom: seededRandom(0xb1a2c),
+    });
+    explicit.setWanderRing({ x: 0, z: 0 }, TRIKE_GAIT.wanderRadiusMetres);
+    untouched.setWalking(true);
+    explicit.setWalking(true);
+    let now = 0;
+    for (let step = 0; step < 60 * 60; step += 1) {
+      untouched.update(DT, now);
+      explicit.update(DT, now);
+      now += DT;
+    }
+    // Exactly equal, not close: centre (0, 0) must subtract exact zeros.
+    expect(explicitRig.position.x).toBe(untouchedRig.position.x);
+    expect(explicitRig.position.z).toBe(untouchedRig.position.z);
+    expect(explicit.heading).toBe(untouched.heading);
+  });
+
+  it('holds the animal inside an overridden ring instead of the world origin', () => {
+    const rig = createTestRig();
+    const player = createPlayer(rig);
+    const centre = { x: 5, z: -3 };
+    const radius = 1.5;
+    player.setWanderRing(centre, radius);
+    rig.position.set(centre.x + 0.4, 0, centre.z);
+    player.setWalking(true);
+    // Same overshoot bound the trio test uses: past the rim a dino keeps
+    // walking outward through a half turn, at its own measured speed.
+    const speed = WALK_SPEED_METRES_PER_SECOND;
+    const yawRate = Math.min(
+      TRIKE_GAIT.turnRateRadiansPerSecond,
+      TRIKE_GAIT.curvatureRadiansPerMetre * speed,
+    );
+    const ceiling = radius + speed * (Math.PI / yawRate + WALK_BLEND_SECONDS);
+    let maxFromCentre = 0;
+    let minFromOrigin = Number.POSITIVE_INFINITY;
+    let now = 0;
+    for (let step = 0; step < 60 * 60; step += 1) {
+      player.update(DT, now);
+      now += DT;
+      maxFromCentre = Math.max(
+        maxFromCentre,
+        Math.hypot(rig.position.x - centre.x, rig.position.z - centre.z),
+      );
+      if (step >= 30 * 60) {
+        minFromOrigin = Math.min(minFromOrigin, Math.hypot(rig.position.x, rig.position.z));
+      }
+    }
+    // It roams out to its own rim and never past the overshoot.
+    expect(maxFromCentre).toBeGreaterThan(radius - 0.3);
+    expect(maxFromCentre).toBeLessThanOrEqual(ceiling);
+    // The override ring sits wholly outside the world-origin gait circle, so an
+    // animal still steering at the origin would have been pulled home.
+    expect(minFromOrigin).toBeGreaterThan(TRIKE_GAIT.wanderRadiusMetres);
+  });
+});
+
+describe('two-action blend (FR-2, AC-2)', () => {
+  it('holds Idle at weight 1 and Walk at 0 while stopped', () => {
+    const player = createBlendedPlayer(createTestRig());
+    player.update(DT, 0);
+    const weights = player.blendWeights;
+    expect(weights.walk).toBeCloseTo(0, 9);
+    expect(weights.idle).toBeCloseTo(1, 9);
+  });
+
+  it('splits the eased blend into two weights that sum to 1 mid-blend', () => {
+    const player = createBlendedPlayer(createTestRig());
+    player.setWalking(true);
+    let sawMidBlend = false;
+    for (let frame = 0; frame < 40; frame += 1) {
+      player.update(DT, frame * DT);
+      const { idle, walk } = player.blendWeights;
+      // AC-2: the pair is a partition of unity on every frame, not just at rest.
+      expect(idle + walk).toBeCloseTo(1, 6);
+      if (walk > 0.01 && walk < 0.99) {
+        sawMidBlend = true;
+      }
+    }
+    expect(sawMidBlend).toBe(true);
+  });
+
+  it('advances the mixer while stopped instead of freezing the resting pose', () => {
+    const rig = createTestRig();
+    const player = createBlendedPlayer(rig);
+    const hips = rig.getObjectByName('Hips');
+    expect(hips).toBeDefined();
+    if (hips === undefined) return;
+    // Walk weight is 0 throughout, so only the Idle action can move the hips.
+    // Before FR-2 the mixer was gated on `blend > 0.5` and this bone never moved.
+    player.update(DT, 0);
+    const first = hips.position.y;
+    for (let frame = 1; frame <= 20; frame += 1) {
+      player.update(DT, frame * DT);
+    }
+    expect(player.blendWeights.walk).toBe(0);
+    expect(hips.position.y).not.toBeCloseTo(first, 6);
+  });
+
+  it('keeps a player built without an idle clip exactly as it was', () => {
+    const player = createPlayer(createTestRig());
+    player.update(DT, 0);
+    // No second action exists, so nothing claims the complement.
+    expect(player.blendWeights).toEqual({ idle: 0, walk: 0 });
+  });
+});
+
+/* -------------------------------------------------------------------------- *
+ * P5.T5 — the corner one-shot (FR-6, AC-6)
+ * -------------------------------------------------------------------------- */
+
+/** A 1 s roll that tips the hips over and sets them back down. */
+function createRollClip(): THREE.AnimationClip {
+  const track = new THREE.VectorKeyframeTrack(
+    'Hips.position',
+    [0, 0.5, 1],
+    [0, 0, 0, 0, -0.2, 0, 0, 0, 0],
+  );
+  return new THREE.AnimationClip('MudRoll', 1, [track]);
+}
+
+function createRollingPlayer(rig: THREE.Group): DinoPlayer {
+  return new DinoPlayer(rig, {
+    clip: createWaddleClip(),
+    idleClip: createIdleClip(),
+    arrivalClip: createRollClip(),
+    random: () => 0.5,
+  });
+}
+
+describe('the corner one-shot (P5.T5, FR-6, AC-6)', () => {
+  it('is a no-op for a player whose GLB carries no such clip', () => {
+    const player = createBlendedPlayer(createTestRig());
+    expect(player.arrivalClipPlaying).toBe(false);
+    expect(player.playArrivalClip()).toBe(false);
+    expect(player.arrivalClipPlaying).toBe(false);
+    player.update(DT, 0);
+    expect(player.blendWeights).toEqual({ idle: 1, walk: 0 });
+  });
+
+  it('plays once, owns the pose while it runs, and hands the weight back to Idle', () => {
+    const player = createRollingPlayer(createTestRig());
+    player.update(DT, 0);
+    expect(player.blendWeights.idle).toBeCloseTo(1, 6);
+
+    expect(player.playArrivalClip()).toBe(true);
+    // FR-6: the request is buffered. `arrive` asks while the walk is still
+    // blending out, so the roll starts on the first frame the walk has let go -
+    // starting it immediately was killed by the walk guard before the mixer ever
+    // evaluated a frame, and the clip never played at all.
+    player.update(DT, DT);
+    expect(player.arrivalClipPlaying).toBe(true);
+    // Neither the walk nor the idle averages into the roll: a half-roll with
+    // half a rest pose is not a roll.
+    expect(player.blendWeights.walk).toBe(0);
+    expect(player.blendWeights.idle).toBe(0);
+
+    // LoopOnce: the clip ends on its own, and the rest pose takes over again.
+    for (let frame = 1; frame <= 120; frame += 1) {
+      player.update(DT, frame * DT);
+    }
+    expect(player.arrivalClipPlaying).toBe(false);
+    expect(player.blendWeights.idle).toBeCloseTo(1, 6);
+  });
+
+  it('lets go the moment the animal strides, so the walk blend is never disturbed', () => {
+    const player = createRollingPlayer(createTestRig());
+    player.update(DT, 0);
+    player.setWalking(true);
+    player.update(DT, DT);
+    expect(player.playArrivalClip()).toBe(true);
+
+    for (let frame = 1; frame <= 30; frame += 1) {
+      player.update(DT, frame * DT);
+    }
+    expect(player.arrivalClipPlaying).toBe(false);
+    expect(player.blendWeights.walk).toBeCloseTo(1, 6);
+    expect(player.blendWeights.idle).toBeCloseTo(0, 6);
   });
 });

@@ -63,6 +63,26 @@ function findWalkClip(animations: THREE.AnimationClip[]): THREE.AnimationClip | 
 }
 
 /**
+ * The resting loop the two-action blend plays whenever the walk weight is zero
+ * (FR-1). One name for every species: the bake grafts Polyfork's authored `Idle`
+ * onto all three rigs, so there is no donor-retarget alias to allow for.
+ */
+const IDLE_CLIP_NAME = 'Idle';
+
+/** The resting loop out of a loaded GLB, or undefined when it ships none. */
+function findIdleClip(animations: THREE.AnimationClip[]): THREE.AnimationClip | undefined {
+  const clip = THREE.AnimationClip.findByName(animations, IDLE_CLIP_NAME);
+  return clip ?? undefined;
+}
+
+/**
+ * The one bespoke corner clip a shipped GLB carries (FR-6): Stego's mud roll,
+ * authored and baked to 4.000 s. Only Stego is asked for it; a Trike or a
+ * Brachio GLB carries no such clip and must never be asked.
+ */
+export const MUD_ROLL_CLIP_NAME = 'MudRoll';
+
+/**
  * Per-species in-game size, in one place (FR-4).
  *
  * The rule: **keep real-life ratios and leave the Triceratops at the size the
@@ -152,8 +172,8 @@ export interface LoadedDino {
 export type LoadedTrike = LoadedDino;
 
 /**
- * Load a baked Draco GLB and wrap its walk clip in a DinoPlayer with the
- * given gait. DOM- and renderer-free (loader boundary only), so tests can
+ * Load a baked Draco GLB and wrap its walk and idle clips in a DinoPlayer with
+ * the given gait. DOM- and renderer-free (loader boundary only), so tests can
  * drive it with a stubbed GLTFLoader while the real viewer owns the WebGL
  * chrome. An injected DustPool is shared (FR-9); omitted, the player keeps a
  * private pool exactly as before.
@@ -170,18 +190,43 @@ async function loadDinoPlayer(
   sharedDust?: DustPool,
   random?: () => number,
   blinkRandom?: () => number,
+  arrivalClipName?: string,
 ): Promise<LoadedDino> {
   const draco = new DRACOLoader();
   try {
     const loader = new GLTFLoader();
     loader.setDRACOLoader(draco);
     const gltf = await loader.loadAsync(modelUrl);
+    const carried = gltf.animations.map((animation) => animation.name).join(', ') || 'none';
     const clip = findWalkClip(gltf.animations);
     if (clip === undefined) {
       throw new Error(
         `${species} GLB has no walk clip (expected "${WALK_CLIP_NAMES.join('" or "')}"; it carries ` +
-          `${gltf.animations.map((animation) => animation.name).join(', ') || 'none'})`,
+          `${carried})`,
       );
+    }
+    // FR-1: both clips or a loud failure. A one-clip fallback is exactly the
+    // silent regression this track exists to remove - the shipped Idle used to
+    // be dropped on the floor and every pause became a statue.
+    const idleClip = findIdleClip(gltf.animations);
+    if (idleClip === undefined) {
+      throw new Error(
+        `${species} GLB has no ${IDLE_CLIP_NAME} clip (the walk/rest blend needs one; it carries ` +
+          `${carried})`,
+      );
+    }
+    // FR-6: the corner one-shot is optional by design. A stale GLB without it
+    // must fall back to `Idle` with a warning rather than white-screen the ranch,
+    // which is why this is a warn and not a throw like the walk and idle clips.
+    let arrivalClip: THREE.AnimationClip | undefined;
+    if (arrivalClipName !== undefined) {
+      arrivalClip = THREE.AnimationClip.findByName(gltf.animations, arrivalClipName) ?? undefined;
+      if (arrivalClip === undefined) {
+        console.warn(
+          `${species} GLB has no ${arrivalClipName} clip; its corner rests on ${IDLE_CLIP_NAME} ` +
+            `instead (it carries ${carried})`,
+        );
+      }
     }
     // In-game size is a uniform group scale, applied before the player exists so
     // DinoPlayer captures it as its squash/sleepy base (FR-4). One scalar: x/y/z
@@ -192,6 +237,8 @@ async function loadDinoPlayer(
     // cheeks to the blink Head bone. No-op on models without a Head node.
     const player = new DinoPlayer(gltf.scene, {
       clip,
+      idleClip,
+      arrivalClip,
       gait: worldGait(gait, groupScale),
       dust: sharedDust,
       random,
@@ -250,6 +297,9 @@ export function loadStegoPlayer(
     sharedDust,
     random,
     blinkRandom,
+    // FR-6: the one animal that owns a corner clip. No other loader names one,
+    // so no Trike or Brachio GLB is ever asked for a clip it cannot carry.
+    MUD_ROLL_CLIP_NAME,
   );
 }
 

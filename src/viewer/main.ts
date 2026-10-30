@@ -1,10 +1,21 @@
 import * as THREE from 'three';
 import type { DinoPlayer } from '../ranch/dino-player.js';
+import { BRACHIO_GAIT, STEGO_GAIT, TRIKE_GAIT } from '../ranch/dino-player.js';
+import type { CornerSpecies } from '../ranch/layout.js';
+import { VisitDirector } from '../ranch/visit.js';
+import type { GaitParams } from '../ranch/waddle.js';
 import { trioSpawnPositions } from '../ranch/avoidance.js';
 import { buildDressing } from '../ranch/dressing.js';
 import type { DressingFrame } from '../ranch/dressing.js';
-import { DEFAULT_SWAY_SEED, allowsPropTap, propUnderPointer } from '../ranch/ambient.js';
-import { DustPool } from '../ranch/dust.js';
+import {
+  DEFAULT_SWAY_SEED,
+  CallCooldowns,
+  allowsPropTap,
+  cornerUnderProp,
+  propUnderPointer,
+} from '../ranch/ambient.js';
+import { DustPool, createDustTexture } from '../ranch/dust.js';
+import { ArrivalEffects } from '../ranch/visit-effects.js';
 import { installGestureUnlock, installVisibilityHandling } from '../audio/gesture.js';
 import { loadAudioSettings, saveMuted, saveVolume } from '../audio/settings.js';
 import {
@@ -35,7 +46,14 @@ import {
   createHud,
   setStatus,
 } from './hud.js';
-import { loadBrachioPlayer, loadStegoPlayer, loadTrikePlayer, type LoadedDino } from './loaders.js';
+import {
+  DINO_GROUP_SCALE,
+  loadBrachioPlayer,
+  loadStegoPlayer,
+  loadTrikePlayer,
+  worldGait,
+  type LoadedDino,
+} from './loaders.js';
 import {
   TRIO_SPAWN_HEADINGS_RADIANS,
   setAllWalking,
@@ -52,6 +70,17 @@ import { createViewerScene, enableShadows } from './scene.js';
 import { createSky } from './sky.js';
 import { readSetting, writeSetting } from './storage.js';
 import type { DevBridge } from '../dev/harness.js';
+
+/**
+ * The gaits the loader actually applies (FR-4): Stego and Brachio are drawn at
+ * `DINO_GROUP_SCALE`, so their strides — and with them every duration a visit
+ * derives — are the world gaits, not the authored ones.
+ */
+const VISIT_GAITS: Readonly<Record<CornerSpecies, GaitParams>> = {
+  trike: TRIKE_GAIT,
+  stego: worldGait(STEGO_GAIT, DINO_GROUP_SCALE),
+  brachio: worldGait(BRACHIO_GAIT, DINO_GROUP_SCALE),
+};
 
 /** Boot the offline viewer: daylight scene, fixed camera, 72px Walk button. */
 export async function bootViewer(): Promise<void> {
@@ -200,8 +229,17 @@ export async function bootViewer(): Promise<void> {
   scene.add(brachio);
 
   // FR-9: one shared DustPool feeds all three players (single draw call).
-  const sharedDust = new DustPool({ random: streams?.dust ?? Math.random });
+  const dustTexture = createDustTexture();
+  const sharedDust = new DustPool({ texture: dustTexture, random: streams?.dust ?? Math.random });
   scene.add(sharedDust.points);
+  // FR-12: the arrival payoff is its own pool — one more draw call, the same
+  // sprite — so a ripple can never recycle a footfall particle mid-stride.
+  const arrivals = new ArrivalEffects({
+    playSound: playFeedback,
+    texture: dustTexture,
+    random: streams?.dust ?? Math.random,
+  });
+  scene.add(arrivals.points);
 
   const stage: LoopStage = {
     players: [],
@@ -212,6 +250,16 @@ export async function bootViewer(): Promise<void> {
     stegoModel: stego,
     brachioModel: brachio,
   };
+  // FR-4/FR-9: one director owns the three visits, fed each player as its GLB
+  // lands so a slow fetch never holds up the other two timers. The jitter
+  // stream is seeded from `?seed=`, so a seeded run replays the same schedule.
+  // FR-12/FR-13: the director reports each arrival, and the payoff fires there.
+  const visit = new VisitDirector({
+    seed: options?.seed ?? null,
+    onArrival: (species) => {
+      arrivals.arrive(species);
+    },
+  });
   const hud = createHud({
     camera,
     button,
@@ -228,6 +276,7 @@ export async function bootViewer(): Promise<void> {
   // headings (TRIO_SPAWN_HEADINGS_RADIANS) send the trio out on separated
   // legs early so avoidance visibly steers from the first seconds.
   const swapToRigged = (
+    species: CornerSpecies,
     placeholder: THREE.Group,
     loaded: LoadedDino,
     initialHeading: number,
@@ -241,6 +290,12 @@ export async function bootViewer(): Promise<void> {
     loaded.player.setWalking(hud.isWalking());
     stage.players.push(loaded.player);
     assign(loaded.player, loaded.model);
+    visit.register({
+      species,
+      actor: loaded.player,
+      body: loaded.model,
+      gait: VISIT_GAITS[species],
+    });
   };
 
   // Swap the instant placeholders for the rigged GLBs once Draco decoding
@@ -249,7 +304,7 @@ export async function bootViewer(): Promise<void> {
   // dinos are unaffected.
   void loadTrikePlayer(sharedDust, streams?.movement.trike ?? Math.random, streams?.blink.trike)
     .then((loaded) => {
-      swapToRigged(trike, loaded, TRIO_SPAWN_HEADINGS_RADIANS[0], (player, model) => {
+      swapToRigged('trike', trike, loaded, TRIO_SPAWN_HEADINGS_RADIANS[0], (player, model) => {
         stage.trikePlayer = player;
         stage.trikeModel = model;
       });
@@ -260,7 +315,7 @@ export async function bootViewer(): Promise<void> {
 
   void loadStegoPlayer(sharedDust, streams?.movement.stego ?? Math.random, streams?.blink.stego)
     .then((loaded) => {
-      swapToRigged(stego, loaded, TRIO_SPAWN_HEADINGS_RADIANS[1], (player, model) => {
+      swapToRigged('stego', stego, loaded, TRIO_SPAWN_HEADINGS_RADIANS[1], (player, model) => {
         stage.stegoPlayer = player;
         stage.stegoModel = model;
       });
@@ -275,7 +330,7 @@ export async function bootViewer(): Promise<void> {
     streams?.blink.brachio,
   )
     .then((loaded) => {
-      swapToRigged(brachio, loaded, TRIO_SPAWN_HEADINGS_RADIANS[2], (player, model) => {
+      swapToRigged('brachio', brachio, loaded, TRIO_SPAWN_HEADINGS_RADIANS[2], (player, model) => {
         stage.brachioPlayer = player;
         stage.brachioModel = model;
       });
@@ -305,6 +360,9 @@ export async function bootViewer(): Promise<void> {
   // gameplay. The listener sits on the canvas, so chrome the HUD owns never
   // reaches it (review F8: no target check needed), and only the sleepy guard
   // stands between the tap and the raycast.
+  // FR-8: the call cooldown is per corner, so two corners can be called back to
+  // back and only a second tap on the same one is refused.
+  const callCooldowns = new CallCooldowns();
   const tapPointer = new THREE.Vector2();
   canvas.addEventListener('pointerdown', (event: PointerEvent) => {
     const dressing = dressingFrame.dressing;
@@ -340,6 +398,16 @@ export async function bootViewer(): Promise<void> {
     } else {
       const unlocking = unlockAudio();
       void unlocking.then(burst, burst);
+    }
+    // FR-8: a tap on any prop of a corner calls that corner's animal — the hay
+    // bale and the berry bush both call the Trike. The sparkle above is already
+    // in this frame; nothing is awaited before it, and the journey starts from
+    // here rather than replacing it. A refused call still sparkled: only the
+    // journey is skipped.
+    const corner = cornerUnderProp(hit.prop);
+    if (corner !== null && callCooldowns.allows(corner, at)) {
+      callCooldowns.record(corner, at);
+      visit.startVisit(corner);
     }
   });
 
@@ -418,6 +486,20 @@ export async function bootViewer(): Promise<void> {
           stopAll: () => {
             audioEngine().stopAll();
           },
+          // FR-14: the tap's own path — same cooldown map, same director entry
+          // point, nothing overridden. A harness call therefore cannot put an
+          // animal in a state the child's tap could not reach, and a refused
+          // call answers false instead of lying.
+          callVisit: (species: CornerSpecies) => {
+            const at = performance.now();
+            if (!callCooldowns.allows(species, at)) {
+              return false;
+            }
+            callCooldowns.record(species, at);
+            return visit.startVisit(species);
+          },
+          // FR-14: registered animals only, straight from the director.
+          getVisitState: () => visit.getSnapshots(),
         }
       : null;
 
@@ -439,6 +521,8 @@ export async function bootViewer(): Promise<void> {
     devFrame,
     sky,
     dressing: dressingFrame,
+    visit,
+    arrivals,
   });
 }
 

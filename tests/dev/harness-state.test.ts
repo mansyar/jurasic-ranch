@@ -147,6 +147,7 @@ describe('snapshot reuse (FR-7)', () => {
       drawCalls: 0,
       triangles: 0,
       dinos,
+      visits: [],
       audio: {
         unlocked: false,
         muted: false,

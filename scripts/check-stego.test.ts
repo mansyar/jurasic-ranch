@@ -1,5 +1,6 @@
 import { readFile, stat } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
+import { resolveMudRollPose } from './vendor/mud-roll-clip.js';
 
 /**
  * Budget: the baked Stego carries Polyfork's authored clips, which are dense
@@ -8,13 +9,22 @@ import { describe, expect, it } from 'vitest';
  * file against a runaway bake.
  */
 // Sized to catch a runaway bake, not to bless the budget: the shipped file is
-// 338 KB (Walk only). Re-check NFR-2 before raising this.
-const MAX_BYTES = 512 * 1024;
+// 1303 KB (Idle + Walk + MudRoll, FR-1/FR-6). Re-check NFR-1 before raising this.
+const MAX_BYTES = 1400 * 1024;
 /** Authored clip lengths in seconds, as published (AC-1). */
 const CLIP_SECONDS = [
+  ['Idle', 9],
   ['Walk', 2.4],
+  ['MudRoll', 4],
   // ['Run', 1] is withdrawn: see SHIPPED_CLIP_NAMES in scripts/bake-trike-variant.js.
 ] as const;
+/**
+ * Stego's bespoke wallow clip (FR-6, AC-6): four seconds, in place, ending on
+ * the rest pose. Authored in scripts/vendor/mud-roll-clip.js and injected by
+ * the bake - not exported from Blender, whose round trip re-times animation.
+ */
+const MUD_ROLL_SECONDS = 4;
+const MUD_ROLL_CHANNELS = 16;
 /** 24 bones x translation + rotation: the authored channel count. */
 const CHANNELS_PER_CLIP = 48;
 /** Authored proportions: the Polyfork reference is ~6.49 m tip-to-tail. */
@@ -29,6 +39,7 @@ interface GlbAccessor {
   bufferView?: number;
   byteOffset?: number;
   count: number;
+  type?: string;
   min?: number[];
   max?: number[];
 }
@@ -51,9 +62,11 @@ interface GlbMaterial {
 
 interface GlbSampler {
   input: number;
+  output: number;
 }
 
 interface GlbChannel {
+  sampler: number;
   target: { node: number; path: string };
 }
 
@@ -113,6 +126,24 @@ async function parseGlb(): Promise<ParsedGlb> {
   return { json, bin };
 }
 
+/** Read a float accessor as rows of its component count (VEC3 -> 3, VEC4 -> 4). */
+function readAccessor(parsed: ParsedGlb, accessorIndex: number): number[][] {
+  const accessor = parsed.json.accessors[accessorIndex];
+  const bufferView = parsed.json.bufferViews[accessor.bufferView ?? 0];
+  const itemSize = accessor.type === 'VEC4' ? 4 : accessor.type === 'VEC3' ? 3 : 1;
+  const view = new DataView(parsed.bin.buffer, parsed.bin.byteOffset, parsed.bin.byteLength);
+  const base = (bufferView.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
+  const rows: number[][] = [];
+  for (let i = 0; i < accessor.count; i += 1) {
+    const row: number[] = [];
+    for (let c = 0; c < itemSize; c += 1) {
+      row.push(readF32(view, base + (i * itemSize + c) * 4));
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
 /** Longest input timestamp across the animation samplers: the clip duration. */
 function animationDuration(parsed: ParsedGlb, animation: GlbAnimation): number {
   const view = new DataView(parsed.bin.buffer, parsed.bin.byteOffset, parsed.bin.byteLength);
@@ -140,7 +171,7 @@ describe('stego glb', () => {
     expect(parsed.json.meshes.length).toBeGreaterThan(0);
   });
 
-  it('carries the authored Walk clip at its published length', async () => {
+  it('carries the authored Idle and Walk clips at their published lengths', async () => {
     const parsed = await parseGlb();
     const animations = parsed.json.animations ?? [];
     // AC-1: the authored set, and no donor "Waddle" anywhere.
@@ -148,20 +179,88 @@ describe('stego glb', () => {
       CLIP_SECONDS.map(([name]) => name).sort(),
     );
     expect(animations.some((animation) => animation.name === 'Waddle')).toBe(false);
-    // Idle and Run are withdrawn by the bake (NFR-2 cache budget): absent, not
-    // silently dropped.
+    // Idle is re-instated (FR-1): a stopped dino plays it instead of holding a
+    // stride. Run stays withdrawn - no code path plays it.
+    expect(animations.some((animation) => animation.name === 'Idle')).toBe(true);
     expect(animations.some((animation) => animation.name === 'Run')).toBe(false);
-    expect(animations.some((animation) => animation.name === 'Idle')).toBe(false);
     for (const animation of animations) {
       const expected = CLIP_SECONDS.find(([name]) => name === animation.name)?.[1];
       expect(expected).toBeDefined();
       expect(animationDuration(parsed, animation)).toBeCloseTo(expected ?? 0, 3);
       // 24 bones x translation + rotation: no synthesised scale channel.
-      expect(animation.channels.length).toBe(CHANNELS_PER_CLIP);
+      // MudRoll touches only the bones a wallow needs, plus the root's drop.
+      expect(animation.channels.length).toBe(
+        animation.name === 'MudRoll' ? MUD_ROLL_CHANNELS : CHANNELS_PER_CLIP,
+      );
       for (const channel of animation.channels) {
         expect(['translation', 'rotation']).toContain(channel.target.path);
       }
     }
+  });
+
+  it("ships Stego's MudRoll as a four-second rest-to-rest clip with a root drop", async () => {
+    const parsed = await parseGlb();
+    const mudRoll = (parsed.json.animations ?? []).find(
+      (animation) => animation.name === 'MudRoll',
+    );
+    expect(mudRoll).toBeDefined();
+    if (mudRoll === undefined) {
+      return;
+    }
+    // AC-6: authored at four seconds, so the visit can time its dwell from it.
+    expect(animationDuration(parsed, mudRoll)).toBeCloseTo(MUD_ROLL_SECONDS, 3);
+
+    const rotation = mudRoll.channels.filter((channel) => channel.target.path === 'rotation');
+    const hips = rotation.find(
+      (channel) => parsed.json.nodes?.[channel.target.node]?.name === 'Hips',
+    );
+    expect(hips).toBeDefined();
+    if (hips === undefined) {
+      return;
+    }
+    const keys = readAccessor(parsed, mudRoll.samplers[hips.sampler].output);
+    const first = keys[0] ?? [];
+    const last = keys[keys.length - 1] ?? [];
+    // Rest to rest: the clip can be left, or crossfaded, without a pop.
+    expect(first).toEqual(last);
+    expect(Math.abs((first[3] ?? 0) - 1)).toBeLessThan(1e-6);
+
+    // The body actually moves: the widest key swings the hips well off rest.
+    // Angles, not raw w: a 30-degree roll is only 0.034 away from w = 1.
+    const peakDegrees = keys.reduce((most, key) => {
+      const w = Math.min(Math.abs(key[3] ?? 1), 1);
+      return Math.max(most, (2 * Math.acos(w) * 180) / Math.PI);
+    }, 0);
+    expect(peakDegrees).toBeGreaterThan(20);
+
+    // The belly reaches the mud: the root's translation channel drops and
+    // returns. A clip that only rotated would read as a bow, not a wallow.
+    const translation = mudRoll.channels.find((channel) => channel.target.path === 'translation');
+    expect(translation).toBeDefined();
+    if (translation === undefined) {
+      return;
+    }
+    const positions = readAccessor(parsed, mudRoll.samplers[translation.sampler].output);
+    const heights = positions.map((position) => position[1] ?? 0);
+    const rest = heights[heights.length - 1] ?? 0;
+    const lowest = Math.min(...heights);
+    expect(rest - lowest).toBeGreaterThan(0.4);
+    expect(rest - lowest).toBeLessThan(0.7);
+    expect(heights[0]).toBeCloseTo(rest, 5);
+  });
+
+  it('authors the spine as cumulative rotation, not per-bone deltas', () => {
+    // A chain value means "the chest is pitched 20 degrees in world terms".
+    // Summing per-bone deltas down the spine is how the first draft folded the
+    // animal onto its nose, so the rule is pinned here as arithmetic.
+    const resolved = resolveMudRollPose({ Hips: [10, 0, 0], Neck: [20, 0, 0] });
+    expect(resolved['Hips']).toEqual([10, 0, 0]);
+    // Spine is absent, so it inherits the hips: no delta.
+    expect(resolved['Spine']).toEqual([0, 0, 0]);
+    expect(resolved['Chest']).toEqual([0, 0, 0]);
+    // Neck reaches 20 cumulative, so it adds the remaining 10.
+    expect(resolved['Neck']).toEqual([10, 0, 0]);
+    expect(resolved['Head']).toEqual([0, 0, 0]);
   });
 
   it('meets the NFR-2 offline contract: draco, one flat-shaded material', async () => {

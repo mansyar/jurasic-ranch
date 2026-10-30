@@ -34,7 +34,7 @@ const MIN_VERTS_PER_ZONE = 50;
 const SHIPPED_GLB = new URL('../../public/models/stego.glb', import.meta.url);
 /** Authored cycle lengths, as published (AC-1). */
 // Shipped set: Run is withdrawn (see SHIPPED_CLIP_NAMES), so it is not here.
-const CLIP_SECONDS = { Walk: 2.4 } as const;
+const CLIP_SECONDS = { Idle: 9, Walk: 2.4 } as const;
 
 /** Count verts whose linear-space color matches the hex within tolerance. */
 function countMatchingVerts(geometry: THREE.BufferGeometry, hex: string): number {
@@ -167,10 +167,11 @@ describe('baked pastel stego variant geometry', () => {
 });
 
 describe('authored clips on the stego rig', () => {
-  it('rebuilds the authored Walk clip with the published timing', async () => {
+  it('rebuilds the authored Idle and Walk clips with the published timing', async () => {
     const group = createStegoVariantGroup();
     const clips = buildStegoClips(group, await readFile(SHIPPED_GLB));
-    expect(clips.map((clip) => clip.name)).toEqual(['Walk']);
+    // FR-1: the rest loop is grafted alongside the walk.
+    expect(clips.map((clip) => clip.name)).toEqual(['Idle', 'Walk']);
     for (const clip of clips) {
       expect(clip.duration).toBeCloseTo(CLIP_SECONDS[clip.name as keyof typeof CLIP_SECONDS], 3);
       expect(clip.tracks.length).toBe(48);

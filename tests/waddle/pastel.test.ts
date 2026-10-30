@@ -5,7 +5,7 @@ import {
   buildRetargetedClip,
   createDefaultGroup,
   createVariantGroup,
-  extractAnimationTracks,
+  extractAnimationTracksByName,
   POSITION_TRACK_SCALE,
   TRIKE_VARIANT_PARAMS,
 } from '../../scripts/bake-trike-variant.js';
@@ -132,7 +132,7 @@ describe('Waddle retarget onto the baby skeleton', () => {
 
   it('finds a seamless 0.8 s Waddle on the shipped GLB with a 1.0x root', async () => {
     const bytes = await readFile(SHIPPED_GLB);
-    const animation = extractAnimationTracks(bytes);
+    const animation = extractAnimationTracksByName(bytes, 'Waddle');
     expect(animation.name).toBe('Waddle');
     expect(animation.durationSeconds).toBeGreaterThan(0.79);
     expect(animation.durationSeconds).toBeLessThan(0.81);
@@ -160,7 +160,7 @@ describe('Waddle retarget onto the baby skeleton', () => {
 
   it('rebuilds the clip on the variant skeleton with positions scaled and quats intact', async () => {
     const bytes = await readFile(SHIPPED_GLB);
-    const animation = extractAnimationTracks(bytes);
+    const animation = extractAnimationTracksByName(bytes, 'Waddle');
     const group = createVariantGroup();
     const clip = buildRetargetedClip(group, animation);
     expect(clip.name).toBe('Waddle');

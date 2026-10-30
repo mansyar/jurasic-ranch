@@ -2,8 +2,8 @@
  * Bake the pastel Stegosaurus GLB (track 20261029-authored-dino-walk-clips, Phase 2).
  *
  * The shipped game file `public/models/stego.glb` is the vendored Polyfork
- * parametric module's mesh and palette with Polyfork's OWN authored `Walk` clip
- * on it (`Idle` and `Run` are withdrawn at bake time, see `SHIPPED_CLIP_NAMES`).
+ * parametric module's mesh and palette with Polyfork's OWN authored `Walk` and
+ * `Idle` clips on it (`Run` is withdrawn at bake time, see `SHIPPED_CLIP_NAMES`).
  * Nothing here reads the Trike: the donor transfer
  * this bake used until this phase is gone, because glTF translation channels are
  * absolute local translations and a foreign clip drags every bone off its rest
@@ -83,6 +83,7 @@ import {
   injectGlbAnimations,
   selectShippedClips,
 } from '../bake-trike-variant.js';
+import { buildMudRollClip } from './mud-roll-clip.js';
 import { createAsset } from './stegosaurus-base.mjs';
 
 /**
@@ -148,10 +149,11 @@ export function createStegoDefaultGroup() {
 
 /**
  * Load the published GLB's authored clips and rebuild the SHIPPED set on
- * `skeletonRoot`: `Walk` only. `Idle` and `Run` are withdrawn - they cost
- * 100 KiB-1.6 MiB of keyframes that no code path plays, and the offline-cache
- * budget is 2 MiB - so the bake grafts one of the three (see
- * `SHIPPED_CLIP_NAMES` in `bake-trike-variant.js`). Species-named wrapper over
+ * `skeletonRoot`: `Walk` and `Idle`. `Walk` drives the stride; `Idle` is the
+ * rest loop the player crossfades to when the walk weight reaches zero (FR-2).
+ * `Run` is withdrawn - it costs keyframes no code path plays - so the bake
+ * grafts two of the three (see `SHIPPED_CLIP_NAMES` in `bake-trike-variant.js`).
+ * Species-named wrapper over
  * the shared graft; see `graftAuthoredClips` for the copy rules. The bake uses it as a
  * pre-flight check against the baked skeleton, and the tests use it to play the
  * shipped clips headless.
@@ -193,8 +195,15 @@ export async function bakeStegoVariant(options = {}) {
   const outPath = options.outPath ?? DEFAULT_OUT_GLB;
   const blenderBin = options.blenderBin ?? process.env['STEGO_BLENDER_BIN'] ?? 'blender';
   const officialBytes = await readOfficialGlb(officialGlbPath);
-  const shipped = selectShippedClips(extractAnimationClips(officialBytes));
   const group = createStegoVariantGroup();
+  // Polyfork's authored clips plus Stego's own bespoke MudRoll (track
+  // 20261030-wallow-nest-life, FR-6). MudRoll is authored in
+  // `mud-roll-clip.js` rather than in Blender because the bake injects clip
+  // channels into the compressed GLB's JSON chunk - Blender's glTF round trip
+  // re-times animation onto its own frame clock, so an action authored there
+  // could never reach the shipped file.
+  const shipped = [...selectShippedClips(extractAnimationClips(officialBytes)), buildMudRollClip(group)];
+  const shippedNames = shipped.map((animation) => animation.name);
   // Pre-flight against the real baked skeleton: a missing bone fails here, with
   // the full list, instead of after Blender has written a GLB.
   buildStegoClips(group, officialBytes);
@@ -217,7 +226,7 @@ export async function bakeStegoVariant(options = {}) {
     if (result.status !== 0) {
       throw new Error(`Blender Draco pass failed (exit ${result.status}). Uncompressed export kept at ${tmpIn}.`);
     }
-    const injected = injectGlbAnimations(await readFile(tmpOut), shipped);
+    const injected = injectGlbAnimations(await readFile(tmpOut), shipped, { requiredClipNames: shippedNames });
     assertAuthoredClipsPreserved(injected, shipped);
     await writeFile(tmpOut, injected);
     await rename(tmpOut, outPath);

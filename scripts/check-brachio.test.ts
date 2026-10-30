@@ -8,10 +8,11 @@ import { describe, expect, it } from 'vitest';
  * total, this caps the one file against a runaway bake.
  */
 // Sized to catch a runaway bake, not to bless the budget: the shipped file is
-// 690 KB (Walk only). Re-check NFR-2 before raising this.
-const MAX_BYTES = 900 * 1024;
+// 1882 KB (Idle + Walk, FR-1). Re-check NFR-2 before raising this.
+const MAX_BYTES = 2100 * 1024;
 /** Authored clip lengths in seconds, as published (AC-1). */
 const CLIP_SECONDS = [
+  ['Idle', 8],
   ['Walk', 3.8],
   // ['Run', 2.5] is withdrawn: see SHIPPED_CLIP_NAMES in scripts/bake-trike-variant.js.
 ] as const;
@@ -141,7 +142,7 @@ describe('brachio glb', () => {
     expect(parsed.json.meshes.length).toBeGreaterThan(0);
   });
 
-  it('carries the authored Walk clip at its published length', async () => {
+  it('carries the authored Idle and Walk clips at their published lengths', async () => {
     const parsed = await parseGlb();
     const animations = parsed.json.animations ?? [];
     // AC-1: the authored set, and no donor "Waddle" anywhere.
@@ -149,10 +150,10 @@ describe('brachio glb', () => {
       CLIP_SECONDS.map(([name]) => name).sort(),
     );
     expect(animations.some((animation) => animation.name === 'Waddle')).toBe(false);
-    // Idle and Run are withdrawn by the bake (NFR-2 cache budget): absent, not
-    // silently dropped.
+    // Idle is re-instated (FR-1): a stopped dino plays it instead of holding a
+    // stride. Run stays withdrawn - no code path plays it.
+    expect(animations.some((animation) => animation.name === 'Idle')).toBe(true);
     expect(animations.some((animation) => animation.name === 'Run')).toBe(false);
-    expect(animations.some((animation) => animation.name === 'Idle')).toBe(false);
     for (const animation of animations) {
       const expected = CLIP_SECONDS.find(([name]) => name === animation.name)?.[1];
       expect(expected).toBeDefined();

@@ -121,7 +121,10 @@ describe('rigged trike loader', () => {
   it('requests /models/trike.glb and wraps the Waddle clip in a DinoPlayer', async () => {
     const scene = new THREE.Group();
     const clip = new THREE.AnimationClip('Waddle', 0.8, []);
-    loaderMocks.loadAsync.mockResolvedValue({ scene, animations: [clip] });
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene,
+      animations: [new THREE.AnimationClip('Idle', 6, []), clip],
+    });
     const loaded = await loadTrikePlayer();
     expect(TRIKE_MODEL_URL).toBe('/models/trike.glb');
     expect(loaderMocks.loadAsync).toHaveBeenCalledWith('/models/trike.glb');
@@ -166,6 +169,16 @@ describe('rigged trike loader', () => {
   it('rejects when the GLB carries no animations', async () => {
     loaderMocks.loadAsync.mockResolvedValue({ scene: new THREE.Group(), animations: [] });
     await expect(loadTrikePlayer()).rejects.toThrow('Waddle');
+  });
+
+  it('refuses a GLB with no Idle clip, naming it and what the file carries', async () => {
+    // AC-1: a one-clip file must fail loudly at load. Falling back to the walk
+    // pose is the statue this track exists to remove.
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: new THREE.Group(),
+      animations: [new THREE.AnimationClip('Waddle', 0.8, [])],
+    });
+    await expect(loadTrikePlayer()).rejects.toThrow(/no Idle clip.*carries Waddle/);
   });
 });
 
@@ -213,7 +226,10 @@ describe('rigged baked look', () => {
       baked.geometry.getAttribute('color') as THREE.BufferAttribute
     ).array.slice();
     const clip = new THREE.AnimationClip('Waddle', 0.8, []);
-    loaderMocks.loadAsync.mockResolvedValue({ scene: rig, animations: [clip] });
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: rig,
+      animations: [new THREE.AnimationClip('Idle', 6, []), clip],
+    });
     const loaded = await loadTrikePlayer();
     expect(placeholderHexes().has(PLACEHOLDER_BODY_HEX)).toBe(true);
     expect(loaded.model).toBe(rig);
@@ -225,7 +241,10 @@ describe('rigged baked look', () => {
   it('pins pink blush cheeks under the rigged Head bone', async () => {
     const rig = createBakedRig();
     const clip = new THREE.AnimationClip('Waddle', 0.8, []);
-    loaderMocks.loadAsync.mockResolvedValue({ scene: rig, animations: [clip] });
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene: rig,
+      animations: [new THREE.AnimationClip('Idle', 6, []), clip],
+    });
     const loaded = await loadTrikePlayer();
     expect(placeholderHexes().has(BLUSH_HEX)).toBe(true);
     const head = loaded.model.getObjectByName('Head');

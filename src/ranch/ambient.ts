@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import { DustPool } from './dust.js';
-import { createSeededStream } from './layout.js';
+import { DUST_LIFETIME_SECONDS, DustPool } from './dust.js';
+import { createSeededStream, cornerPlacements } from './layout.js';
+import type { CornerSpecies } from './layout.js';
 
 /**
  * Aliveness (FR-11, FR-12, NFR-7): the quiet sway the corn, the reeds and the
@@ -11,8 +12,9 @@ import { createSeededStream } from './layout.js';
  * counter, plays no voice line and touches none of the state the kid-facing
  * chrome owns. Both are driven from the frame's own `dt` — the same clamped
  * delta the loop hands its other subsystems — so `?pause=1` freezes them too
- * (NFR-8). The sway is inert under reduced motion; the sparkle may still
- * animate (NFR-7).
+ * (NFR-8). Both are also decoration under reduced motion (FR-15, AC-15): the
+ * sway settles and a sparkle burst retires in one frame, while the clip the
+ * animal itself is playing keeps running.
  *
  * Pure scene-graph math: no DOM and no renderer, so a Node test can drive the
  * sway with a supplied `dt` and raycast a prop without a browser.
@@ -233,6 +235,69 @@ export function propUnderPointer(
   return { prop, point: hit.point.clone() };
 }
 
+/** The corners, in the fixed order every lookup walks them. */
+const CORNER_SPECIES_ORDER: readonly CornerSpecies[] = ['trike', 'stego', 'brachio'];
+
+/**
+ * The corner a tapped prop belongs to, or null (FR-8): a tap on any prop of a
+ * corner calls that corner's animal, so the hay bale *and* the berry bush call
+ * the Trike.
+ *
+ * The match is on the manifest entry's `file` plus its exact ground position,
+ * never on a distance. That is sound because the two are the same numbers: the
+ * dressing builder copies `placement.position` straight onto the node, so the
+ * values are identical bit for bit, and a tolerance here would only invite two
+ * neighbouring props to be confused for one another.
+ */
+export function cornerUnderProp(prop: THREE.Object3D): CornerSpecies | null {
+  const file = prop.userData['file'];
+  if (typeof file !== 'string') {
+    return null;
+  }
+  for (const species of CORNER_SPECIES_ORDER) {
+    for (const placement of cornerPlacements(species)) {
+      if (
+        placement.file === file &&
+        placement.position[0] === prop.position.x &&
+        placement.position[2] === prop.position.z
+      ) {
+        return species;
+      }
+    }
+  }
+  return null;
+}
+
+/** How long a corner refuses a second call, in milliseconds (FR-8). */
+export const CALL_COOLDOWN_MS = 2_000;
+
+/**
+ * FR-8's per-corner cooldown: a corner that was just called cannot be called
+ * again until it cools, so a mash of taps cannot thrash the state machine.
+ *
+ * It is keyed per corner, not globally: two different corners can be called
+ * back to back, because all three animals may be out at once (FR-9). A refused
+ * call is not an error — the sparkle still happens, only the journey is not
+ * restarted.
+ */
+export class CallCooldowns {
+  private readonly lastCallAtMs = new Map<CornerSpecies, number>();
+
+  /** Whether this corner may be called at `nowMs`. */
+  allows(species: CornerSpecies, nowMs: number): boolean {
+    const last = this.lastCallAtMs.get(species);
+    return last === undefined || nowMs - last >= CALL_COOLDOWN_MS;
+  }
+
+  /**
+   * Note that a call went out, so the corner cools from now. Only a call that
+   * was allowed should record, or a refused tap would keep the corner shut.
+   */
+  record(species: CornerSpecies, nowMs: number): void {
+    this.lastCallAtMs.set(species, nowMs);
+  }
+}
+
 /**
  * FR-12's response: one sparkle burst per prop per 250 ms, drawn from the dust
  * pool's own shape rather than a second particle system — one preallocated
@@ -286,10 +351,18 @@ export class SparkleReactions {
   }
 
   /**
-   * Advance the sparkles. Not gated on reduced motion: NFR-7 allows the tap
-   * reaction to keep animating; a paused frame (`dt` of 0) still freezes it.
+   * Advance the sparkles. Under reduced motion the burst retires in this one
+   * frame instead of animating away (FR-15, AC-15): the decoration is what
+   * stops, while the clip the animal is playing keeps running. A paused frame
+   * (`dt` of 0) still freezes it.
    */
-  update(dtSeconds: number): void {
+  update(dtSeconds: number, reducedMotion = false): void {
+    if (reducedMotion) {
+      if (this.pool.aliveCount > 0) {
+        this.pool.update(DUST_LIFETIME_SECONDS);
+      }
+      return;
+    }
     this.pool.update(dtSeconds);
   }
 }

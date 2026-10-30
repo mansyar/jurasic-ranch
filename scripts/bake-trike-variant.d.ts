@@ -115,26 +115,64 @@ export declare function assertAuthoredClipsPreserved(
   authored: AuthoredClip[],
 ): AuthoredClip[];
 
-/** Rebuild the Waddle clip on a new skeleton (quaternions verbatim, positions scaled). */
+/** How one authored clip is retargeted onto the variant skeleton. */
+export interface RetargetExpectation {
+  /** Clip name the donor must carry, and the name written to the GLB. */
+  name: string;
+  /** Inclusive lower bound on the donor duration, in seconds. */
+  minSeconds: number;
+  /** Inclusive upper bound on the donor duration, in seconds. */
+  maxSeconds: number;
+  /**
+   * Multiplier applied to translation tracks. `POSITION_TRACK_SCALE` for an
+   * adult size-1.0 donor, `1` for a GLB already baked in variant space.
+   */
+  positionScale?: number;
+}
+
+/**
+ * Rebuild one authored clip on a new skeleton (quaternions verbatim, positions
+ * scaled by the expectation's `positionScale`). Defaults to the `Waddle`
+ * window when no expectation is passed.
+ */
 export declare function buildRetargetedClip(
   skeletonRoot: THREE.Object3D,
   animation: GlbAnimationData,
+  expected?: RetargetExpectation,
 ): THREE.AnimationClip;
+
+/** Extract one named clip's channels from a GLB that carries several. */
+export declare function extractAnimationTracksByName(
+  bytes: Uint8Array,
+  clipName: string,
+): GlbAnimationData;
+
+/** Absolute path of the tracked adult base GLB used as the `Idle` donor. */
+export declare const IDLE_SOURCE_GLB: string;
 
 export interface BakeTrikeVariantOptions {
   prevGlbPath?: string;
   outPath?: string;
   blenderBin?: string;
   keepTemp?: boolean;
+  /** Override the `Idle` donor (defaults to `IDLE_SOURCE_GLB`). */
+  idleGlbPath?: string;
 }
 
-export interface BakeTrikeVariantSummary {
-  outPath: string;
+/** One clip as written to the GLB. */
+export interface BakedClipSummary {
+  name: string;
   durationSeconds: number;
   trackCount: number;
 }
 
-/** Run the full bake (procedural variant + retargeted Waddle + Blender Draco pass). */
+export interface BakeTrikeVariantSummary {
+  outPath: string;
+  /** Clips written, in `SHIPPED_CLIP_NAMES` order. */
+  clips: BakedClipSummary[];
+}
+
+/** Run the full bake (procedural variant + retargeted clips + Blender Draco pass). */
 export declare function bakeTrikeVariant(
   options?: BakeTrikeVariantOptions,
 ): Promise<BakeTrikeVariantSummary>;

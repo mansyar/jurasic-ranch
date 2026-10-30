@@ -3,17 +3,21 @@ import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import {
   AmbientSway,
+  CALL_COOLDOWN_MS,
+  CallCooldowns,
   DEFAULT_SWAY_SEED,
   SPARKLE_BURST_PARTICLES,
   SPARKLE_COOLDOWN_MS,
   SWAY_FILE_CLASSES,
   SWAY_TUNING,
   allowsPropTap,
+  cornerUnderProp,
   createSparkleTexture,
   propUnderPointer,
   SparkleReactions,
 } from '../../src/ranch/ambient.js';
-import { DRESSING_MANIFEST, createSeededStream } from '../../src/ranch/layout.js';
+import { DRESSING_MANIFEST, cornerPlacements, createSeededStream } from '../../src/ranch/layout.js';
+import type { CornerSpecies } from '../../src/ranch/layout.js';
 
 /**
  * FR-11 (quiet sway), FR-12 (one sparkle per tap), AC-9 and AC-10, plus NFR-7.
@@ -256,5 +260,110 @@ describe('tap reaction wiring (AC-9)', () => {
     }
     expect(handler).not.toContain("'heart'");
     expect(handler).not.toContain("'voice'");
+  });
+});
+
+/* -------------------------------------------------------------------------- *
+ * P5.T1 — the corner a tap belongs to, and its cooldown (FR-8, AC-8)
+ * -------------------------------------------------------------------------- */
+
+const CORNER_SPECIES: readonly CornerSpecies[] = ['trike', 'stego', 'brachio'];
+
+/** The dressing node standing at one manifest entry's exact ground position. */
+function nodeAt(
+  group: THREE.Group,
+  file: string,
+  position: readonly [number, number, number],
+): THREE.Object3D {
+  const found = group.children.find(
+    (child) =>
+      child.userData['file'] === file &&
+      child.position.x === position[0] &&
+      child.position.z === position[2],
+  );
+  if (found === undefined) {
+    throw new Error(`the dressing group has no ${file} at ${position[0]}, ${position[2]}`);
+  }
+  return found;
+}
+
+describe('the corner a tapped prop belongs to (P5.T1, FR-8)', () => {
+  it('calls the corner that owns the prop, for every prop of every corner', () => {
+    const group = fakeDressing();
+    for (const species of CORNER_SPECIES) {
+      for (const placement of cornerPlacements(species)) {
+        const node = nodeAt(group, placement.file, placement.position);
+        expect(cornerUnderProp(node), `${species}: ${placement.file}`).toBe(species);
+      }
+    }
+  });
+
+  it('lets any prop of a corner call the same animal: the bale and the berry bush', () => {
+    const group = fakeDressing();
+    const trikeFiles = new Set(cornerPlacements('trike').map((placement) => placement.file));
+    expect(trikeFiles.size).toBeGreaterThan(1);
+    for (const file of trikeFiles) {
+      const placement = cornerPlacements('trike').find((item) => item.file === file);
+      if (placement === undefined) {
+        continue;
+      }
+      const node = nodeAt(group, placement.file, placement.position);
+      expect(cornerUnderProp(node), file).toBe('trike');
+    }
+  });
+
+  it('never calls a corner for a prop that is not one of its own', () => {
+    const group = fakeDressing();
+    const cornerFiles = new Set(
+      CORNER_SPECIES.flatMap((species) =>
+        cornerPlacements(species).map((placement) => placement.file),
+      ),
+    );
+    const outsider = group.children.find(
+      (child) => !cornerFiles.has(child.userData['file'] as string),
+    );
+    expect(outsider).toBeDefined();
+    if (outsider !== undefined) {
+      expect(cornerUnderProp(outsider)).toBeNull();
+    }
+  });
+
+  it('needs the file and the place both, so a corner prop moved elsewhere is no call', () => {
+    const placement = cornerPlacements('stego')[0];
+    expect(placement).toBeDefined();
+    if (placement === undefined) {
+      return;
+    }
+    const moved = new THREE.Object3D();
+    moved.userData['file'] = placement.file;
+    moved.position.set(placement.position[0] + 0.5, placement.position[1], placement.position[2]);
+    expect(cornerUnderProp(moved)).toBeNull();
+    // A node the dressing builder never tagged cannot be a call either.
+    expect(cornerUnderProp(new THREE.Object3D())).toBeNull();
+  });
+});
+
+describe('the per-corner call cooldown (P5.T1, FR-8)', () => {
+  it('refuses a second call to the same corner until it cools', () => {
+    const cooldowns = new CallCooldowns();
+    expect(cooldowns.allows('stego', 1_000)).toBe(true);
+    cooldowns.record('stego', 1_000);
+    expect(cooldowns.allows('stego', 1_000 + CALL_COOLDOWN_MS - 1)).toBe(false);
+    expect(cooldowns.allows('stego', 1_000 + CALL_COOLDOWN_MS)).toBe(true);
+  });
+
+  it('is per corner, so two corners can be called back to back (FR-9)', () => {
+    const cooldowns = new CallCooldowns();
+    cooldowns.record('stego', 5_000);
+    expect(cooldowns.allows('trike', 5_001)).toBe(true);
+    expect(cooldowns.allows('brachio', 5_001)).toBe(true);
+    cooldowns.record('trike', 5_001);
+    expect(cooldowns.allows('trike', 5_002)).toBe(false);
+    expect(cooldowns.allows('brachio', 5_002)).toBe(true);
+  });
+
+  it('does not cool a corner that was never called', () => {
+    const cooldowns = new CallCooldowns();
+    expect(cooldowns.allows('brachio', 0)).toBe(true);
   });
 });
