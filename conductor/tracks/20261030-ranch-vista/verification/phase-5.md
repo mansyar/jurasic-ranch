@@ -459,4 +459,110 @@ meshes swapped two shared materials for one.
 67.35 % branches / 83.40 % functions, audio pack 15 assets / 853,289 bytes,
 precache 63 entries (6,700.94 KiB), dist clean.
 
+## Review fixes
+
+Base `a12515e` — the review's ten findings, worked in order, fixing causes where
+the cause was reachable and recording a limit where a rule could not be met. One
+row per finding; the number that proves it is in the third column.
+
+| # | Fix | Proof |
+|---|---|---|
+| F1 (major) | The sprig test measures the bearing in the lens's frame now — `bearingDegrees(lens, groundXZ(item.position))` against `bearingDegrees(lens, groundXZ(preset.lookAt))` — and both offenders moved: **wildflower 100° → 130° (25° clear)**, **club-moss 285° → 320° (20° clear)**, both at 13 m. The old form measured the sprig's polar bearing from the ranch origin against the lens's forward bearing and passed by coincidence. | The rewritten test failed first with exactly two findings — `garden: wildflower-68d3a1.glb at 13.0 m sits 8.4 deg off its axis` and `ranch: club-moss-mat-edcb1b.glb at 13.0 m sits 6.9 deg off its axis` — then went green with the moves. Rule untouched at ±18°. |
+| F2 (major) | Aim was tried at FR-7's ceiling (60 %) and **measured worse**: the frame tilts up, which moves the whole animal *down*, so the head gained ~28 px while the paws lost ~30. Aim stays 0.55 and the **Nest lens moved 10.8 m → 11.4 m** (the window's far end). The nearest-stance test now asserts the **full** HUD inset on all four edges for all three ground lenses, and pins the two overflows FR-7 cannot close in `WALK_STANCE_OVERFLOW_PX`. | Nearest stances: Ranch 8.15 m → head at 62 px (34 px into the 96 px top inset), paws at 789 px (111 px past the 680 px limit); Nest 5.84 m → **0 / 0, 11 px to spare**; Garden 4.39 m → paws 94 px past. An exhaustive sweep of the whole FR-7 box (aim 0.55–0.60, lens 10.6–11.4, eye 3.0–3.4, fov 48–52) reports **no legal fit** for Ranch (needs 64° at 12.0 m) or Garden (52° at 12.0 m); the Brachio spans 727 px of an 800 px frame at its nearest stance, so a 216 px inset pair cannot both be met. |
+| F3 (medium) | The arithmetic proxy is renamed for what it is — `keeps the dressing group under the draw-call and triangle ceilings (a per-prop guard, not the frame)` — and the frame is now measured: `snapshot()` carries `drawCalls` and `triangles`, `harness.ts` fills them from `renderer.info.render` (the same numbers the panel already printed), and a test drives the bridge to prove the plumbing. `verification/phase-3.md` and this file now say "dressing group" wherever they used to imply the frame. | `tests/dev/snapshot.test.ts` asserts `drawCalls: 61 / triangles: 37_600` survive the copy; `tests/dev/harness-panel.test.ts` sets `renderer.info.render.calls = 87`, `triangles = 41_234` and asserts the snapshot reports them. Dressing group: 73 placements, `DRESSING_MANIFEST.length + 3 = 76` calls under the 150 ceiling, 51,340 triangles under 80,000 — plus the one extra call F6 spends on the fan, so 77 in that group by the same arithmetic. |
+| F4 (medium) | Catalogue comments now name all three mid-band height exceptions (`#1 of three (FR-13)` plum, `#2 of three (FR-15)` reeds, `#3 of three (FR-14)` signpost), `MID_PROP_MAX_HEIGHT_METRES`'s docblock scopes the cap to the props this track added and says the shipped seven are measured but not capped, and the describe/exception docblocks record that the rhyme exemption belongs in FR-6's text. **`spec.md` could not be edited — the edit tool is denied for that path (see Blockers).** | `tests/ranch/layout.test.ts` 32 tests green; the exception list, catalogue comments and cap docblock now agree on three named exceptions and a cap scoped to new props. |
+| F5 (medium) | AC-13 is measured: a new test projects each corner's props and the animal through its own preset and asks for a 72 px clear approach per prop. Two corners pass; **Stego's three props are cropped by the frame** and the test pins the exact pixels instead of asserting a number that cannot hold. | `gives every corner a clear 72 px approach, and records the one crop (AC-13)` — findings pinned as `stego #0 garden-rock -172 px`, `#1 log-stump -216 px`, `#2 garden-rock -323 px`; Ranch and Nest corners report zero findings. A sweep of in-band, in-corner placements (195–240° at 8.4–10.2 m) never gets better than **−10 px at 210°/8.4 m**, so the 72 px is unsatisfiable for that corner under FR-6's mid band plus FR-7's windows. |
+| F6 (medium) | The rotor is found **before** the bake: `bakeToOneCall(root, keep)` now merges around a protected sub-tree and merges the kept sub-tree in place, so the fan's meshes survive under their own node instead of being flattened into the root. | `finds the fan by the GLB's own node name, with geometry still under it (review F6)` reads `windpump-tower-1633a9.glb`, takes `wheel`/`fan-wheel` out of its own `nodes[].name` list, and asserts the returned rotor **is** that node, holds exactly one merged `Mesh`, and its ancestor chain reaches `RanchDressing`. Cost: one extra draw call in the dressing group. |
+| F7 (medium) | **`plan.md` could not be edited — same denial (see Blockers).** Phase 6 still reads `pending` with T1/T2 open although the captures and the doc sync landed. | Nothing in the repo to point at; the intended edit is quoted verbatim under Blockers. |
+| F8 (nit) | `hudOwnsPointer` is gone from `TapGuards`, `allowsPropTap` and the tap handler — it could never be true, because the listener is on the canvas and a tap the HUD owns never arrives. The two test cases that locked it in collapsed to one, and the source scan now asserts the flag is **absent**. | `tests/ranch/ambient.test.ts`: one guard test (`{sleepy:false}` true, `{sleepy:true}` false), plus `expect(source).not.toContain('hudOwnsPointer')`. |
+| F9 (nit) | The snapshot fixture says what it is — **ten of twelve unmoved, two moved deliberately** — the test is renamed to match, and the ginkgo entry now carries its own annotation (measured 5.69 m canopy, 0.75 m off the Ranch sightline, 92°/9.8 m) alongside the magnolia's. | `holds ten of twelve props where they shipped, two moved deliberately`; both moved entries annotated in place. |
+| F10 (nit) | The loop's dressing hook is relabelled **FR-11, FR-12, FR-18** and says it advances sway, sparkles and the fan; its imports are back in the file's alphabetical blocks (`dressing` before `waddle`, type import beside value import). | `src/viewer/loop.ts` import block is alphabetical again; the `LoopView.dressing` docblock names all three moving parts. |
+
+### New sprig bearings (F1)
+
+| Sprig | Was | Now | Clearance at the lens |
+|---|---|---|---|
+| `wildflower-68d3a1.glb` | 100° / 13 m | **130° / 13 m** | 8.4° → **25°** |
+| `club-moss-mat-edcb1b.glb` | 285° / 13 m | **320° / 13 m** | 6.9° → **20°** |
+
+The other eight sprigs stand where they stood (club-moss 34°, 117.6°, 216°,
+145°/12.4 m; wildflower 165.6°, 215°, 200°/12.8 m, 40°/12.9 m).
+
+### Aim per lens and the full-inset margin at the nearest stance (F2)
+
+| Lens | lens / eye / fov | aim (% of head height) | nearest stance | head | paws | inset result |
+|---|---|---|---|---|---|---|
+| Ranch | 11.4 m / 3.4 m / 52° | 55 % → 3.974 m | 8.15 m | 62 px | 789 px | 34 px into top chrome, 111 px past bottom — **pinned limit** |
+| Nest | **11.4 m** (was 10.8) / 3.0 m / 50° | 55 % → 1.236 m | 5.84 m | 353 px | 658 px | inside every inset, **11 px to spare** |
+| Garden | 11.1 m / 3.2 m / 48° | 55 % → 1.245 m | 4.39 m | 376 px | 772 px | sides and top clear, paws 94 px past — **pinned limit** |
+
+The pinned overflows are the review's own conclusion, measured rather than
+asserted: FR-7's aim headroom does not buy the inset because raising the aim
+tilts the frame up and pushes the animal down. Widening FR-7 or shortening the
+3.71 m walk circle is the owner's decision; the test keeps the composition from
+quietly worsening in the meantime.
+
+### Frame budget after F6
+
+- Dressing group: **73 placements**, `DRESSING_MANIFEST.length + 3 = 76` calls,
+  **51,340 triangles** — and one more call for the fan F6 keeps turnable, so 77
+  in that group. The ceilings are 150 and 80,000.
+- The **frame** is no longer inferred: `snapshot().drawCalls` and
+  `.triangles` read `renderer.info.render` after the draw, and the dev panel
+  prints the same pair. Per-preset frame numbers are read off that panel in the
+  next capture rather than reasoned about here.
+
+### What the next capture should show
+
+- **Ranch / Nest / Garden:** the same compositions as `after3/`, minus two sprigs
+  that have moved out of the lens corridors — nothing else in these frames should
+  have shifted, since the only other changes are the Nest lens standing 0.6 m
+  further back (the Trike reads ~5 % smaller, better framed vertically) and the
+  windpump's fan now visibly turning.
+- **Sky:** the windpump's fan turns instead of standing still behind a duplicate
+  fallback fan.
+- The dev panel's call/triangle pair, if the primary captures with `?dev=1`,
+  is the honest frame number this document no longer guesses at.
+
+### Deviations (review fixes)
+
+- `tests/ranch/ambient.test.ts` lost two cases rather than gained any: the guard
+  truth table is one bit now that `hudOwnsPointer` is gone. That is the finding,
+  not a weakened test — the removed rows asserted a state the app cannot enter.
+- `tests/viewer/pov.test.ts` carries a recorded limit rather than a green
+  assertion: `WALK_STANCE_OVERFLOW_PX` pins Ranch and Garden at their nearest
+  stance. The review asked to stop and report if no legal fit existed; the sweep
+  says none does, so the numbers are here and the test pins them.
+- Commits: `f828842` (F1), `6c15e3f` (F2), `110889d` (F3), `e43b935` (F4, code
+  side), `4179b50` (F5), `02918de` (F6), `22d5c3f` (F8–F10).
+
+### Verification (review fixes)
+
+`pnpm verify` — exit 0. **621 tests in 50 files**, coverage 82.44 % statements /
+67.78 % branches / 83.53 % functions, audio pack 15 assets / 853,289 bytes,
+precache 63 entries (6,701.15 KiB), dist clean.
+
+### Blockers (review fixes)
+
+Two findings needed files this agent cannot write — the edit tool is denied for
+both paths, and the denial is not transient. The exact text to apply is below.
+
+1. **F4 — the FR-6 amendment in `spec.md`.** Replace the FR-6 paragraph with:
+
+   > Mid props are at most 1.4 m tall and stand 8.4–10.2 m out, with exactly three
+   > named height exceptions — the plum browse tree (FR-13), the reeds at the
+   > wallow edge (FR-15) and the signpost (FR-14) — and the height cap applies to
+   > the props this track added; the twelve that shipped are measured but not
+   > capped. Foreground sprigs are at most 0.5 m tall, stand 11.5–14 m out and
+   > never sit inside ±18° of a lens axis, measured at the lens. Treeline props are
+   > at least 3 m tall and stand beyond 17 m, outside every lens cone — but for the
+   > one silhouette rhyme each ground preset asked for (FR-16), which is exempt
+   > from the cone rule and from that rule only.
+
+2. **F7 — the Phase 6 task states in `plan.md`.** Set the phase's `**Status:**`
+   to `in_progress`, tick **P6.T1** (`Captures`, both subtasks — captured against
+   `07fda93` and its two reworks) and **P6.T2** (`Doc sync`, both subtasks —
+   `79ac2e8`), and leave **P6.T3** and **P6.T4** open; the PR body and the
+   integrated verification are the primary's.
+
 
