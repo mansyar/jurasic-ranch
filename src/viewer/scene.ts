@@ -1,6 +1,8 @@
 import * as THREE from 'three';
-import { GROUND_RADIUS_METRES } from '../ranch/dressing.js';
+import { CAMERA_FAR_METRES, createGround } from '../ranch/ground.js';
 import { resolvePixelRatio } from './pixel-ratio.js';
+import { BOOT_POV_ID, POV_PRESETS } from './pov.js';
+import { SKY_ZENITH_HEX } from './sky.js';
 
 /**
  * The fixed daylight stage the render loop draws: renderer, scene, lights,
@@ -9,13 +11,22 @@ import { resolvePixelRatio } from './pixel-ratio.js';
  */
 
 /**
- * Camera far plane in metres: four ground radii. A preset stands on the walk
- * circle (inside the prop ring) and must still see the tallest tree on the far
- * rim, so the plane is derived from the ground the ranch actually occupies —
- * 48.2 m for the 12.05 m circle the trio needs, against a fixed 50 m before.
- * A nearer plane is also more depth precision, never less.
+ * Camera far plane in metres, derived from the meadow the ranch stands in
+ * (`CAMERA_FAR_METRES` in `src/ranch/ground.ts`): twice the meadow radius, so
+ * no preset can see the far plane clip the apron. Re-exported here because the
+ * camera is the thing the plane belongs to.
  */
-export const CAMERA_FAR_METRES = GROUND_RADIUS_METRES * 4;
+export { CAMERA_FAR_METRES };
+
+/**
+ * Vertical field of view the camera is built with, in degrees — the boot
+ * preset's lens (FR-10). The lens now belongs to the preset rather than to the
+ * camera, so a cut re-projects it; `src/ranch/ground.ts` derives the ground's
+ * reach from whichever lens a preset carries, and the frame-edge rays are
+ * re-checked per preset rather than against one copied fov.
+ */
+export const CAMERA_VERTICAL_FOV_DEGREES = POV_PRESETS[BOOT_POV_ID].fov;
+
 export interface ViewerScene {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
@@ -54,7 +65,7 @@ export function createViewerScene(canvas: HTMLCanvasElement): ViewerScene | null
   renderer.toneMapping = THREE.NoToneMapping;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x9fd4ef);
+  scene.background = new THREE.Color(SKY_ZENITH_HEX);
 
   const sun = new THREE.DirectionalLight(0xfff2d9, 2.2);
   sun.position.set(3, 5, 2);
@@ -63,16 +74,12 @@ export function createViewerScene(canvas: HTMLCanvasElement): ViewerScene | null
   scene.add(sun);
   scene.add(new THREE.HemisphereLight(0xbfe3ff, 0x7ec850, 0.9));
 
-  const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(GROUND_RADIUS_METRES, 64),
-    new THREE.MeshStandardMaterial({ color: 0x7ec850, roughness: 1 }),
-  );
-  ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
-  scene.add(ground);
+  // FR-3: the meadow, the wear and the gate path are one derived group — two
+  // ground tones with separate radii (no coplanar overlap) plus flush decals.
+  scene.add(createGround());
 
   const camera = new THREE.PerspectiveCamera(
-    40,
+    CAMERA_VERTICAL_FOV_DEGREES,
     window.innerWidth / window.innerHeight,
     0.1,
     CAMERA_FAR_METRES,

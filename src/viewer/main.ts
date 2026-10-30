@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import type { DinoPlayer } from '../ranch/dino-player.js';
 import { trioSpawnPositions } from '../ranch/avoidance.js';
 import { buildDressing } from '../ranch/dressing.js';
+import type { DressingFrame } from '../ranch/dressing.js';
+import { DEFAULT_SWAY_SEED, allowsPropTap, propUnderPointer } from '../ranch/ambient.js';
 import { DustPool } from '../ranch/dust.js';
 import { installGestureUnlock, installVisibilityHandling } from '../audio/gesture.js';
 import { loadAudioSettings, saveMuted, saveVolume } from '../audio/settings.js';
@@ -21,6 +23,7 @@ import {
   audioEngine,
   configureAudio,
   createUnlockFeedback,
+  isAudioUnlocked,
   playFeedback,
   unlockAudio,
 } from './audio.js';
@@ -46,6 +49,7 @@ import {
   createPlaceholderTrike,
 } from './placeholders.js';
 import { createViewerScene, enableShadows } from './scene.js';
+import { createSky } from './sky.js';
 import { readSetting, writeSetting } from './storage.js';
 import type { DevBridge } from '../dev/harness.js';
 
@@ -85,6 +89,12 @@ export async function bootViewer(): Promise<void> {
     return;
   }
   const { renderer, scene, camera } = viewer;
+
+  // FR-17: the sky is built once at boot — dome plus four clouds — and added
+  // before anything else so it is behind every later layer. Its drift is wired
+  // through `startLoop`, not a second render path.
+  const sky = createSky();
+  scene.add(sky.group);
 
   let audio: AudioControls | null = null;
   const audioReadyControl = { resolve: (): void => {} };
@@ -277,8 +287,60 @@ export async function bootViewer(): Promise<void> {
   // FR-3: Valley + Farm dressing loads in parallel with the dinos; any GLB
   // failure falls back silently (offline first-visit safety) without
   // blocking boot, and the ground stays playable bare.
-  void buildDressing(scene).catch((error: unknown) => {
-    console.warn('Ranch dressing unavailable; ground stays playable.', error);
+  // FR-18: the handle is filled in when the load lands, so the loop can turn
+  // the windpump's fan without waiting for it.
+  // FR-11: the sway takes its phases from the same seed the harness fixes, so a
+  // capture replays one ripple; a plain boot uses the default seed.
+  const swaySeed = streams === null ? DEFAULT_SWAY_SEED : (options?.seed ?? DEFAULT_SWAY_SEED);
+  const dressingFrame: DressingFrame = { dressing: null };
+  void buildDressing(scene, { swaySeed })
+    .then((built) => {
+      dressingFrame.dressing = built;
+    })
+    .catch((error: unknown) => {
+      console.warn('Ranch dressing unavailable; ground stays playable.', error);
+    });
+
+  // FR-12: a tap on any dressed prop earns one sparkle — decoration only, never
+  // gameplay. The listener sits on the canvas, so chrome the HUD owns never
+  // reaches it (review F8: no target check needed), and only the sleepy guard
+  // stands between the tap and the raycast.
+  const tapPointer = new THREE.Vector2();
+  canvas.addEventListener('pointerdown', (event: PointerEvent) => {
+    const dressing = dressingFrame.dressing;
+    if (dressing === null) {
+      return;
+    }
+    const guards = { sleepy: hud.sleepy.shown || hud.sleepyState() === 'sleepy' };
+    if (!allowsPropTap(guards)) {
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    tapPointer.set(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    const hit = propUnderPointer(dressing.group, camera, tapPointer);
+    if (hit === null) {
+      return;
+    }
+    const at = performance.now();
+    if (!dressing.sparkles.allows(hit.prop, at)) {
+      return;
+    }
+    const burst = (): void => {
+      dressing.sparkles.react(hit.prop, hit.point, at);
+      audioEngine().play('sparkle');
+    };
+    // AC-9 edge: the first tap unlocks the engine and *then* sparkles, in that
+    // order, so the chime is not lost to a still-silent context. The promise is
+    // held rather than unlocked bare, so boot still never touches audio.
+    if (isAudioUnlocked()) {
+      burst();
+    } else {
+      const unlocking = unlockAudio();
+      void unlocking.then(burst, burst);
+    }
   });
 
   window.addEventListener('resize', () => {
@@ -375,6 +437,8 @@ export async function bootViewer(): Promise<void> {
     stego,
     brachio,
     devFrame,
+    sky,
+    dressing: dressingFrame,
   });
 }
 

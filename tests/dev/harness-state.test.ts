@@ -144,6 +144,8 @@ describe('snapshot reuse (FR-7)', () => {
       pov: 'ranch',
       sleepy: 'awake',
       fps: 60,
+      drawCalls: 0,
+      triangles: 0,
       dinos,
       audio: {
         unlocked: false,

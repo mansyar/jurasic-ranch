@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DevSnapshot, SnapshotAudio, SnapshotDino } from '../../src/dev/snapshot.js';
 import { buildSnapshot } from '../../src/dev/snapshot.js';
+import { POV_ORDER } from '../../src/viewer/pov.js';
 
 /** Snapshot projection (FR-7, AC-8): documented fields plus pairwise distances. */
 
@@ -36,6 +37,8 @@ function inputFor(dinos: SnapshotDino[], audio: SnapshotAudio = audioState()) {
     pov: 'ranch' as const,
     sleepy: 'awake' as const,
     fps: 60,
+    drawCalls: 61,
+    triangles: 37_600,
     dinos,
     audio,
   };
@@ -49,6 +52,26 @@ describe('buildSnapshot (FR-7, AC-8)', () => {
     expect(snapshot.pov).toBe('ranch');
     expect(snapshot.sleepy).toBe('awake');
     expect(snapshot.fps).toBe(60);
+  });
+
+  it('carries the frame the renderer actually drew, not a prop count (AC-8, F3)', () => {
+    // The review's F3: `DRESSING_MANIFEST.length + 3` is an arithmetic proxy for
+    // the dressing group, not the frame — it leaves out the sky, the ground, the
+    // dinos, the dust and the sparkles. These two fields are read straight off
+    // `renderer.info.render` by the harness, so a capture can quote a measurement.
+    const snapshot = buildSnapshot(inputFor([dino('trike', 0, 0)]));
+    expect(snapshot.drawCalls).toBe(61);
+    expect(snapshot.triangles).toBe(37_600);
+  });
+
+  it('widens the reported viewpoint to every preset (P4.T5, FR-9)', () => {
+    // The snapshot type is the documented shape, so it has to name the sky
+    // view too: a harness that could set a fourth preset and a snapshot that
+    // could only report three would disagree the moment someone pressed it.
+    for (const id of POV_ORDER) {
+      const snapshot = buildSnapshot({ ...inputFor([dino('trike', 0, 0)]), pov: id });
+      expect(snapshot.pov).toBe(id);
+    }
   });
 
   it('lists every unordered pair exactly once', () => {

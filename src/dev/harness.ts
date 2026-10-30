@@ -654,6 +654,10 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
       pov: bridge.getPov(),
       sleepy: bridge.getSleepyState(),
       fps,
+      // AC-8, measured rather than reasoned: what the renderer actually issued
+      // for the last frame, the same numbers the panel prints.
+      drawCalls: bridge.renderer.info.render.calls,
+      triangles: bridge.renderer.info.render.triangles,
       dinos,
       audio: bridge.getAudioState(),
     });

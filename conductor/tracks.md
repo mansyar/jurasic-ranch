@@ -12,3 +12,4 @@
 - [x] **Track: Dev Harness for Debugging & Verification** - [20261029-dev-harness](./archive/20261029-dev-harness/index.md) - chore - medium
 - [x] **Track: Cozy Sound & Voice Foundation** — [20261029-cozy-sound-voice](./archive/20261029-cozy-sound-voice/index.md) — feature — high
 - [x] **Track: The Ranch Answers Back** - [20261030-ranch-audible](./archive/20261030-ranch-audible/index.md) - feature - medium
+- [x] **Track: Ranch Vista: Staged Paddock and Sky POV** - [20261030-ranch-vista](./archive/20261030-ranch-vista/index.md) - feature - high

@@ -11,7 +11,7 @@
 - Instant feedback always: every tap <100ms hearts + wiggle + sound.
 - 5s hint glow if stuck, all anims interruptible, no fail states, no timers.
 - Care-plus-surprise loop, twinkle invites (not forced), sticker every 60-90s play.
-- Sleepy cues (droopy eyes, yawn) not forced quits. Fixed cozy cam + 3 POV buttons, no orbit.
+- Sleepy cues (droopy eyes, yawn) not forced quits. Fixed cozy cam + 4 POV buttons (Ranch / Nest / Garden / Sky), no orbit.
 
 ## Accessibility
 

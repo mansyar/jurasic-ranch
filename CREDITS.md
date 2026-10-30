@@ -46,6 +46,35 @@
   standalone files; vendoring into this game counts as use, not redistribution.
   See https://polyfork.dev/licensing.
 
+## Ranch dressing props
+
+Every prop below (nineteen, all reused or newly vendored for the Ranch Vista track) was downloaded from Polyfork's CDN as a GLB by
+`scripts/vendor-dressing.mjs` and used unmodified — no rescale, no rebake, no
+re-export. Sizes live in `DRESSING_CATALOGUE`
+(`src/ranch/layout.ts`), measured from each file's own accessor bounds.
+
+| Asset | Path | Source | License | Vendored |
+| --- | --- | --- | --- | --- |
+| Hay bale | `public/models/dressing/hay-bale-079e8c.glb` | https://polyfork.dev/asset/hay-bale | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Signpost | `public/models/dressing/signpost-0bf523.glb` | https://polyfork.dev/asset/signpost | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Flower bed | `public/models/dressing/flower-bed-708e73.glb` | https://polyfork.dev/asset/flower-bed | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Berry bush | `public/models/dressing/berry-bush-ee4812.glb` | https://polyfork.dev/asset/berry-bush | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Milk churn | `public/models/dressing/milk-churn-895735.glb` | https://polyfork.dev/asset/milk-churn | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Wooden crate | `public/models/dressing/wooden-crate-e46521.glb` | https://polyfork.dev/asset/wooden-crate | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Log stump | `public/models/dressing/log-stump-1d65a5.glb` | https://polyfork.dev/asset/log-stump | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Garden rock | `public/models/dressing/garden-rock-7f5d60.glb` | https://polyfork.dev/asset/garden-rock | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Plum tree | `public/models/dressing/plum-tree-565179.glb` | https://polyfork.dev/asset/plum-tree | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Club moss mat | `public/models/dressing/club-moss-mat-edcb1b.glb` | https://polyfork.dev/asset/club-moss-mat | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Wildflower | `public/models/dressing/wildflower-68d3a1.glb` | https://polyfork.dev/asset/wildflower | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Mushroom cluster | `public/models/dressing/mushroom-cluster-f2e3ba.glb` | https://polyfork.dev/asset/mushroom-cluster | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Ginkgo leaf litter | `public/models/dressing/ginkgo-leaf-litter-9784e9.glb` | https://polyfork.dev/asset/ginkgo-leaf-litter | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Fern clump | `public/models/dressing/fern-clump-90ff4b.glb` | https://polyfork.dev/asset/fern-clump | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| River reed cluster | `public/models/dressing/river-reed-cluster-cba87e.glb` | https://polyfork.dev/asset/river-reed-cluster | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Cycad | `public/models/dressing/cycad-05ad50.glb` | https://polyfork.dev/asset/cycad | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Tree fern | `public/models/dressing/tree-fern-78320e.glb` | https://polyfork.dev/asset/tree-fern | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| Windpump tower | `public/models/dressing/windpump-tower-1633a9.glb` | https://polyfork.dev/asset/windpump-tower | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+| River stone cluster | `public/models/dressing/river-stone-cluster-0b55bc.glb` | https://polyfork.dev/asset/river-stone-cluster | Polyfork free licence: commercial use inside a project, no attribution, no redistribution as standalone files ([licensing](https://polyfork.dev/licensing)) | Downloaded as GLB, unmodified |
+
 ## Starter-pack audio
 
 All 15 starter-pack files are generated at build time and committed under
