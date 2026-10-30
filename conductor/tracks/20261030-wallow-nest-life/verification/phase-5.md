@@ -102,3 +102,24 @@ No file outside the phase's `Touches` list was modified.
 - **Arrival effects were not checked against the arrival radius**: the ripple is
   drawn at the corner anchor inside the 1.25 m mud disc, which is a layout fact
   (`WALLOW_MUD_RADIUS_METRES`), not something this phase re-measured.
+
+## Primary verification
+
+Independent checks run by the orchestrator at `b84984d` (squashed from
+`23e9cb8..1ab0f4c`), not by the phase agent.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Clean tree before squash | `git status --porcelain` | empty |
+| Touches | `git diff --name-only cc17506..HEAD` | 13 files, all inside Touches (7 source, 5 test, this evidence file); `plan.md` excluded from the squash |
+| Full gate | `pnpm verify` | exit 0 - `Test Files 56 passed`, `Tests 736 passed`, `precache 63 entries (8964.80 KiB)`, `dist clean` |
+| Cost | precache delta | 8961.75 -> 8964.80 KiB (+3.05 KiB, `visit-effects.ts` in the bundle). One extra draw call by construction (the arrival pool); no new asset, no new sound, no new dependency. |
+| Nothing weakened | diff review | 7 deletions across 13 files, all import/line reflow. No assertion removed or loosened. |
+
+### What is still only claimed
+
+Nothing here has been seen or heard. The ripple, the straw, the leaf arc, the
+coos and the four-second roll are proven by unit tests and by the numbers above,
+not by a picture - and a 4-year-old judges this on the picture. Phase 6 owns the
+captures, including one taken mid-roll at the wallow, and the harness controls
+that make such a capture possible without waiting for a timer.

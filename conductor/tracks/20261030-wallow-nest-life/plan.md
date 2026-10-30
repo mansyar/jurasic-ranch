@@ -151,26 +151,30 @@ AC-12, AC-13.
 `tests/ranch/ambient.test.ts`, `tests/ranch/visit.test.ts`,
 `tests/waddle/dino-player.test.ts`, `tests/viewer/viewer.test.ts`.
 **Verification:** `pnpm verify`.
-**Status:** in_progress
+**Status:** verified
+
+**Result:** verified - a corner calls its animal, the arrival pays off in mud, straw or leaves, Stego rolls, and Walk off walks everyone home
+**Checkpoint:** b84984d
+**Evidence:** conductor/tracks/20261030-wallow-nest-life/verification/phase-5.md
 
 *Amended 2026-10-30 before the phase began: FR-6 and AC-6 move here from
 Phase 3. Phase 3 proves the clip ships in `stego.glb`; nothing has played it
 yet, because playing it needs the loader to request it and the arrival to
 trigger it. Phase 5 owns the performance.*
 
-- [ ] **P5.T1: Tap to call** - covers: FR-8
+- [x] **P5.T1: Tap to call** - covers: FR-8
   - [ ] **P5.T1.1:** Route a corner-prop tap through the existing raycast to `callVisit`, keeping the sparkle in the same frame.
   - [ ] **P5.T1.2:** Add the per-corner cooldown and assert a second tap inside it does not restart the journey.
-- [ ] **P5.T2: Arrival effects** - covers: FR-7, FR-12
+- [x] **P5.T2: Arrival effects** - covers: FR-7, FR-12
   - [ ] **P5.T2.1:** Mud ripple ring plus splash droplets at the wallow, straw puff at the nest, leaf drift at the tree, all from the shared `DustPool`, once per arrival.
   - [ ] **P5.T2.2:** Assert the pool's live count returns to zero within 2 s and nothing emits after.
-- [ ] **P5.T3: Arrival sound** - covers: FR-13
+- [x] **P5.T3: Arrival sound** - covers: FR-13
   - [ ] **P5.T3.1:** Play the species coo once on arrival and `tap` for the splash, through the existing voice path so ducking applies.
   - [ ] **P5.T3.2:** Assert one coo per arrival and silence under mute.
-- [ ] **P5.T4: Walk off sends everyone home** - covers: FR-10
+- [x] **P5.T4: Walk off sends everyone home** - covers: FR-10
   - [ ] **P5.T4.1:** End any visit in progress when walking stops, returning the animal from wherever it stands.
   - [ ] **P5.T4.2:** Assert no animal is left stranded outside its ring and the machine settles at `idle`.
-- [ ] **P5.T5: The mud roll plays** - covers: FR-6, AC-6
+- [x] **P5.T5: The mud roll plays** - covers: FR-6, AC-6
   - [ ] **P5.T5.1:** Have the loader hand Stego's `MudRoll` to its player, and play it once on arrival at the wallow, then back to `Idle`.
   - [ ] **P5.T5.2:** A GLB without `MudRoll` falls back to `Idle` with a warning rather than throwing, so a stale cached model cannot brick the ranch.
   - [ ] **P5.T5.3:** Assert the roll is requested only for Stego, plays exactly once per arrival, and never blocks the walk clip.
