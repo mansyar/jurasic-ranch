@@ -15,7 +15,12 @@ import {
   type DressingPlacement,
 } from '../../src/ranch/dressing.js';
 import { MEADOW_RADIUS_METRES, frameEdgeGround } from '../../src/ranch/ground.js';
-import { DRESSING_BAND_RANGES, DRESSING_CATALOGUE } from '../../src/ranch/layout.js';
+import {
+  DRESSING_BAND_RANGES,
+  DRESSING_CATALOGUE,
+  cornerPlacements,
+  type CornerSpecies,
+} from '../../src/ranch/layout.js';
 import { IN_GAME_BODY_LENGTH_METRES } from '../../src/viewer/loaders.js';
 import { DINO_GROUP_SCALE } from '../../src/viewer/loaders.js';
 import { readGlbFacts } from '../ranch/dressing-files.js';
@@ -43,6 +48,7 @@ import {
   isPovPresetId,
   povPresetById,
   shouldShowHint,
+  type GroundPovPresetId,
   type PovPreset,
   type PovPresetId,
 } from '../../src/viewer/pov.js';
@@ -70,6 +76,9 @@ const GROUND_FOV_WINDOW_DEGREES = { min: 48, max: 52 };
 const LOOK_AT_HEIGHT_WINDOW = { min: 0.55, max: 0.6 };
 /** AC-3: every animal reads at least this wide on screen. */
 const MIN_DINO_PX = 72;
+
+/** AC-13: the three corners leave the animal this much clear screen to walk through. */
+const CORNER_APPROACH_PX = 72;
 
 /**
  * The rectangle no HUD chrome covers, as pixel insets from the frame edge:
@@ -625,6 +634,49 @@ describe('ground optics: the subject is unobstructed (AC-1)', () => {
       }
     }
     expect(findings, findings.join('\n')).toEqual([]);
+  });
+
+  it('gives every corner a clear 72 px approach, and records the one crop (AC-13)', () => {
+    // Review F5: AC-13 was quoted and never measured. Every prop of a corner is
+    // projected through the preset that frames it and must clear the frame's own
+    // rect by 72 px on every side — the air the animal walks into its corner
+    // past. Stego's corner cannot meet that and the numbers are pinned below, so
+    // a new crop still fails and an improvement has to update the pin.
+    const presetOf: Readonly<Record<CornerSpecies, GroundPovPresetId>> = {
+      trike: 'nest',
+      stego: 'garden',
+      brachio: 'ranch',
+    };
+    const findings: string[] = [];
+    for (const [species, id] of Object.entries(presetOf) as [CornerSpecies, GroundPovPresetId][]) {
+      const camera = cameraFor(id, LANDSCAPE_ASPECT);
+      cornerPlacements(species).forEach((item, index) => {
+        const rect = projectBox(camera, propBox(item), FRAME_WIDTH_PX, FRAME_HEIGHT_PX);
+        const clear = Math.min(
+          rect.left,
+          FRAME_WIDTH_PX - rect.right,
+          rect.top,
+          FRAME_HEIGHT_PX - rect.bottom,
+        );
+        if (clear < CORNER_APPROACH_PX) {
+          findings.push(`${species} #${index} ${item.file}: ${clear.toFixed(0)} px`);
+        }
+      });
+    }
+    // Why Stego's three ground props are the exception, measured: the Garden
+    // lens stands about four metres from Stego's own corner, inside FR-6's mid
+    // band at 8.4 m and on a 48 deg frame whose bottom edge meets the ground
+    // just past it. Swept over every bearing within the corner's 30 deg window
+    // and every radius in 8.4-10.2 m, the best a 0.42 m prop reaches is -10 px
+    // at 210 deg / 8.4 m; the shipped three sit -172, -216 and -323 px below
+    // the frame's floor. FR-7's windows cannot lift them: the eye may rise only
+    // 0.2 m and the aim is already at its window's floor, worth under 30 px.
+    // Raising either tilts the frame up and pushes the ground further out.
+    expect(findings, findings.join('\n')).toEqual([
+      'stego #0 garden-rock-7f5d60.glb: -172 px',
+      'stego #1 log-stump-1d65a5.glb: -216 px',
+      'stego #2 garden-rock-7f5d60.glb: -323 px',
+    ]);
   });
 
   it('keeps every animal at least 72 px across in the preset that frames it (AC-3)', () => {
