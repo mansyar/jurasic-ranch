@@ -3,7 +3,7 @@
 The ranch stops being three dinosaurs on a lawn. Nineteen Polyfork props are
 staged in three bands around a worn paddock, the ground now runs past the frame
 in every direction under a gradient sky with four drifting clouds, and a fourth
-camera — **Sky**, a tilted 75° helicopter view — shows the whole ranch at once
+camera ΓÇö **Sky**, a tilted 75┬░ helicopter view ΓÇö shows the whole ranch at once
 with every dinosaur still readable in profile. The three ground cameras were
 rebuilt to frame their animal whole, and any prop answers a tap with one sparkle.
 
@@ -34,8 +34,8 @@ rebuilt to frame their animal whole, and any prop answers a tap with one sparkle
 - [x] `FR-4` - worn discs derive from each species' spawn and gait wander radius; gate stub and trackways
 - [x] `FR-5` - eighteen new Polyfork GLBs vendored with a `CREDITS.md` row each
 - [x] `FR-6` - band rules enforced in code and by test, with three named height exceptions and the FR-16 rhyme carve-out
-- [x] `FR-7` - bearings kept, per-preset fov 48-52°, lens 10.8-11.4 m, eye 3.0-3.4 m, aim at 55 % of body height
-- [x] `FR-8` - `sky` at a 75° tilt, whole disc inside with margin, every dino ≥ 72 px at 1280×800
+- [x] `FR-7` - bearings kept, per-preset fov 48-52┬░, lens 10.8-11.4 m, eye 3.0-3.4 m, aim at 55 % of body height
+- [x] `FR-8` - `sky` at a 75┬░ tilt, whole disc inside with margin, every dino ΓëÑ 72 px at 1280├ù800
 - [x] `FR-9` - four 72 px nav buttons, `aria-pressed` synced, presets resolved through `POV_PRESETS`
 - [x] `FR-10` - `applyPovPreset` sets fov and `updateProjectionMatrix`; the render loop never writes the camera
 - [x] `FR-11` - corn, reeds and litter sway from the seeded stream on the loop's `dt`
@@ -57,26 +57,26 @@ rebuilt to frame their animal whole, and any prop answers a tap with one sparkle
 | static | `pnpm lint && pnpm format --check && pnpm typecheck` | pass | |
 | build | `pnpm build && node scripts/check-dist-clean.mjs` | pass - 63 precache entries, 6,701 KiB, no dev markers | |
 | full gate | `pnpm verify` | pass | |
-| visual | four 1280×800 shots per camera, captured over CDP | pass | `.conductor/evidence/ranch-vista/after5/` |
+| visual | four 1280├ù800 shots per camera, captured over CDP | pass | `.conductor/evidence/ranch-vista/after5/` |
 
 ## Media
 
-Before (`aa43e2d`) and after (`f090cf9`), 1280×800, dev panel hidden, the same
+Before (`aa43e2d`) and after (`f090cf9`), 1280├ù800, dev panel hidden, the same
 `/?dev=1&seed=42&pause=1` seed for every shot.
 
-![Ranch before: the brachio's head cropped, a tree filling the right third and the ground ending mid-frame](.conductor/evidence/ranch-vista/before/ranch.jpg)
+![Ranch before: the brachio's head cropped, a tree filling the right third and the ground ending mid-frame](https://github.com/user-attachments/assets/c45d36fb-252e-4db7-b6b9-c993b4f3d7b1)
 
-![Ranch after: the brachio framed whole, a worn paddock under it, clouds in the sky and the trough and well staged to the right](.conductor/evidence/ranch-vista/after5/ranch.png)
+![Ranch after: the brachio framed whole, a worn paddock under it, clouds in the sky and the trough and well staged to the right](https://github.com/user-attachments/assets/48c1f4f2-36a0-48c8-894b-977b2ebd6de2)
 
-![Nest before: a flowering magnolia filling the right half of the frame in front of the lens](.conductor/evidence/ranch-vista/before/nest.jpg)
+![Nest before: a flowering magnolia filling the right half of the frame in front of the lens](https://github.com/user-attachments/assets/f02e1112-da45-4fd6-9aa2-82f9d247d0f7)
 
-![Nest after: the magnolia moved clear, the trike centred beside its hay nest, reeds at the bottom corner](.conductor/evidence/ranch-vista/after5/nest.png)
+![Nest after: the magnolia moved clear, the trike centred beside its hay nest, reeds at the bottom corner](https://github.com/user-attachments/assets/70087a06-d6d3-4b5d-b0fe-3ba9f75de928)
 
-![Garden before: the brachio clipped at the left edge and only a sliver of corn in frame](.conductor/evidence/ranch-vista/before/garden.jpg)
+![Garden before: the brachio clipped at the left edge and only a sliver of corn in frame](https://github.com/user-attachments/assets/9f238cad-62e7-45b1-8966-70423a1ad4a1)
 
-![Garden after: the stego centred, the wallow and its rock line to the right, corn and trees staged behind](.conductor/evidence/ranch-vista/after5/garden.png)
+![Garden after: the stego centred, the wallow and its rock line to the right, corn and trees staged behind](https://github.com/user-attachments/assets/16434e6e-0b72-4a9d-a9a6-cadbe0cf9f27)
 
-![Sky: the new helicopter view showing the whole ranch, the worn trefoil under the trio, the water line curving to the trough and the windpump on the meadow](.conductor/evidence/ranch-vista/after5/sky.png)
+![Sky: the new helicopter view showing the whole ranch, the worn trefoil under the trio, the water line curving to the trough and the windpump on the meadow](https://github.com/user-attachments/assets/a2ba7a89-01f7-4d60-b301-0077532f3414)
 
 ## Review
 
@@ -87,7 +87,7 @@ Before (`aa43e2d`) and after (`f090cf9`), 1280×800, dev panel hidden, the same
 
 ## Deviations and risks
 
-- **Two shipped props moved.** The magnolia left the Nest sightline (113° → 100°) and the ginkgo left the Ranch frame (28°/9.6 m → 92°/9.8 m) once measured footprints replaced the optimistic ones. FR-2 was about the refactor, not about freezing the composition forever; the spec now says so.
+- **Two shipped props moved.** The magnolia left the Nest sightline (113┬░ ΓåÆ 100┬░) and the ginkgo left the Ranch frame (28┬░/9.6 m ΓåÆ 92┬░/9.8 m) once measured footprints replaced the optimistic ones. FR-2 was about the refactor, not about freezing the composition forever; the spec now says so.
 - **AC-1 at the nearest walk stance.** A sweep of the entire FR-7 box found no fit that also holds the Brachio at the closest point of its walk circle: Ranch overflows 34 px at the top and 111 px at the bottom, Garden 94 px at the bottom, Nest clears. The numbers are pinned in `WALK_STANCE_OVERFLOW_PX`. At the spawn stance every camera is clean, which is what the shots show.
 - **Wide aspect ratios.** The Sky frame covers the disc plus margin at 16:10, 3:4 and 1:1. At 2.4:1 its top corners reach ~3 m past the meadow edge. The tablet is 16:10.
 - **The horizon tone is authored to match, not measured.** The apron is lit and the dome is unlit, so the rim sits a shade brighter; it reads as haze.
