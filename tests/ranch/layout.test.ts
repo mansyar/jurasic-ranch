@@ -54,12 +54,21 @@ interface SnapshotPlacement {
 
 /**
  * The twelve shipped props exactly as they were hand-written before the
- * phase-1 refactor (AC-5). This table is the phase's contract: it is typed out
- * here, not computed, so the helpers cannot agree with themselves and pass.
+ * phase-1 refactor (AC-5), with two deliberate exceptions. This table is the
+ * phase's contract: it is typed out here, not computed, so the helpers cannot
+ * agree with themselves and pass.
+ *
+ * Review F9: ten of the twelve stand where they shipped; the ginkgo and the
+ * magnolia were moved in Phase 5 with measured footprints in hand, and each
+ * carries the reason beside its entry.
  */
 const SHIPPED_PLACEMENTS: readonly SnapshotPlacement[] = [
   {
     file: 'ginkgo-tree-baa895.glb',
+    // Phase 5 moved this prop too: its measured 5.69 m canopy stood 5.7 m from
+    // the Ranch lens, its inner edge 0.75 m off the sightline, so the box
+    // covered the Brachio's rectangle. 92 deg at 9.8 m clears every ground
+    // frame; recorded in the catalogue comment and in the phase evidence.
     position: [-0.3420150676845, 0, 9.7940301047871],
     rotationY: 4.747295565424576,
   },
@@ -72,8 +81,8 @@ const SHIPPED_PLACEMENTS: readonly SnapshotPlacement[] = [
     file: 'flowering-magnolia-dd76cb.glb',
     // Phase 5 moved this prop: the honest 5.09 m canopy covered the Trike's
     // rectangle from 113 deg, so it stands at 100 deg instead (the radius is
-    // untouched). The one deliberate break of this snapshot, recorded in the
-    // catalogue comment and in the phase evidence.
+    // untouched). The second of the snapshot's two deliberate breaks, recorded
+    // in the catalogue comment and in the phase evidence.
     position: [-1.684387323369, 0, 9.552635204218],
     rotationY: 4.886921905584122,
   },
@@ -179,11 +188,13 @@ function groundDistanceMetres(position: readonly [number, number, number]): numb
 }
 
 describe('dressing placement snapshot (FR-2, AC-5)', () => {
-  it('keeps every shipped prop exactly where it stood before the refactor', () => {
+  it('holds ten of twelve props where they shipped, two moved deliberately', () => {
     // AC-5 is the phase's whole risk: the layout may be re-expressed, but the
     // rendered frame may not move. 1e-9 m is far below a pixel at any preset.
     // Phase 3 appends its props after this block, so the shipped prefix — and
-    // only the prefix — is what the snapshot pins.
+    // only the prefix — is what the snapshot pins. Review F9: the fixture is ten
+    // unmoved plus two Phase-5 moves (ginkgo and magnolia), each annotated above
+    // with the measurement that forced it.
     const shipped = DRESSING_MANIFEST.slice(0, SHIPPED_PLACEMENTS.length);
     expect(shipped).toHaveLength(SHIPPED_PLACEMENTS.length);
     shipped.forEach((item, index) => {

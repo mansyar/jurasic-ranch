@@ -285,17 +285,15 @@ export async function bootViewer(): Promise<void> {
 
   // FR-12: a tap on any dressed prop earns one sparkle — decoration only, never
   // gameplay. The listener sits on the canvas, so chrome the HUD owns never
-  // reaches it; the raycast runs only after that check and the sleepy guard.
+  // reaches it (review F8: no target check needed), and only the sleepy guard
+  // stands between the tap and the raycast.
   const tapPointer = new THREE.Vector2();
   canvas.addEventListener('pointerdown', (event: PointerEvent) => {
     const dressing = dressingFrame.dressing;
     if (dressing === null) {
       return;
     }
-    const guards = {
-      sleepy: hud.sleepy.shown || hud.sleepyState() === 'sleepy',
-      hudOwnsPointer: event.target !== canvas,
-    };
+    const guards = { sleepy: hud.sleepy.shown || hud.sleepyState() === 'sleepy' };
     if (!allowsPropTap(guards)) {
       return;
     }

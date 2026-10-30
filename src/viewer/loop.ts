@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { avoidanceNudges, trioAvoidanceNudges } from '../ranch/avoidance.js';
 import type { DinoPlayer } from '../ranch/dino-player.js';
+import type { DressingFrame } from '../ranch/dressing.js';
+import { updateDressing } from '../ranch/dressing.js';
 import { wrapAngle } from '../ranch/waddle.js';
 import type { Hud } from './hud.js';
 import { updatePlaceholderWalk } from './placeholders.js';
 import { hintSuppressedBySleepy } from './sleepy-ui.js';
 import type { SkyDrift } from './sky.js';
-import { updateDressing } from '../ranch/dressing.js';
-import type { DressingFrame } from '../ranch/dressing.js';
 
 /** One Walk button drives every loaded player together (FR-7, AC-4). */
 export function setAllWalking(players: DinoPlayer[], walking: boolean): void {
@@ -133,9 +133,11 @@ export interface LoopView {
    */
   sky?: SkyDrift | null;
   /**
-   * Optional dressing (FR-18). The windpump's fan turns on the same clamped
-   * `dt` as everything else, so a paused harness frame stops it too, and it
-   * holds still under reduced motion.
+   * Optional dressing (FR-11, FR-12, FR-18). One hook advances all three of the
+   * group's moving parts — the corn, reeds and litter swaying, the sparkle pool
+   * dying off, and the windpump's fan turning — on the same clamped `dt` as
+   * everything else, so a paused harness frame stops them too and reduced motion
+   * holds them still.
    */
   dressing?: DressingFrame | null;
 }

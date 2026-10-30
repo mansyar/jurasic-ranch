@@ -162,11 +162,11 @@ describe('ambient sway (FR-11)', () => {
 });
 
 describe('tap reactions (FR-12, AC-9, AC-10)', () => {
-  it('opens no sparkle while the sleepy overlay or the HUD owns the pointer', () => {
-    expect(allowsPropTap({ sleepy: false, hudOwnsPointer: false })).toBe(true);
-    expect(allowsPropTap({ sleepy: true, hudOwnsPointer: false })).toBe(false);
-    expect(allowsPropTap({ sleepy: false, hudOwnsPointer: true })).toBe(false);
-    expect(allowsPropTap({ sleepy: true, hudOwnsPointer: true })).toBe(false);
+  it('opens no sparkle while the sleepy overlay is up', () => {
+    // Review F8: the HUD half of this guard was dead — the listener is on the
+    // canvas, so a tap the HUD owns never arrives. The sleepy half still bites.
+    expect(allowsPropTap({ sleepy: false })).toBe(true);
+    expect(allowsPropTap({ sleepy: true })).toBe(false);
   });
 
   it('bursts once per prop per 250 ms and again after the cooldown', () => {
@@ -235,11 +235,13 @@ describe('tap reactions (FR-12, AC-9, AC-10)', () => {
 describe('tap reaction wiring (AC-9)', () => {
   const source = readFileSync(new URL('../../src/viewer/main.ts', import.meta.url), 'utf8');
 
-  it('raycasts only the dressing group, after the DOM target check', () => {
+  it('raycasts only the dressing group, behind the sleepy guard', () => {
     expect(source).toContain('propUnderPointer(dressing.group');
     expect(source).toContain('allowsPropTap(guards)');
-    expect(source).toContain('event.target !== canvas');
     expect(source).toContain("canvas.addEventListener('pointerdown'");
+    // Review F8: no DOM target check to assert any more — the canvas listener
+    // already means a tap the HUD owns never gets here.
+    expect(source).not.toContain('hudOwnsPointer');
   });
 
   it('answers with one chime and no gameplay state of its own', () => {

@@ -179,21 +179,25 @@ export function createSparkleTexture(size = 64): THREE.Texture {
   return texture;
 }
 
-/** What the guards know about the pointer when a tap lands (FR-12, AC-9). */
+/**
+ * What the guards know about the pointer when a tap lands (FR-12, AC-9).
+ *
+ * Review F8: this carried a `hudOwnsPointer` flag as well, which could never be
+ * true — the listener sits on the canvas, so a tap on the HUD never reaches it
+ * and `event.target` is the canvas every time. The DOM check is the browser's
+ * now; the only guard left is the sleepy one.
+ */
 export interface TapGuards {
   /** The sleepy overlay is up, or the trio has already nodded off. */
   readonly sleepy: boolean;
-  /** The pointer landed on chrome the HUD owns rather than on the scene. */
-  readonly hudOwnsPointer: boolean;
 }
 
 /**
- * FR-12's edge cases, as one predicate: a tap during the sleepy overlay makes
- * no sparkle and no chime, and a tap on the HUD loses to the button — the
- * raycast only ever runs once this says yes.
+ * FR-12's edge case, as one predicate: a tap during the sleepy overlay makes no
+ * sparkle and no chime, so the raycast only ever runs once this says yes.
  */
 export function allowsPropTap(guards: TapGuards): boolean {
-  return !guards.sleepy && !guards.hudOwnsPointer;
+  return !guards.sleepy;
 }
 
 /** A tap that found a prop: which prop, and where on it the ray landed. */
