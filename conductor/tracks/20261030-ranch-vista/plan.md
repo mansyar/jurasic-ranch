@@ -168,13 +168,17 @@
 - **Covers:** FR-20, AC-11, AC-12
 - **Touches:** `conductor/tracks/20261030-ranch-vista/`, `conductor/product.md`, `conductor/product-guidelines.md`, `conductor/tech-stack.md`, `CREDITS.md`
 - **Verification:** `pnpm verify`
-- **Status:** pending
+- **Status:** in_progress
 
-- [ ] **P6.T1: Captures** - covers: AC-12
-  - [ ] **P6.T1.1:** before/after for Ranch, Nest and Garden plus the new Sky view at 1280x800
+**Result:** in progress - captures and doc sync landed; the PR body is the primary's
+**Checkpoint:** a12515e
+**Evidence:** conductor/tracks/20261030-ranch-vista/verification/integrated.md
+
+- [x] **P6.T1: Captures** - covers: AC-12
+  - [x] **P6.T1.1:** before/after for Ranch, Nest and Garden plus the new Sky view at 1280x800
   - [ ] **P6.T1.2:** confirm the canvas is unobstructed (dev panel hidden) for every shot
-- [ ] **P6.T2: Doc sync** - covers: FR-20
-  - [ ] **P6.T2.1:** `product.md` four POVs and roadmap line; `product-guidelines.md` "4 POV buttons"
+- [x] **P6.T2: Doc sync** - covers: FR-20
+  - [x] **P6.T2.1:** `product.md` four POVs and roadmap line; `product-guidelines.md` "4 POV buttons"
   - [ ] **P6.T2.2:** `tech-stack.md` new modules, constants and asset count; `CREDITS.md` rows verified against disk
 - [ ] **P6.T3: PR body and media** - covers: AC-12
   - [ ] **P6.T3.1:** body states what changed per camera, and attaches the four shots with alt text per the PR Media section of `workflow.md`
