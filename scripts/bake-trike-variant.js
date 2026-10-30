@@ -116,8 +116,31 @@ export const POSITION_TRACK_SCALE = 0.6;
 const EXPECTED_CLIP_NAME = 'Waddle';
 const CLIP_MIN_SECONDS = 0.79;
 const CLIP_MAX_SECONDS = 0.81;
-const OLD_ROOT_SCALE = 0.3;
+/**
+ * The shipped `trike.glb` carries no root scale: geometry and animation
+ * translations are both baked in size-0.6 space (Hips bind 1.332 m against the
+ * adult base's 2.220 m - a ratio of 0.6, and the same ratio holds for every
+ * translation track). So a re-bake retargets the previous GLB's tracks
+ * verbatim, and only the adult size-1.0 donor needs `POSITION_TRACK_SCALE`.
+ */
+const PREV_ROOT_SCALE = 1;
 const ROOT_SCALE_TOLERANCE = 0.01;
+
+/**
+ * The Trike's `Idle` donor: the tracked adult base GLB, which carries the
+ * authored `Idle`/`Walk`/`Run` on the same 24-bone rig. The shipped
+ * `trike.glb` cannot donate it - that file only ever carries the retargeted
+ * `Waddle`, and re-reading it would make the bake depend on its own output.
+ *
+ * Track `20261030-wallow-nest-life` re-instates `Idle` so a stopped dino is not
+ * a frozen pose (see SHIPPED_CLIP_NAMES).
+ */
+export const IDLE_SOURCE_GLB = join(REPO_ROOT, 'assets', 'trike', 'triceratops-base.glb');
+const IDLE_CLIP_NAME = 'Idle';
+const IDLE_MIN_SECONDS = 5.9;
+const IDLE_MAX_SECONDS = 6.1;
+/** The adult base GLB is authored at size 1.0, so it carries no root scale. */
+const IDLE_ROOT_SCALE = 1;
 
 const GLB_MAGIC = 0x4654_6c67;
 const GLB_VERSION = 2;
@@ -266,14 +289,32 @@ export function extractAnimationTracks(bytes) {
  * position tracks scaled into the variant's bind-pose space, same timing.
  * Throws (never half-builds) on a wrong clip, a broken root-scale assumption,
  * unresolvable bone names, or an unsupported channel path.
+ *
+ * `expected` names the clip and its legal duration window. The Trike ships two
+ * authored clips now - `Waddle` retargeted from the previous GLB and `Idle`
+ * grafted from the adult base GLB - so the check is a parameter rather than a
+ * constant, but it is still a check: a drifted name or a resampled duration
+ * throws instead of shipping.
  */
-export function buildRetargetedClip(skeletonRoot, animation) {
-  if (animation.name !== EXPECTED_CLIP_NAME) {
-    throw new Error(`Expected a "${EXPECTED_CLIP_NAME}" clip, found "${animation.name}".`);
+export function buildRetargetedClip(
+  skeletonRoot,
+  animation,
+  expected = {
+    name: EXPECTED_CLIP_NAME,
+    minSeconds: CLIP_MIN_SECONDS,
+    maxSeconds: CLIP_MAX_SECONDS,
+  },
+) {
+  if (animation.name !== expected.name) {
+    throw new Error(`Expected a "${expected.name}" clip, found "${animation.name}".`);
   }
-  if (animation.durationSeconds < CLIP_MIN_SECONDS || animation.durationSeconds > CLIP_MAX_SECONDS) {
-    throw new Error(`Waddle duration ${animation.durationSeconds.toFixed(3)} s is outside 0.79-0.81 s.`);
+  if (animation.durationSeconds < expected.minSeconds || animation.durationSeconds > expected.maxSeconds) {
+    throw new Error(
+      `${expected.name} duration ${animation.durationSeconds.toFixed(3)} s is outside ` +
+        `${expected.minSeconds}-${expected.maxSeconds} s.`,
+    );
   }
+  const positionScale = expected.positionScale ?? POSITION_TRACK_SCALE;
   const missing = [];
   const tracks = [];
   for (const channel of animation.channels) {
@@ -285,7 +326,7 @@ export function buildRetargetedClip(skeletonRoot, animation) {
     if (channel.path === 'translation') {
       const scaled = new Float32Array(channel.values.length);
       for (let i = 0; i < scaled.length; i += 1) {
-        scaled[i] = channel.values[i] * POSITION_TRACK_SCALE;
+        scaled[i] = channel.values[i] * positionScale;
       }
       const track = new THREE.VectorKeyframeTrack(`${channel.nodeName}.position`, channel.times, scaled);
       track.setInterpolation(THREE.InterpolateLinear);
@@ -312,9 +353,41 @@ export function buildRetargetedClip(skeletonRoot, animation) {
   }
   if (missing.length > 0) {
     const names = [...new Set(missing)].join(', ');
-    throw new Error(`Waddle retarget: ${missing.length} channels target missing bones: ${names}.`);
+    throw new Error(`${expected.name} retarget: ${missing.length} channels target missing bones: ${names}.`);
   }
-  return new THREE.AnimationClip(EXPECTED_CLIP_NAME, animation.durationSeconds, tracks);
+  return new THREE.AnimationClip(expected.name, animation.durationSeconds, tracks);
+}
+
+/**
+ * Extract one named clip's channels from raw GLB bytes, plus the uniform root
+ * scale found on the nodes. Used for the `Idle` graft, where the donor carries
+ * three clips and only one ships.
+ */
+export function extractAnimationTracksByName(bytes, clipName) {
+  const { json, bin } = parseGlb(bytes);
+  const animations = json.animations ?? [];
+  const match = animations.find((animation) => animation.name === clipName);
+  if (match === undefined) {
+    const found = animations.map((animation) => animation.name).join(', ') || 'none';
+    throw new Error(`Source GLB carries no "${clipName}" clip; it carries ${found}.`);
+  }
+  const animation = readAnimation(json, bin, match);
+  let rootScale = null;
+  for (const node of json.nodes ?? []) {
+    const scale = node?.scale;
+    if (Array.isArray(scale) && scale.length === 3) {
+      const uniform = Math.abs(scale[0] - scale[1]) < 1e-6 && Math.abs(scale[1] - scale[2]) < 1e-6;
+      if (uniform) {
+        rootScale = scale[0];
+      }
+    }
+  }
+  return {
+    name: animation.name,
+    durationSeconds: animation.durationSeconds,
+    rootScale,
+    channels: animation.channels,
+  };
 }
 
 /**
@@ -346,13 +419,20 @@ function assertAuthoredClipSet(animations, requiredClipNames) {
 export const PUBLISHED_CLIP_NAMES = ['Idle', 'Walk', 'Run'];
 
 /**
- * The clip set this game ships: `Walk`, and nothing else. Both secondary clips
- * are withdrawn on purpose - no code path plays `Idle` or `Run`, and carrying
- * them would cost 1.0-1.6 MiB of keyframes per species against a 2 MiB
- * precache budget (spec FR-1, edge case). A track that needs `Idle` re-bakes
- * with it in this list and amends NFR-2 with the measured cost.
+ * The clip set this game ships: `Idle` and `Walk`. `Run` stays withdrawn - no
+ * code path plays it.
+ *
+ * `Idle` was withdrawn on the authored-clips track because `Idle` + `Walk` cost
+ * +2.86 MiB against that track's 2 MiB precache budget. Track
+ * `20261030-wallow-nest-life` re-instates it: a dino that stops is otherwise a
+ * frozen pose mid-stride, and the corner visits need an arrived animal that
+ * breathes. The cost is now budgeted rather than avoided, and NFR-1 of that
+ * track carries the measured figure.
+ *
+ * Order is the serialisation order, so a re-bake of the same clip set always
+ * writes the same bytes.
  */
-export const SHIPPED_CLIP_NAMES = ['Walk'];
+export const SHIPPED_CLIP_NAMES = ['Idle', 'Walk'];
 
 /**
  * Keep only the clips that ship, refusing a clip set that drifted.
@@ -663,16 +743,39 @@ export async function bakeTrikeVariant(options = {}) {
   const blenderBin = options.blenderBin ?? process.env['TRIKE_BLENDER_BIN'] ?? 'blender';
   const prevBytes = await readFile(prevGlbPath);
   const prevAnim = extractAnimationTracks(prevBytes);
-  if (prevAnim.rootScale === null || Math.abs(prevAnim.rootScale - OLD_ROOT_SCALE) > ROOT_SCALE_TOLERANCE) {
+  const prevRoot = prevAnim.rootScale ?? PREV_ROOT_SCALE;
+  if (Math.abs(prevRoot - PREV_ROOT_SCALE) > ROOT_SCALE_TOLERANCE) {
     throw new Error(
-      `Previous GLB root scale is ${prevAnim.rootScale ?? 'unknown'}, expected ${OLD_ROOT_SCALE}: ` +
-        'position tracks are not in authored space, refusing to guess the retarget scale.',
+      `Previous GLB root scale is ${prevAnim.rootScale ?? 'unknown'}, expected ${PREV_ROOT_SCALE}: ` +
+        'position tracks are not in variant space, refusing to guess the retarget scale.',
     );
   }
   const group = createVariantGroup();
-  const clip = buildRetargetedClip(group, prevAnim);
+  const idleBytes = await readFile(options.idleGlbPath ?? IDLE_SOURCE_GLB);
+  const idleAnim = extractAnimationTracksByName(idleBytes, IDLE_CLIP_NAME);
+  const idleRoot = idleAnim.rootScale ?? IDLE_ROOT_SCALE;
+  if (Math.abs(idleRoot - IDLE_ROOT_SCALE) > ROOT_SCALE_TOLERANCE) {
+    throw new Error(
+      `Idle donor root scale is ${idleAnim.rootScale ?? 'unknown'}, expected ${IDLE_ROOT_SCALE}: ` +
+        'position tracks are not in authored space, refusing to guess the retarget scale.',
+    );
+  }
+  const idleClip = buildRetargetedClip(group, idleAnim, {
+    name: IDLE_CLIP_NAME,
+    minSeconds: IDLE_MIN_SECONDS,
+    maxSeconds: IDLE_MAX_SECONDS,
+    positionScale: POSITION_TRACK_SCALE,
+  });
+  const clip = buildRetargetedClip(group, prevAnim, {
+    name: EXPECTED_CLIP_NAME,
+    minSeconds: CLIP_MIN_SECONDS,
+    maxSeconds: CLIP_MAX_SECONDS,
+    positionScale: 1,
+  });
+  // SHIPPED_CLIP_NAMES order, so the Trike serialises like the other species.
+  const clips = [idleClip, clip];
   const exporter = new GLTFExporter();
-  const exported = await exporter.parseAsync(group, { binary: true, animations: [clip] });
+  const exported = await exporter.parseAsync(group, { binary: true, animations: clips });
   const tmpIn = join(tmpdir(), `trike-baby-uncompressed-${process.pid}.glb`);
   // Blender appends `.glb` when the export path lacks it, so the temp name
   // keeps the suffix: the next run overwrites any stranded temp, then the
@@ -699,7 +802,14 @@ export async function bakeTrikeVariant(options = {}) {
       await rm(tmpIn, { force: true });
     }
   }
-  return { outPath, durationSeconds: clip.duration, trackCount: clip.tracks.length };
+  return {
+    outPath,
+    clips: clips.map((authored) => ({
+      name: authored.name,
+      durationSeconds: authored.duration,
+      trackCount: authored.tracks.length,
+    })),
+  };
 }
 
 function parseArgs(argv) {
@@ -729,9 +839,10 @@ const isMain = process.argv[1] !== undefined && resolve(process.argv[1]) === fil
 if (isMain) {
   try {
     const summary = await bakeTrikeVariant(parseArgs(process.argv.slice(2)));
-    console.log(
-      `bake-trike-variant: wrote ${summary.outPath} (Waddle ${summary.durationSeconds.toFixed(3)} s, ${summary.trackCount} tracks).`,
-    );
+    const clips = summary.clips
+      .map((clip) => `${clip.name} ${clip.durationSeconds.toFixed(3)} s / ${clip.trackCount} tracks`)
+      .join(', ');
+    console.log(`bake-trike-variant: wrote ${summary.outPath} (${clips}).`);
   } catch (error) {
     console.error(`bake-trike-variant: ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;

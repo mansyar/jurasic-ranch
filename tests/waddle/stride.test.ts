@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildRetargetedClip,
   createVariantGroup,
-  extractAnimationTracks,
+  extractAnimationTracksByName,
 } from '../../scripts/bake-trike-variant.js';
 import { WADDLE_STRIDE_METRES, WALK_SPEED_METRES_PER_SECOND } from '../../src/ranch/waddle.js';
 
@@ -52,7 +52,7 @@ interface FootReport {
  */
 async function measureGait(): Promise<{ reports: Record<string, FootReport> }> {
   const bytes = await readFile(SHIPPED_GLB);
-  const animation = extractAnimationTracks(bytes);
+  const animation = extractAnimationTracksByName(bytes, 'Waddle');
   const group = createVariantGroup();
   const clip = buildRetargetedClip(group, animation);
   const mixer = new THREE.AnimationMixer(group);

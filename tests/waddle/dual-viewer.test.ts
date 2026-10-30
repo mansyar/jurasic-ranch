@@ -124,7 +124,10 @@ describe('rigged stego loader (FR-4)', () => {
   it('requests /models/stego.glb through the same bundled decoder as the trike', async () => {
     const scene = new THREE.Group();
     const clip = new THREE.AnimationClip('Waddle', 0.8, []);
-    loaderMocks.loadAsync.mockResolvedValue({ scene, animations: [clip] });
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene,
+      animations: [new THREE.AnimationClip('Idle', 6, []), clip],
+    });
     const loaded = await loadStegoPlayer();
     expect(loaderMocks.loadAsync).toHaveBeenCalledWith('/models/stego.glb');
     expect(loaderMocks.setDecoderPath).not.toHaveBeenCalled();
@@ -173,13 +176,19 @@ describe('rigged stego loader (FR-4)', () => {
     const shared = new DustPool({ random: () => 0.5 });
     loaderMocks.loadAsync.mockResolvedValue({
       scene: new THREE.Group(),
-      animations: [new THREE.AnimationClip('Waddle', 0.8, [])],
+      animations: [
+        new THREE.AnimationClip('Idle', 6, []),
+        new THREE.AnimationClip('Waddle', 0.8, []),
+      ],
     });
     const stego = await loadStegoPlayer(shared);
     const trikeScene = new THREE.Group();
     loaderMocks.loadAsync.mockResolvedValue({
       scene: trikeScene,
-      animations: [new THREE.AnimationClip('Waddle', 0.8, [])],
+      animations: [
+        new THREE.AnimationClip('Idle', 6, []),
+        new THREE.AnimationClip('Waddle', 0.8, []),
+      ],
     });
     const trike = await loadTrikePlayer(shared);
     expect(stego.player.dust).toBe(shared);

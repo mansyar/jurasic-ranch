@@ -70,6 +70,25 @@ function createPlayer(rig: THREE.Group): DinoPlayer {
   return new DinoPlayer(rig, { clip: createWaddleClip(), random: () => 0.5 });
 }
 
+/** A 6 s rest loop that lifts the hips and sets them back down. */
+function createIdleClip(): THREE.AnimationClip {
+  const track = new THREE.VectorKeyframeTrack(
+    'Hips.position',
+    [0, 3, 6],
+    [0, 0, 0, 0, 0.05, 0, 0, 0, 0],
+  );
+  return new THREE.AnimationClip('Idle', 6, [track]);
+}
+
+/** Both actions on one mixer, which is what the loader now always builds. */
+function createBlendedPlayer(rig: THREE.Group): DinoPlayer {
+  return new DinoPlayer(rig, {
+    clip: createWaddleClip(),
+    idleClip: createIdleClip(),
+    random: () => 0.5,
+  });
+}
+
 function findHead(root: THREE.Object3D): THREE.Object3D {
   const head = root.getObjectByName('Head');
   if (head === undefined) {
@@ -533,5 +552,55 @@ describe('silent cheap walk (FR-7, FR-8)', () => {
     const playerSource = await readRanchSource('dino-player.ts');
     expect(playerSource).not.toMatch(/walk-button/);
     expect(playerSource).not.toMatch(/unlockAudio/);
+  });
+});
+
+describe('two-action blend (FR-2, AC-2)', () => {
+  it('holds Idle at weight 1 and Walk at 0 while stopped', () => {
+    const player = createBlendedPlayer(createTestRig());
+    player.update(DT, 0);
+    const weights = player.blendWeights;
+    expect(weights.walk).toBeCloseTo(0, 9);
+    expect(weights.idle).toBeCloseTo(1, 9);
+  });
+
+  it('splits the eased blend into two weights that sum to 1 mid-blend', () => {
+    const player = createBlendedPlayer(createTestRig());
+    player.setWalking(true);
+    let sawMidBlend = false;
+    for (let frame = 0; frame < 40; frame += 1) {
+      player.update(DT, frame * DT);
+      const { idle, walk } = player.blendWeights;
+      // AC-2: the pair is a partition of unity on every frame, not just at rest.
+      expect(idle + walk).toBeCloseTo(1, 6);
+      if (walk > 0.01 && walk < 0.99) {
+        sawMidBlend = true;
+      }
+    }
+    expect(sawMidBlend).toBe(true);
+  });
+
+  it('advances the mixer while stopped instead of freezing the resting pose', () => {
+    const rig = createTestRig();
+    const player = createBlendedPlayer(rig);
+    const hips = rig.getObjectByName('Hips');
+    expect(hips).toBeDefined();
+    if (hips === undefined) return;
+    // Walk weight is 0 throughout, so only the Idle action can move the hips.
+    // Before FR-2 the mixer was gated on `blend > 0.5` and this bone never moved.
+    player.update(DT, 0);
+    const first = hips.position.y;
+    for (let frame = 1; frame <= 20; frame += 1) {
+      player.update(DT, frame * DT);
+    }
+    expect(player.blendWeights.walk).toBe(0);
+    expect(hips.position.y).not.toBeCloseTo(first, 6);
+  });
+
+  it('keeps a player built without an idle clip exactly as it was', () => {
+    const player = createPlayer(createTestRig());
+    player.update(DT, 0);
+    // No second action exists, so nothing claims the complement.
+    expect(player.blendWeights).toEqual({ idle: 0, walk: 0 });
   });
 });

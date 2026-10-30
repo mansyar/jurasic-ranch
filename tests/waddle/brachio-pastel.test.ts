@@ -35,7 +35,7 @@ const MIN_VERTS_PER_ZONE = 50;
 const SHIPPED_GLB = new URL('../../public/models/brachio.glb', import.meta.url);
 /** Authored cycle lengths, as published (AC-1). */
 // Shipped set: Run is withdrawn (see SHIPPED_CLIP_NAMES), so it is not here.
-const CLIP_SECONDS = { Walk: 3.8 } as const;
+const CLIP_SECONDS = { Idle: 8, Walk: 3.8 } as const;
 /** Authored channels: 35 bones x translation + rotation. */
 const CHANNELS_PER_CLIP = 70;
 
@@ -170,10 +170,11 @@ describe('baked pastel brachio variant geometry', () => {
 });
 
 describe('authored clips on the brachio rig', () => {
-  it('rebuilds the authored Walk clip with the published timing', async () => {
+  it('rebuilds the authored Idle and Walk clips with the published timing', async () => {
     const group = createBrachioVariantGroup();
     const clips = buildBrachioClips(group, await readFile(SHIPPED_GLB));
-    expect(clips.map((clip) => clip.name)).toEqual(['Walk']);
+    // FR-1: the rest loop is grafted alongside the walk.
+    expect(clips.map((clip) => clip.name)).toEqual(['Idle', 'Walk']);
     for (const clip of clips) {
       expect(clip.duration).toBeCloseTo(CLIP_SECONDS[clip.name as keyof typeof CLIP_SECONDS], 3);
       expect(clip.tracks.length).toBe(CHANNELS_PER_CLIP);
@@ -202,28 +203,37 @@ describe('authored clips on the brachio rig', () => {
     }
   });
 
-  it('copies the published key values verbatim — no position rescale', async () => {
-    const bytes = await readFile(SHIPPED_GLB);
-    const source = extractAnimationClips(bytes).find((animation) => animation.name === 'Walk');
-    expect(source).toBeDefined();
-    const group = createBrachioVariantGroup();
-    const walk = buildBrachioClips(group, bytes).find((clip) => clip.name === 'Walk');
-    expect(walk).toBeDefined();
-    const tracks = new Map(
-      (walk as THREE.AnimationClip).tracks.map((track) => [track.name, track]),
-    );
-    for (const channel of source?.channels ?? []) {
-      const track = tracks.get(
-        `${channel.nodeName}.${channel.path === 'translation' ? 'position' : 'quaternion'}`,
+  it(
+    'copies the published key values verbatim — no position rescale',
+    async () => {
+      const bytes = await readFile(SHIPPED_GLB);
+      const source = extractAnimationClips(bytes).find((animation) => animation.name === 'Walk');
+      expect(source).toBeDefined();
+      const group = createBrachioVariantGroup();
+      const walk = buildBrachioClips(group, bytes).find((clip) => clip.name === 'Walk');
+      expect(walk).toBeDefined();
+      const tracks = new Map(
+        (walk as THREE.AnimationClip).tracks.map((track) => [track.name, track]),
       );
-      expect(track, `${channel.nodeName}.${channel.path}`).toBeDefined();
-      // Exactly the published floats: this is the regression guard for the
-      // retired donor bake, which multiplied every translation by 1.85 and
-      // pulled each bone off its rest offset.
-      expect(Array.from((track as THREE.KeyframeTrack).values)).toEqual(Array.from(channel.values));
-      expect(Array.from((track as THREE.KeyframeTrack).times)).toEqual(Array.from(channel.times));
-    }
-  });
+      for (const channel of source?.channels ?? []) {
+        const track = tracks.get(
+          `${channel.nodeName}.${channel.path === 'translation' ? 'position' : 'quaternion'}`,
+        );
+        expect(track, `${channel.nodeName}.${channel.path}`).toBeDefined();
+        // Exactly the published floats: this is the regression guard for the
+        // retired donor bake, which multiplied every translation by 1.85 and
+        // pulled each bone off its rest offset.
+        expect(Array.from((track as THREE.KeyframeTrack).values)).toEqual(
+          Array.from(channel.values),
+        );
+        expect(Array.from((track as THREE.KeyframeTrack).times)).toEqual(Array.from(channel.times));
+      }
+    },
+    // FR-1 made this graft two clips (Walk + an 8 s Idle over 35 bones), so the
+    // parse-and-rebuild work roughly doubled. It sits near the 5 s default under
+    // coverage on a loaded machine; the assertions are unchanged.
+    30_000,
+  );
 
   it('loops cleanly: first and last Walk keys agree', async () => {
     const group = createBrachioVariantGroup();

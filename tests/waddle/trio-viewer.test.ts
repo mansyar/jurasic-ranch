@@ -166,7 +166,10 @@ describe('rigged brachio loader (FR-1, FR-4, FR-9)', () => {
   it('requests /models/brachio.glb through the same bundled decoder', async () => {
     const scene = new THREE.Group();
     const clip = new THREE.AnimationClip('Waddle', 1.0, []);
-    loaderMocks.loadAsync.mockResolvedValue({ scene, animations: [clip] });
+    loaderMocks.loadAsync.mockResolvedValue({
+      scene,
+      animations: [new THREE.AnimationClip('Idle', 8, []), clip],
+    });
     const loaded = await loadBrachioPlayer();
     expect(loaderMocks.loadAsync).toHaveBeenCalledWith('/models/brachio.glb');
     expect(loaderMocks.setDecoderPath).not.toHaveBeenCalled();
@@ -213,13 +216,19 @@ describe('rigged brachio loader (FR-1, FR-4, FR-9)', () => {
     const shared = new DustPool({ random: () => 0.5 });
     loaderMocks.loadAsync.mockResolvedValue({
       scene: new THREE.Group(),
-      animations: [new THREE.AnimationClip('Waddle', 0.8, [])],
+      animations: [
+        new THREE.AnimationClip('Idle', 6, []),
+        new THREE.AnimationClip('Waddle', 0.8, []),
+      ],
     });
     const trike = await loadTrikePlayer(shared);
     const stego = await loadStegoPlayer(shared);
     loaderMocks.loadAsync.mockResolvedValue({
       scene: new THREE.Group(),
-      animations: [new THREE.AnimationClip('Waddle', 1.0, [])],
+      animations: [
+        new THREE.AnimationClip('Idle', 6, []),
+        new THREE.AnimationClip('Waddle', 1.0, []),
+      ],
     });
     const brachio = await loadBrachioPlayer(shared);
     expect(trike.player.dust).toBe(shared);
@@ -269,7 +278,10 @@ describe('per-species in-game size (FR-4, AC-4)', () => {
     const scene = new THREE.Group();
     loaderMocks.loadAsync.mockResolvedValue({
       scene,
-      animations: [new THREE.AnimationClip('Waddle', 1.0, [])],
+      animations: [
+        new THREE.AnimationClip('Idle', 6, []),
+        new THREE.AnimationClip('Waddle', 1.0, []),
+      ],
     });
     const loaded = await loadStegoPlayer();
     expect(loaded.model.scale.toArray()).toEqual([
@@ -286,7 +298,10 @@ describe('per-species in-game size (FR-4, AC-4)', () => {
     const trikeScene = new THREE.Group();
     loaderMocks.loadAsync.mockResolvedValue({
       scene: trikeScene,
-      animations: [new THREE.AnimationClip('Waddle', 0.8, [])],
+      animations: [
+        new THREE.AnimationClip('Idle', 6, []),
+        new THREE.AnimationClip('Waddle', 0.8, []),
+      ],
     });
     const trike = await loadTrikePlayer();
     expect(trike.model.scale.toArray()).toEqual([1, 1, 1]);
@@ -484,7 +499,10 @@ describe('world stride at the loader boundary (FR-5, AC-5)', () => {
     // dropping the conversion at the call site fails here.
     loaderMocks.loadAsync.mockResolvedValue({
       scene: new THREE.Group(),
-      animations: [new THREE.AnimationClip('Walk', 2.4, [])],
+      animations: [
+        new THREE.AnimationClip('Idle', 9, []),
+        new THREE.AnimationClip('Walk', 2.4, []),
+      ],
     });
     const stego = await loadStegoPlayer();
     const speed = walkedSpeedMetresPerSecond(stego);
@@ -496,7 +514,10 @@ describe('world stride at the loader boundary (FR-5, AC-5)', () => {
   it('leaves the Trike at its own stride, because it is drawn at scale 1', async () => {
     loaderMocks.loadAsync.mockResolvedValue({
       scene: new THREE.Group(),
-      animations: [new THREE.AnimationClip('Waddle', 0.8, [])],
+      animations: [
+        new THREE.AnimationClip('Idle', 6, []),
+        new THREE.AnimationClip('Waddle', 0.8, []),
+      ],
     });
     const trike = await loadTrikePlayer();
     expect(walkedSpeedMetresPerSecond(trike)).toBeCloseTo(0.3625, 2);

@@ -63,6 +63,19 @@ function findWalkClip(animations: THREE.AnimationClip[]): THREE.AnimationClip | 
 }
 
 /**
+ * The resting loop the two-action blend plays whenever the walk weight is zero
+ * (FR-1). One name for every species: the bake grafts Polyfork's authored `Idle`
+ * onto all three rigs, so there is no donor-retarget alias to allow for.
+ */
+const IDLE_CLIP_NAME = 'Idle';
+
+/** The resting loop out of a loaded GLB, or undefined when it ships none. */
+function findIdleClip(animations: THREE.AnimationClip[]): THREE.AnimationClip | undefined {
+  const clip = THREE.AnimationClip.findByName(animations, IDLE_CLIP_NAME);
+  return clip ?? undefined;
+}
+
+/**
  * Per-species in-game size, in one place (FR-4).
  *
  * The rule: **keep real-life ratios and leave the Triceratops at the size the
@@ -152,8 +165,8 @@ export interface LoadedDino {
 export type LoadedTrike = LoadedDino;
 
 /**
- * Load a baked Draco GLB and wrap its walk clip in a DinoPlayer with the
- * given gait. DOM- and renderer-free (loader boundary only), so tests can
+ * Load a baked Draco GLB and wrap its walk and idle clips in a DinoPlayer with
+ * the given gait. DOM- and renderer-free (loader boundary only), so tests can
  * drive it with a stubbed GLTFLoader while the real viewer owns the WebGL
  * chrome. An injected DustPool is shared (FR-9); omitted, the player keeps a
  * private pool exactly as before.
@@ -176,11 +189,22 @@ async function loadDinoPlayer(
     const loader = new GLTFLoader();
     loader.setDRACOLoader(draco);
     const gltf = await loader.loadAsync(modelUrl);
+    const carried = gltf.animations.map((animation) => animation.name).join(', ') || 'none';
     const clip = findWalkClip(gltf.animations);
     if (clip === undefined) {
       throw new Error(
         `${species} GLB has no walk clip (expected "${WALK_CLIP_NAMES.join('" or "')}"; it carries ` +
-          `${gltf.animations.map((animation) => animation.name).join(', ') || 'none'})`,
+          `${carried})`,
+      );
+    }
+    // FR-1: both clips or a loud failure. A one-clip fallback is exactly the
+    // silent regression this track exists to remove - the shipped Idle used to
+    // be dropped on the floor and every pause became a statue.
+    const idleClip = findIdleClip(gltf.animations);
+    if (idleClip === undefined) {
+      throw new Error(
+        `${species} GLB has no ${IDLE_CLIP_NAME} clip (the walk/rest blend needs one; it carries ` +
+          `${carried})`,
       );
     }
     // In-game size is a uniform group scale, applied before the player exists so
@@ -192,6 +216,7 @@ async function loadDinoPlayer(
     // cheeks to the blink Head bone. No-op on models without a Head node.
     const player = new DinoPlayer(gltf.scene, {
       clip,
+      idleClip,
       gait: worldGait(gait, groupScale),
       dust: sharedDust,
       random,

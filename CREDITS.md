@@ -6,7 +6,8 @@
 - Source: https://polyfork.dev/asset/triceratops-base
 - Vendored: `assets/trike/triceratops-base.glb`; baked game file `public/models/trike.glb`
   (baked size-0.6 baby variant: rayed shield, short horns, pastel colors,
-  retimed 0.8 s `Waddle` clip, Draco-compressed).
+  retimed 0.8 s `Waddle` walk clip plus the 6.0 s `Idle` rest loop lifted from the
+  published base, Draco-compressed).
 - License: commercial use allowed, no attribution required. No redistribution of the
   standalone files; vendoring into this game counts as use, not redistribution.
   See https://polyfork.dev/licensing.
@@ -20,10 +21,11 @@
   (`size: 1.0`) with the pastel colourway; baked game file `public/models/stego.glb`
   (pastel-coloured, Draco-compressed).
 - Clips: the published asset GLB (`https://polyfork.dev/cdn/stegosaurus-base.glb`),
-  which is the only place Polyfork ships its authored animation. Its `Walk` is
-  grafted verbatim (name, duration, keyframes) onto the baked rig. `Idle` and
-  `Run` are withdrawn from the game file (cache budget, spec FR-1). Not derived
-  from the Trike.
+  which is the only place Polyfork ships its authored animation. Its `Walk` and
+  `Idle` are grafted verbatim (name, duration, keyframes) onto the baked rig:
+  `Walk` drives the stride, `Idle` the rest loop the player crossfades to when the
+  walk weight reaches zero. `Run` is withdrawn from the game file (no code path
+  plays it). Not derived from the Trike.
 - License: commercial use allowed, no attribution required. No redistribution of the
   standalone files; vendoring into this game counts as use, not redistribution.
   See https://polyfork.dev/licensing.
@@ -38,10 +40,10 @@
   `public/models/brachio.glb` (pastel-coloured, Draco-compressed). Gameplay size
   is a viewer group scale, never a bake knob.
 - Clips: the published asset GLB (`https://polyfork.dev/cdn/brachiosaurus-base.glb`).
-  Its `Walk` is grafted verbatim onto the baked rig, so all 35 bones - including
-  the neck and tail chains - move on the sauropod's own authored motion. `Idle`
-  and `Run` are withdrawn from the game file (cache budget, spec FR-1). Not
-  derived from the Trike.
+  Its `Walk` and `Idle` are grafted verbatim onto the baked rig, so all 35 bones -
+  including the neck and tail chains - move on the sauropod's own authored motion,
+  and a stopped Brachio breathes on its own rest loop. `Run` is withdrawn from the
+  game file (no code path plays it). Not derived from the Trike.
 - License: commercial use allowed, no attribution required. No redistribution of the
   standalone files; vendoring into this game counts as use, not redistribution.
   See https://polyfork.dev/licensing.

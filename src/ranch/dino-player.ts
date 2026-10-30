@@ -239,8 +239,15 @@ export const BRACHIO_GAIT: GaitParams = {
 };
 
 export interface DinoPlayerOptions {
-  /** Baked `Waddle` clip (0.8 s loop for Trike). */
+  /** Walk clip: the baked `Waddle` (0.8 s loop for Trike) or the authored `Walk`. */
   clip: THREE.AnimationClip;
+  /**
+   * Resting loop played at full weight when the walk weight reaches zero (FR-2).
+   * Optional so every existing call site keeps today's single-action behaviour
+   * exactly: omitted, the mixer drives one clip and nothing about the pose,
+   * dust, squash or blink changes.
+   */
+  idleClip?: THREE.AnimationClip;
   texture?: THREE.Texture;
   random?: () => number;
   /**
@@ -276,6 +283,8 @@ export class DinoPlayer {
   private model: THREE.Object3D;
   private mixer: THREE.AnimationMixer;
   private action: THREE.AnimationAction;
+  /** Resting loop, or null when the caller supplied no `idleClip` (FR-2). */
+  private idleAction: THREE.AnimationAction | null;
   private pose: WaddlePose;
   private blink: BlinkController;
   private targets: BlinkTargets;
@@ -303,6 +312,16 @@ export class DinoPlayer {
     this.action.setLoop(THREE.LoopRepeat, Infinity);
     this.action.weight = 0;
     this.action.play();
+    // FR-2: the resting loop shares the mixer with the walk, so one eased weight
+    // ramp crossfades them. It starts at weight 1 because the pose starts stopped
+    // (blend 0), which is exactly the complement the walk action starts at.
+    this.idleAction =
+      options.idleClip === undefined ? null : this.mixer.clipAction(options.idleClip);
+    if (this.idleAction !== null) {
+      this.idleAction.setLoop(THREE.LoopRepeat, Infinity);
+      this.idleAction.weight = 1;
+      this.idleAction.play();
+    }
     this.pose = createWaddlePose();
     // Seeded callers must pass an explicit blink stream: when this falls back
     // to `random`, wall-clock blink draws shift the values that drive wander
@@ -332,6 +351,17 @@ export class DinoPlayer {
 
   get clipDurationSeconds(): number {
     return this.action.getClip().duration;
+  }
+
+  /**
+   * The two action weights the mixer is holding right now (FR-2, AC-2): the walk
+   * loop at the eased blend, the resting loop at its complement. Read straight off
+   * the actions rather than recomputed from the pose, so a test asserts what the
+   * mixer actually has. A player built without an `idleClip` reports 0 there,
+   * because no action carries that weight.
+   */
+  get blendWeights(): { idle: number; walk: number } {
+    return { idle: this.idleAction?.weight ?? 0, walk: this.action.weight };
   }
 
   setWalking(walking: boolean): void {
@@ -420,11 +450,19 @@ export class DinoPlayer {
     const step = Math.min(Math.max(dtSeconds, 0), 0.25);
     updateWaddlePoseWithGait(this.pose, step, this.gait);
     this.action.weight = this.pose.blend;
+    if (this.idleAction !== null) {
+      this.idleAction.weight = 1 - this.pose.blend;
+    }
+    // FR-2: the mixer advances on every frame, not only above the walk deadband.
+    // Two actions share it, so advancing only while striding would freeze the
+    // resting loop at the exact moment it becomes visible - the same statue in a
+    // new pose. Everything that reads the walk's foot-plant phase stays gated
+    // below, because only the walk has footfalls to spend.
+    this.mixer.update(step);
     const striding = this.pose.blend > 0.5;
     if (striding) {
       // Legs and plant phase advance together so dust/squash stay in sync
       // with the visible gait across walk stop/start cycles.
-      this.mixer.update(step);
       this.loopTime += step;
       const phase = loopPhaseWithGait(this.loopTime, this.gait);
       const crossed = plantsCrossed(this.prevPhase, phase);
