@@ -3,7 +3,7 @@
 **Branch:** `feat/20261030-wallow-nest-life`
 **Base:** `main` @ `c5c385c`
 
-> Phase states: `pending` · `in_progress` · `verified` · `failed` · `blocked`.
+> Phase states: `pending` / `in_progress` / `verified` / `failed` / `blocked`.
 > Only the primary implementation agent writes this file.
 
 ---
@@ -23,6 +23,7 @@ holding a stride.
 `tests/scripts/check-stego-clips.test.ts`, `tests/scripts/check-brachio-clips.test.ts`,
 `tests/waddle/dino-player.test.ts`.
 **Verification:** `pnpm verify`, plus the recorded precache size before and after.
+**Status:** in_progress
 
 - [ ] **P1.T1: Ship `Idle` in the bake** - covers: FR-1
   - [ ] **P1.T1.1:** Add `Idle` to `SHIPPED_CLIP_NAMES` in both variant bakes and their `.py` twins, and update the contracts that still say `Walk` only.
@@ -49,6 +50,7 @@ no visit active it is exactly today's world-origin circle.
 **Touches:** `src/ranch/dino-player.ts`, `tests/waddle/dino-player.test.ts`,
 `tests/waddle/trio-wander.test.ts`.
 **Verification:** `pnpm verify`.
+**Status:** pending
 
 - [ ] **P2.T1: Parameterise the ring** - covers: FR-3
   - [ ] **P2.T1.1:** Replace the world-origin `Math.hypot` in `steerInsideWanderRadius()` with a `centre` + `radius` pair defaulting to `(0, 0)` and the gait radius.
@@ -69,6 +71,7 @@ script, baked into `stego.glb`, and gated by a test that reads the shipped file.
 `public/models/stego.glb`, `tests/scripts/check-stego-clips.test.ts`,
 `conductor/tracks/20261030-wallow-nest-life/verification/phase-3.md`.
 **Verification:** `pnpm verify`, plus the bake run recorded in the evidence.
+**Status:** pending
 
 - [ ] **P3.T1: Author the roll** - covers: FR-6
   - [ ] **P3.T1.1:** Write the Blender script: Hips drop and roll, Chest counter-roll, Neck dip, Tail swish, legs splay, one rise-and-shake, ~4 s at the scene's 30 fps.
@@ -92,6 +95,7 @@ derived durations, the seeded timer and avoidance intact.
 **Touches:** `src/ranch/visit.ts`, `src/ranch/layout.ts` (anchors export only),
 `src/viewer/loop.ts`, `src/viewer/main.ts`, `tests/ranch/visit.test.ts`.
 **Verification:** `pnpm verify`.
+**Status:** pending
 
 - [ ] **P4.T1: Anchors** - covers: FR-5
   - [ ] **P4.T1.1:** Export a per-species anchor, arrival radius and facing from the corner definitions in `layout.ts` — wallow mud centre, hay-nest centre, browse-tree foot.
@@ -119,6 +123,7 @@ leaves, and turning Walk off brings everyone home.
 `src/viewer/main.ts`, `src/viewer/loop.ts`, `tests/ranch/visit-effects.test.ts`,
 `tests/ranch/ambient.test.ts`.
 **Verification:** `pnpm verify`.
+**Status:** pending
 
 - [ ] **P5.T1: Tap to call** - covers: FR-8
   - [ ] **P5.T1.1:** Route a corner-prop tap through the existing raycast to `callVisit`, keeping the sparkle in the same frame.
@@ -147,6 +152,7 @@ pictures.
 `tests/dev/snapshot.test.ts`, `tests/dev/harness-panel.test.ts`,
 `conductor/tracks/20261030-wallow-nest-life/`.
 **Verification:** `pnpm verify`, plus four captures.
+**Status:** pending
 
 - [ ] **P6.T1: Harness** - covers: FR-14
   - [ ] **P6.T1.1:** `callVisit(species)` and `getVisitState()` on `window.__ranch`, snapshot fields, one panel button per corner.
