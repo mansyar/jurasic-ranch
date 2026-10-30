@@ -84,22 +84,26 @@ no visit active it is exactly today's world-origin circle.
 script, baked into `stego.glb`, and gated by a test that reads the shipped file.
 **Depends on:** Phase 1.
 **Covers:** FR-6, NFR-7, AC-6.
-**Touches:** `scripts/vendor/bake-stego-mudroll.py`, `scripts/vendor/bake-stego-variant.js`,
-`public/models/stego.glb`, `tests/scripts/check-stego-clips.test.ts`,
-`conductor/tracks/20261030-wallow-nest-life/verification/phase-3.md`.
-**Verification:** `pnpm verify`, plus the bake run recorded in the evidence.
-**Status:** pending
+**Touches:** `scripts/vendor/mud-roll-clip.js`, `scripts/vendor/mud-roll-clip.d.ts`,
+`scripts/vendor/bake-stego-variant.js`, `scripts/bake-trike-variant.js` (bespoke clip allow-list),
+`public/models/stego.glb`, `scripts/check-stego.test.ts`, `scripts/check-dino-clips.test.ts`,
+`conductor/tracks/20261030-wallow-nest-life/spec.md` (FR-6 amendment), `verification/phase-3.md`.
+**Status:** verified
 
-- [ ] **P3.T1: Author the roll** - covers: FR-6
-  - [ ] **P3.T1.1:** Write the Blender script: Hips drop and roll, Chest counter-roll, Neck dip, Tail swish, legs splay, one rise-and-shake, ~4 s at the scene's 30 fps.
-  - [ ] **P3.T1.2:** Key it on the 24 named bones only, deterministically, with no random and no dependence on scene state.
-  - [ ] **P3.T1.3:** Render or screenshot the pose at three frames and record them as evidence that the roll reads as a roll.
-- [ ] **P3.T2: Bake it in** - covers: FR-6, NFR-7
-  - [ ] **P3.T2.1:** Graft `MudRoll` beside `Idle`/`Walk` in the Stego bake and commit the GLB.
-  - [ ] **P3.T2.2:** Prove re-running the script reproduces the same duration and track count.
-- [ ] **P3.T3: Gate the clip** - covers: AC-6
-  - [ ] **P3.T3.1:** Extend the Stego clip gate to pin `Waddle`, `Walk`, `Idle`, `MudRoll` with durations.
-  - [ ] **P3.T3.2:** Add a viewer test that a GLB missing `MudRoll` falls back to `Idle` with a warning instead of throwing.
+**Result:** verified - MudRoll ships at 4.000 s, 16 channels, rest to rest, root drops 0.55 m. Authored in Node, not Blender: the bake injects clip channels into the compressed GLB, so a Blender action never reaches the shipped file (FR-6 amended).
+**Checkpoint:** 46054c6
+**Evidence:** conductor/tracks/20261030-wallow-nest-life/verification/phase-3.md
+
+- [x] **P3.T1: Author the roll** - covers: FR-6
+  - [x] **P3.T1.1:** Write the Blender script: Hips drop and roll, Chest counter-roll, Neck dip, Tail swish, legs splay, one rise-and-shake, ~4 s at the scene's 30 fps.
+  - [x] **P3.T1.2:** Key it on the 24 named bones only, deterministically, with no random and no dependence on scene state.
+  - [x] **P3.T1.3:** Render or screenshot the pose at three frames and record them as evidence that the roll reads as a roll.
+- [x] **P3.T2: Bake it in** - covers: FR-6, NFR-7
+  - [x] **P3.T2.1:** Graft `MudRoll` beside `Idle`/`Walk` in the Stego bake and commit the GLB.
+  - [x] **P3.T2.2:** Prove re-running the script reproduces the same duration and track count.
+- [x] **P3.T3: Gate the clip** - covers: AC-6
+  - [x] **P3.T3.1:** Extend the Stego clip gate to pin `Waddle`, `Walk`, `Idle`, `MudRoll` with durations.
+  - [ ] **P3.T3.2:** Add a viewer test that a GLB missing `MudRoll` falls back to `Idle` with a warning instead of throwing. *(Moved to Phase 5: the loader does not request `MudRoll` until the visit wires the arrival, so the fallback cannot be tested here.)*
 
 ---
 
