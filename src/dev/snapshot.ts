@@ -3,6 +3,7 @@
  * projection behind `window.__ranch.snapshot()`.
  */
 
+import type { VisitSnapshot, VisitState } from '../ranch/visit.js';
 import type { PovPresetId } from '../viewer/pov.js';
 
 /** Species ids the trio reports. */
@@ -18,6 +19,35 @@ export interface SnapshotDino {
   z: number;
   heading: number;
   walking: boolean;
+}
+
+/**
+ * One animal's visit state (FR-14, AC-14).
+ *
+ * Every field is either the director's own reading or measured from the
+ * reported position — nothing here is inferred. An animal whose rig has not
+ * registered with the director yet reports `state: 'unknown'` and nulls rather
+ * than a confident `idle` it cannot back up: a snapshot that says an animal is
+ * home while it stands at its corner is worse than no field at all.
+ */
+export interface SnapshotVisit {
+  species: SpeciesId;
+  /** The director's state, or 'unknown' while the animal is not registered. */
+  state: VisitState | 'unknown';
+  /** Seconds spent in the current state; null while unknown. */
+  secondsInState: number | null;
+  /** Seeded seconds until this animal's next autonomous visit; null while unknown. */
+  secondsUntilVisit: number | null;
+  /** Journeys begun since boot; null while unknown. */
+  visitsStarted: number | null;
+  /** Arrivals reached since boot; null while unknown. */
+  arrivals: number | null;
+  /** The corner this animal owns, in ground metres; null while unknown. */
+  corner: { x: number; z: number } | null;
+  /** The corner's published arrival radius, in metres; null while unknown. */
+  arrivalRadiusMetres: number | null;
+  /** Ground distance from the animal to that corner, in metres; null while unknown. */
+  distanceToCorner: number | null;
 }
 
 /** Ground-plane distance between one unordered dino pair. */
@@ -50,9 +80,63 @@ export interface DevSnapshot {
   /** Triangles the renderer submitted for the last frame (AC-8, measured). */
   triangles: number;
   dinos: SnapshotDino[];
+  /** One record per animal, in `dinos` order (FR-14, AC-14). */
+  visits: SnapshotVisit[];
   pairs: SnapshotPair[];
   minSeparation: number | null;
   audio: SnapshotAudio;
+}
+
+/** One animal the projection can describe: where it stands, and its corner. */
+export interface VisitBody {
+  readonly id: SpeciesId;
+  readonly x: number;
+  readonly z: number;
+}
+
+/**
+ * Project the director's own snapshots plus the live positions into the
+ * documented visit block (FR-14, AC-14).
+ *
+ * `bodies` decides the output: every animal the harness can see gets a record,
+ * whether or not the director knows it yet, so the block is always total and a
+ * missing registration reads as `unknown` rather than vanishing. `corner` is
+ * the director's anchor and `distanceToCorner` is measured from the position
+ * the same snapshot reports, so a caller can check "at the corner" with
+ * `distanceToCorner <= arrivalRadiusMetres` instead of trusting a boolean.
+ */
+export function visitStates(
+  snapshots: readonly VisitSnapshot[],
+  bodies: readonly VisitBody[],
+): SnapshotVisit[] {
+  return bodies.map((body) => {
+    const snapshot = snapshots.find((item) => item.species === body.id);
+    if (snapshot === undefined) {
+      return {
+        species: body.id,
+        state: 'unknown',
+        secondsInState: null,
+        secondsUntilVisit: null,
+        visitsStarted: null,
+        arrivals: null,
+        corner: null,
+        arrivalRadiusMetres: null,
+        distanceToCorner: null,
+      };
+    }
+    const corner = { x: snapshot.corner.anchor[0], z: snapshot.corner.anchor[1] };
+    return {
+      species: body.id,
+      state: snapshot.state,
+      secondsInState: snapshot.secondsInState,
+      secondsUntilVisit: snapshot.secondsUntilVisit,
+      visitsStarted: snapshot.visitsStarted,
+      arrivals: snapshot.arrivals,
+      corner,
+      arrivalRadiusMetres: snapshot.corner.arrivalRadiusMetres,
+      distanceToCorner: Math.hypot(body.x - corner.x, body.z - corner.z),
+    };
+  });
 }
 
 /**
@@ -71,9 +155,14 @@ export function buildSnapshot(input: {
   drawCalls: number;
   triangles: number;
   dinos: SnapshotDino[];
+  visits: SnapshotVisit[];
   audio: SnapshotAudio;
 }): DevSnapshot {
   const dinos = input.dinos.map((dino) => ({ ...dino }));
+  const visits = input.visits.map((visit) => ({
+    ...visit,
+    corner: visit.corner === null ? null : { ...visit.corner },
+  }));
   const audio: SnapshotAudio = { ...input.audio };
   const pairs: SnapshotPair[] = [];
   for (let i = 0; i < dinos.length; i += 1) {
@@ -102,6 +191,7 @@ export function buildSnapshot(input: {
     drawCalls: input.drawCalls,
     triangles: input.triangles,
     dinos,
+    visits,
     pairs,
     minSeparation,
     audio,

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { DustPool } from './dust.js';
+import { DUST_LIFETIME_SECONDS, DustPool } from './dust.js';
 import { createSeededStream, cornerPlacements } from './layout.js';
 import type { CornerSpecies } from './layout.js';
 
@@ -12,8 +12,9 @@ import type { CornerSpecies } from './layout.js';
  * counter, plays no voice line and touches none of the state the kid-facing
  * chrome owns. Both are driven from the frame's own `dt` — the same clamped
  * delta the loop hands its other subsystems — so `?pause=1` freezes them too
- * (NFR-8). The sway is inert under reduced motion; the sparkle may still
- * animate (NFR-7).
+ * (NFR-8). Both are also decoration under reduced motion (FR-15, AC-15): the
+ * sway settles and a sparkle burst retires in one frame, while the clip the
+ * animal itself is playing keeps running.
  *
  * Pure scene-graph math: no DOM and no renderer, so a Node test can drive the
  * sway with a supplied `dt` and raycast a prop without a browser.
@@ -350,10 +351,18 @@ export class SparkleReactions {
   }
 
   /**
-   * Advance the sparkles. Not gated on reduced motion: NFR-7 allows the tap
-   * reaction to keep animating; a paused frame (`dt` of 0) still freezes it.
+   * Advance the sparkles. Under reduced motion the burst retires in this one
+   * frame instead of animating away (FR-15, AC-15): the decoration is what
+   * stops, while the clip the animal is playing keeps running. A paused frame
+   * (`dt` of 0) still freezes it.
    */
-  update(dtSeconds: number): void {
+  update(dtSeconds: number, reducedMotion = false): void {
+    if (reducedMotion) {
+      if (this.pool.aliveCount > 0) {
+        this.pool.update(DUST_LIFETIME_SECONDS);
+      }
+      return;
+    }
     this.pool.update(dtSeconds);
   }
 }

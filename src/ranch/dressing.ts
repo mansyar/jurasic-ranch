@@ -476,7 +476,9 @@ export function updateDressing(
   // FR-11: the sway owns its own reduced-motion handling, so it runs before the
   // rotor's early return — a still fan must not also freeze the grass mid-lean.
   dressing?.sway.update(dt, reducedMotion);
-  dressing?.sparkles.update(dt);
+  // FR-15, AC-15: a sparkle is decoration too, so under reduced motion the
+  // burst retires in this frame while the dino's own clip keeps playing.
+  dressing?.sparkles.update(dt, reducedMotion);
   const rotor = dressing?.rotor;
   if (rotor === null || rotor === undefined || reducedMotion || dt <= 0) {
     return;

@@ -82,3 +82,4 @@ OUT:
 - [x] Track 7 - Ranch Warmth UI (3 POV buttons, nest/garden markers, sleepy cues; lullaby delivered by Cozy Sound & Voice as a 40 s kalimba loop)
 - [x] Track 9 - Ranch Vista (staged paddock: 19 Polyfork dressing props in three bands, worn trefoil, gate track, gradient sky with four clouds, and a fourth Sky helicopter POV so the whole ranch is visible at once)
 - [ ] Track 8 — Tablet pass + release (real-device 60 fps, airplane-mode, parent-voice review, Add-to-Homescreen)
+- [x] Track 10 — Wallow and Nest Life (each animal has a home corner it walks out to: Stego rolls in the mud wallow, Trike settles into its hay nest, Brachio browses under the plum tree. A corner answers a tap by calling its animal and a slow timer sends it out anyway, and the authored Idle means a stopped dino breathes instead of freezing mid-stride)

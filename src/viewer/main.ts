@@ -486,6 +486,20 @@ export async function bootViewer(): Promise<void> {
           stopAll: () => {
             audioEngine().stopAll();
           },
+          // FR-14: the tap's own path — same cooldown map, same director entry
+          // point, nothing overridden. A harness call therefore cannot put an
+          // animal in a state the child's tap could not reach, and a refused
+          // call answers false instead of lying.
+          callVisit: (species: CornerSpecies) => {
+            const at = performance.now();
+            if (!callCooldowns.allows(species, at)) {
+              return false;
+            }
+            callCooldowns.record(species, at);
+            return visit.startVisit(species);
+          },
+          // FR-14: registered animals only, straight from the director.
+          getVisitState: () => visit.getSnapshots(),
         }
       : null;
 

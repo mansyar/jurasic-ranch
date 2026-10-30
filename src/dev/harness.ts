@@ -13,21 +13,27 @@ import { TRIKE_GAIT, type DinoPlayer } from '../ranch/dino-player.js';
 import type { DustPool } from '../ranch/dust.js';
 import type { SleepyState } from '../ranch/sleepy.js';
 import { AVOIDANCE_TRIGGER_METRES } from '../ranch/avoidance.js';
+import type { CornerSpecies } from '../ranch/layout.js';
+import type { VisitSnapshot, VisitState } from '../ranch/visit.js';
 import { POV_ORDER, type PovPresetId } from '../viewer/pov.js';
 import { type DevOptions, type DevSpeciesId } from './dev-options.js';
 import {
   applySolo,
   nextPausedFrame,
+  nextVisitStep,
   formatHud,
   overlayTransforms,
   DEV_STEP_DT_SECONDS,
+  type VisitStepProgress,
 } from './harness-state.js';
 import type { AudioAssetId } from '../audio/catalog.js';
 import {
   buildSnapshot,
+  visitStates,
   type DevSnapshot,
   type SnapshotAudio,
   type SnapshotDino,
+  type SnapshotVisit,
 } from './snapshot.js';
 
 /** True activation flag; the harness is inert without `?dev=1`. */
@@ -64,6 +70,24 @@ const HUD_UPDATE_SECONDS = 0.2;
 
 /** Element id linking the collapse button to its body. */
 const PANEL_BODY_ID = 'dev-panel-body';
+
+/**
+ * Frames a `stepUntilVisit` seek may spend before giving up (FR-14, AC-14):
+ * 30 s of simulated play at 60 fps, comfortably past the longest approach and
+ * far short of an unbounded wait, so a refused call or an unloaded rig answers
+ * `reached: false` instead of hanging a capture.
+ */
+export const DEV_VISIT_STEP_MAX_FRAMES = 30 * 60;
+
+/**
+ * The corner each animal owns, as the panel's visit buttons name it (FR-14):
+ * the place, not the species, because that is what a child taps.
+ */
+export const VISIT_CORNER_LABELS: Readonly<Record<CornerSpecies, string>> = {
+  trike: 'Nest',
+  stego: 'Wallow',
+  brachio: 'Tree',
+};
 
 /** One dino the panel can show, hide and inspect. */
 export interface DevDinoHandle {
@@ -102,6 +126,17 @@ export interface DevBridge {
   play(id: AudioAssetId): void;
   /** Stop music, voice, and every SFX instance. */
   stopAll(): void;
+  /**
+   * Call a corner's animal exactly as a tap on its prop does (FR-8, FR-14):
+   * the same per-corner cooldown, the same director entry point. Returns
+   * whether a journey actually started, so a refused call is never silent.
+   */
+  callVisit(species: CornerSpecies): boolean;
+  /**
+   * The visit director's own snapshots, one per registered animal (FR-14).
+   * Registered animals only — an unregistered rig is absent, not `idle`.
+   */
+  getVisitState(): VisitSnapshot[];
 }
 
 /** Per-frame hook: `dt` out is the delta the simulation may advance by. */
@@ -113,6 +148,31 @@ export interface DevAudioApi extends SnapshotAudio {
   setVolume(volume: number): void;
   play(id: AudioAssetId): void;
   stopAll(): void;
+}
+
+/** How a `stepUntilVisit` ended (FR-14, AC-14). */
+export interface VisitStepResult {
+  /** Frames the simulation actually advanced. */
+  frames: number;
+  /** True when the animal was seen in the requested state. */
+  reached: boolean;
+}
+
+/** Bounds for a `stepUntilVisit` (FR-14, AC-14). */
+export interface VisitStepOptions {
+  /** Frames the seek may spend before giving up; defaults to 30 s of play. */
+  maxFrames?: number;
+  /** Frames to keep advancing once the state is reached, so a capture lands inside it. */
+  extraFrames?: number;
+}
+
+/** One in-flight visit-targeted step, held by the frame hook. */
+interface PendingVisitStep {
+  species: CornerSpecies;
+  target: VisitState;
+  progress: VisitStepProgress;
+  frames: number;
+  resolve(result: VisitStepResult): void;
 }
 
 /** Machine-readable surface published as `window.__ranch` (FR-7). */
@@ -128,6 +188,20 @@ export interface DevRanchApi {
   dust(): void;
   sleepy(): void;
   hint(): void;
+  /** Drive one corner through the tap's own path (FR-14, AC-14). */
+  callVisit(species: CornerSpecies): boolean;
+  /** Live visit state per animal; the same block the snapshot carries (FR-14). */
+  getVisitState(): SnapshotVisit[];
+  /**
+   * Advance the simulation until one animal reaches `state`, then `extraFrames`
+   * more (FR-14, AC-14). Resolves when the harness has stopped, so a capture
+   * never has to guess a frame count or sleep on a wall clock.
+   */
+  stepUntilVisit(
+    species: CornerSpecies,
+    state: VisitState,
+    options?: VisitStepOptions,
+  ): Promise<VisitStepResult>;
   audio: DevAudioApi;
 }
 
@@ -350,6 +424,7 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
   let overlaysVisible = options.overlays;
   let fps = 0;
   let lastHudSeconds = Number.NEGATIVE_INFINITY;
+  let visitStep: PendingVisitStep | null = null;
 
   const style = document.createElement('style');
   style.setAttribute(DEV_PANEL_STYLE_ATTRIBUTE, '');
@@ -465,6 +540,7 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     pauseButton.setAttribute('aria-pressed', paused ? 'true' : 'false');
   };
   const setPaused = (next: boolean): void => {
+    cancelVisitStep();
     paused = next;
     if (paused) {
       stepFrames = 0;
@@ -472,10 +548,62 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     syncPauseButton();
   };
   const queueStep = (frames: number): void => {
+    cancelVisitStep();
     paused = true;
     stepFrames += Math.max(0, Math.floor(frames));
     syncPauseButton();
   };
+
+  // A visit-targeted step (FR-14, AC-14). The frame hook runs the simulation
+  // until the director itself reports the state, then answers the caller, so a
+  // capture never has to guess an approach length or sleep on a wall clock.
+  // One seek at a time: a new seek, a manual step or a resume answers the old
+  // one and stops it.
+  const currentVisitState = (species: CornerSpecies): VisitState | 'unknown' =>
+    bridge.getVisitState().find((snapshot) => snapshot.species === species)?.state ?? 'unknown';
+  const cancelVisitStep = (): void => {
+    const pending = visitStep;
+    if (pending === null) {
+      return;
+    }
+    visitStep = null;
+    pending.resolve({ frames: pending.frames, reached: pending.progress.reached });
+  };
+  const stepUntilVisit = (
+    species: CornerSpecies,
+    state: VisitState,
+    options: VisitStepOptions = {},
+  ): Promise<VisitStepResult> => {
+    cancelVisitStep();
+    paused = true;
+    stepFrames = 0;
+    syncPauseButton();
+    return new Promise<VisitStepResult>((resolve) => {
+      visitStep = {
+        species,
+        target: state,
+        progress: {
+          reached: false,
+          budget: options.maxFrames ?? DEV_VISIT_STEP_MAX_FRAMES,
+          extra: options.extraFrames ?? 0,
+        },
+        frames: 0,
+        resolve,
+      };
+    });
+  };
+
+  // One button per corner, named for the place rather than the species
+  // (FR-14): a child taps the nest, not the Trike. Each press takes the same
+  // path a tap on that corner's prop does, cooldown included.
+  const visitRowButtons = bridge.dinos.map((dino) => {
+    const button = createButton(VISIT_CORNER_LABELS[dino.id]);
+    button.setAttribute('data-dev-visit', dino.id);
+    button.addEventListener('click', () => {
+      bridge.callVisit(dino.id);
+    });
+    return button;
+  });
   pauseButton.addEventListener('click', () => {
     setPaused(!paused);
   });
@@ -619,6 +747,7 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     createRow('Solo', soloRowButtons),
     createRow('Simulation', [pauseButton, stepOne, stepTen]),
     hud,
+    createRow('Visit', visitRowButtons),
     createRow('Forced states', [blinkButton, dustButton, sleepyButton, hintButton]),
     createRow('Viewpoint', povButtons),
     createRow('Diagnostics', [overlaysButton]),
@@ -659,9 +788,21 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
       drawCalls: bridge.renderer.info.render.calls,
       triangles: bridge.renderer.info.render.triangles,
       dinos,
+      // FR-14, AC-14: the director's own reading, measured against the
+      // positions this same snapshot reports.
+      visits: visitStates(bridge.getVisitState(), dinos),
       audio: bridge.getAudioState(),
     });
   };
+
+  const visitStateNow = (): SnapshotVisit[] =>
+    visitStates(
+      bridge.getVisitState(),
+      bridge.dinos.map((dino) => {
+        const model = dino.getModel();
+        return { id: dino.id, x: model.position.x, z: model.position.z };
+      }),
+    );
 
   const api: DevRanchApi = {
     snapshot,
@@ -681,6 +822,9 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
     hint: () => {
       bridge.forceHint();
     },
+    callVisit: (species: CornerSpecies) => bridge.callVisit(species),
+    getVisitState: visitStateNow,
+    stepUntilVisit,
     audio: audioApi,
   };
   window.__ranch = api;
@@ -708,6 +852,27 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
       const info = bridge.renderer.info.render;
       hud.textContent = formatHud(fps, info.calls, info.triangles);
     }
+    if (visitStep !== null) {
+      const pending = visitStep;
+      const decision = nextVisitStep(
+        currentVisitState(pending.species),
+        pending.target,
+        pending.progress,
+      );
+      pending.progress = {
+        reached: decision.reached,
+        budget: decision.budget,
+        extra: decision.extra,
+      };
+      if (decision.done) {
+        visitStep = null;
+        pending.resolve({ frames: pending.frames, reached: decision.reached });
+        return 0;
+      }
+      pending.frames += 1;
+      // A seek is a capture: fixed deltas, so its frames are reproducible.
+      return DEV_STEP_DT_SECONDS;
+    }
     const decision = nextPausedFrame(paused, stepFrames);
     stepFrames = decision.stepFrames;
     if (!decision.advance) {
@@ -718,6 +883,8 @@ export function installDevHarness(bridge: DevBridge, options: DevOptions): DevFr
   };
 
   const dispose = (): void => {
+    // Answer an in-flight seek rather than leaving its caller waiting forever.
+    cancelVisitStep();
     panel.remove();
     style.remove();
     disposeOverlays(overlayGroup.group, bridge.scene);
