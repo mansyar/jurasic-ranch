@@ -116,19 +116,23 @@ derived durations, the seeded timer and avoidance intact.
 **Touches:** `src/ranch/visit.ts`, `src/ranch/layout.ts` (anchors export only),
 `src/viewer/loop.ts`, `src/viewer/main.ts`, `tests/ranch/visit.test.ts`.
 **Verification:** `pnpm verify`.
-**Status:** in_progress
+**Status:** verified
 
-- [ ] **P4.T1: Anchors** - covers: FR-5
+**Result:** verified - each animal is sent to its corner and comes home again, with the walk flag handed back
+**Checkpoint:** 9476151
+**Evidence:** conductor/tracks/20261030-wallow-nest-life/verification/phase-4.md
+
+- [x] **P4.T1: Anchors** - covers: FR-5
   - [ ] **P4.T1.1:** Export a per-species anchor, arrival radius and facing from the corner definitions in `layout.ts` — wallow mud centre, hay-nest centre, browse-tree foot.
   - [ ] **P4.T1.2:** Assert each anchor sits inside its corner's staged props and outside every camera's lens corridor.
-- [ ] **P4.T2: State machine** - covers: FR-4
+- [x] **P4.T2: State machine** - covers: FR-4
   - [ ] **P4.T2.1:** Write `src/ranch/visit.ts`: `idle → approach → arrive → dwell → return → idle`, with durations derived from distance, the species' walk speed and the dwell clip.
   - [ ] **P4.T2.2:** Drive the player through `setWanderRing` and `turnTo` only — no new locomotion.
   - [ ] **P4.T2.3:** Assert the full cycle and that no state is skipped for any species.
-- [ ] **P4.T3: Timer** - covers: FR-9
+- [x] **P4.T3: Timer** - covers: FR-9
   - [ ] **P4.T3.1:** Per-animal seeded timer near 45 s with jitter, gated on walking being on.
   - [ ] **P4.T3.2:** Assert each species visits within 90 s of a seeded run and the three do not start in the same second.
-- [ ] **P4.T4: Avoidance in transit** - covers: FR-11
+- [x] **P4.T4: Avoidance in transit** - covers: FR-11
   - [ ] **P4.T4.1:** Keep `trioAvoidanceNudges` running on visit headings.
   - [ ] **P4.T4.2:** Assert pair separation never drops below the pair clearance across two simultaneous approaches.
 

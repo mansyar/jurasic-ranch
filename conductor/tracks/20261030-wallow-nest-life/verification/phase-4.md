@@ -134,3 +134,36 @@ precache 63 entries (8961.75 KiB), dist clean. Commit `f1e559c`.
   lines is above NFR-8's 60 % new-code floor but its uncovered lines
   (`249, 289, 304-309`) are the re-registration path, the missing-species guard
   and `getSnapshots`, which the viewer does not call yet (Phase 6's harness will).
+
+## Primary verification
+
+Independent checks run by the orchestrator at `9476151` (squashed from
+`ac976bf..72f8f45`), not by the phase agent.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Clean tree before squash | `git status --porcelain` | empty |
+| Touches | `git diff --name-only 7bd9de8..HEAD` | 6 files: `src/ranch/layout.ts`, `src/ranch/visit.ts`, `src/viewer/loop.ts`, `src/viewer/main.ts`, `tests/ranch/visit.test.ts`, this evidence file. All inside Touches; `plan.md` excluded from the squash so the phase commit is code and evidence only. |
+| Full gate | `pnpm verify` | exit 0 - build ok, `precache 63 entries (8961.75 KiB)`, `dist clean: no dev harness markers in dist` |
+| Walk flag restore | read of `src/ranch/visit.ts` | line 324 restores only when `track.takenOverWalking` is true, and only when walking is currently off: `if (!actor.walking && track.takenOverWalking) actor.setWalking(true)`. Nothing forces `true`, so FR-10 holds when Walk is off. |
+| Cost | precache delta | 8957.64 -> 8961.75 KiB (+4.11 KiB, from `visit.ts` in the bundle). No new asset, no new dependency, no draw call. |
+
+### The defect this phase caught
+
+Round 1 reported that the return leg ends with `setWalking(false)` and that
+`idle` never turns walking back on. That is not a stylistic choice: it would
+have ended the endless amble after each animal's first visit, leaving the trio
+standing on its rings for the rest of the session. Rework 1 recorded the walk
+state at `beginVisit` and handed it back on the first idle frame, with two
+tests (`gives the walk back when the visit ends`, `never turns walking on
+while Walk is off`). The phase was squashed only after that fix.
+
+### Not proven here
+
+- Nothing has been *seen*. `MudRoll` still does not play - the loader does not
+  request it until Phase 5 wires the arrival - so the clip's sign-off and the
+  arrival effects remain Phase 5's, with captures.
+- The viewer feeds world gaits (`worldGait(..., DINO_GROUP_SCALE)`), so the
+  shipped arrival radii (1.7795 m Stego, 1.4582 m Brachio) are smaller than the
+  authored radii the unit test pins (2.144 m, 1.6096 m). The stop lands inside
+  the asserted radius either way; recorded rather than papered over.
