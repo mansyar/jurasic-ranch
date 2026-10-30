@@ -146,6 +146,7 @@ export const DRESSING_CATALOGUE: Readonly<Record<string, DressingCatalogueEntry>
   // the layout test re-measures each one. The twelve shipped entries above keep
   // the catalogue they were authored and accepted against in Phase 1.
   'hay-bale-079e8c.glb': { footprintMetres: 0.94, heightMetres: 0.52, band: 'mid' },
+  // Recorded mid-band height exception #3 of three (FR-14): the farm marker.
   'signpost-0bf523.glb': { footprintMetres: 1.17, heightMetres: 1.97, band: 'mid' },
   'flower-bed-708e73.glb': { footprintMetres: 1.0, heightMetres: 0.4, band: 'mid' },
   'berry-bush-ee4812.glb': { footprintMetres: 0.73, heightMetres: 1.11, band: 'mid' },
@@ -153,7 +154,8 @@ export const DRESSING_CATALOGUE: Readonly<Record<string, DressingCatalogueEntry>
   'wooden-crate-e46521.glb': { footprintMetres: 0.6, heightMetres: 0.6, band: 'mid' },
   'log-stump-1d65a5.glb': { footprintMetres: 0.61, heightMetres: 0.49, band: 'mid' },
   'garden-rock-7f5d60.glb': { footprintMetres: 0.72, heightMetres: 0.42, band: 'mid' },
-  // The one deliberate mid-band height exception (FR-13): Brachio's browse tree.
+  // Recorded mid-band height exception #1 of three (FR-13): Brachio's browse tree.
+  // The other two are the reeds below (FR-15) and the signpost (FR-14).
   'plum-tree-565179.glb': { footprintMetres: 1.41, heightMetres: 3.13, band: 'mid' },
   'mushroom-cluster-f2e3ba.glb': {
     footprintMetres: 0.26,
@@ -173,8 +175,8 @@ export const DRESSING_CATALOGUE: Readonly<Record<string, DressingCatalogueEntry>
     band: 'mid',
     parent: 'flowering-magnolia-dd76cb.glb',
   },
-  // Second recorded exception: FR-15 asks for reeds at the wallow, and a wallow
-  // eight metres out in the treeline would not read as one.
+  // Recorded mid-band height exception #2 of three (FR-15): the reeds at the
+  // wallow, and a wallow eight metres out in the treeline would not read as one.
   'river-reed-cluster-cba87e.glb': {
     footprintMetres: 1.07,
     heightMetres: 1.89,
@@ -445,9 +447,11 @@ export function scatter(
 
 /**
  * FR-6's height window per band, as numbers a test can hold. The mid cap is
- * applied to this phase's clutter only: the twelve shipped props are
- * grandfathered by the phase-1 snapshot (the 20 m redwood has always stood on
- * the mid band), and FR-13's browse tree is the one deliberate mid exception.
+ * applied to the props this track added: the twelve shipped props are
+ * grandfathered by the phase-1 snapshot (the 20 m redwood has always stood on the
+ * mid band) and are measured but not capped. Three named mid-band exceptions are
+ * recorded in the catalogue and pinned in `tests/ranch/layout.test.ts`:
+ * FR-13's browse tree, FR-15's reeds and FR-14's signpost.
  */
 export const MID_PROP_MAX_HEIGHT_METRES = 1.4;
 export const FOREGROUND_SPRIG_MAX_HEIGHT_METRES = 0.5;

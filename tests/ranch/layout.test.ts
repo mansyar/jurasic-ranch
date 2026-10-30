@@ -375,12 +375,14 @@ const NEW_FILES: readonly string[] = UNIQUE_FILES.filter((file) => !SHIPPED_FILE
 /**
  * The sanctioned height exceptions to FR-6's mid cap for new props, each with
  * the requirement that asks for it. Pinning them here is what keeps the cap a
- * rule rather than a suggestion: a fourth entry has to be written down.
+ * rule rather than a suggestion: a fourth entry has to be written down. Review
+ * F4: the same three are named in the catalogue's own comments and are the text
+ * FR-6 carries from this round (recorded in `verification/phase-5.md`).
  */
 const MID_HEIGHT_EXCEPTIONS: Readonly<Record<string, string>> = {
   'plum-tree-565179.glb': 'FR-13: the browse tree on Brachio’s corner',
   'river-reed-cluster-cba87e.glb': 'FR-15: reeds standing in the wallow edge',
-  'signpost-0bf523.glb': 'FR-13: the farm marker that frames Brachio’s corner',
+  'signpost-0bf523.glb': 'FR-14: the farm marker that frames Brachio’s corner',
 };
 
 describe('vendored assets (FR-5)', () => {
@@ -414,7 +416,7 @@ describe('vendored assets (FR-5)', () => {
   });
 });
 
-describe('band rules the new props answer to (FR-6, NFR-5)', () => {
+describe('band rules (FR-6, NFR-5)', () => {
   it('keeps every new mid prop under 1.4 m, bar the three pinned exceptions', () => {
     for (const file of NEW_FILES) {
       const entry = DRESSING_CATALOGUE[file];
@@ -508,7 +510,10 @@ describe('band rules the new props answer to (FR-6, NFR-5)', () => {
 
   it('keeps the treeline outside every lens cone, but for the rhyme each preset asked for', () => {
     // FR-16 needs exactly one backdrop inside the cone, at the far end of the
-    // animal's axis; every other treeline prop stays out of every frame.
+    // animal's axis; every other treeline prop stays out of every frame. Review
+    // F4: that exemption lived only in this test, so it is written down as an
+    // FR-16 carve-out in the evidence and belongs in FR-6's own text — the
+    // exemption is a rule, not a leniency.
     const rhymeOf = (file: string, radius: number): SilhouetteRhyme | undefined =>
       SILHOUETTE_RHYMES.find(
         (rhyme) => rhyme.file === file && Math.abs(rhyme.radiusMetres - radius) < 1e-9,
