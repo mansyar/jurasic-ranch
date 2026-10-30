@@ -188,22 +188,37 @@ pictures.
 **Depends on:** Phase 5.
 **Covers:** FR-14, FR-15, FR-16, NFR-2, NFR-4, NFR-5, NFR-6, NFR-8, AC-14, AC-15, AC-16, AC-17, AC-18.
 **Touches:** `src/dev/harness.ts`, `src/dev/snapshot.ts`, `src/dev/harness-state.ts`,
+`src/viewer/main.ts`, `src/ranch/ambient.ts`, `src/ranch/dressing.ts`,
 `index.html` (panel markup only), `conductor/product.md`,
 `conductor/product-guidelines.md`, `conductor/tech-stack.md`,
 `tests/dev/snapshot.test.ts`, `tests/dev/harness-panel.test.ts`,
+`tests/dev/harness-state.test.ts`, `tests/dev/reduced-motion.test.ts`,
+`tests/dev/visit-determinism.test.ts`,
 `conductor/tracks/20261030-wallow-nest-life/`.
 **Verification:** `pnpm verify`, plus four captures.
-**Status:** in_progress
+**Status:** verified
 
-- [ ] **P6.T1: Harness** - covers: FR-14
-  - [ ] **P6.T1.1:** `callVisit(species)` and `getVisitState()` on `window.__ranch`, snapshot fields, one panel button per corner.
-  - [ ] **P6.T1.2:** Assert the snapshot carries visit state and the panel drives a full visit.
-- [ ] **P6.T2: Reduced motion and determinism** - covers: FR-15, FR-16, NFR-5
-  - [ ] **P6.T2.1:** Clips keep playing under reduced motion while ripple, splash and sparkle complete in one frame.
-  - [ ] **P6.T2.2:** Assert two seeded runs produce identical visit schedules and positions.
-- [ ] **P6.T3: Docs** - covers: NFR-6
-  - [ ] **P6.T3.1:** `product.md` and `product-guidelines.md`: the trio visits its corners, tapping calls an animal, and no visit is ever required.
-  - [ ] **P6.T3.2:** `tech-stack.md`: the two-clip player, the parameterised ring, the visit module and the Stego bake script.
-- [ ] **P6.T4: Evidence and PR** - covers: AC-17, AC-18
-  - [ ] **P6.T4.1:** Capture Ranch, Nest, Garden and Sky at 1280x800, at least one with an animal at its corner, and attach them with alt text.
-  - [ ] **P6.T4.2:** Write `verification/phase-6.md`, run the integrated gate and the offline smoke.
+**Result:** verified - the visit is drivable from the bridge, reduced motion settles the decoration, a seeded run reproduces, the docs are synced, and seven captures are attached to the PR
+
+**Checkpoint:** 6319f87
+
+**Evidence:** conductor/tracks/20261030-wallow-nest-life/verification/phase-6.md
+
+*Amended 2026-10-30 during the phase: `main.ts`, `ambient.ts` and `dressing.ts`
+were added because `callVisit` has to route through the tap's own cooldown map
+in `main.ts`, and because the tap sparkle was still animating under reduced
+motion - `updateDressing` never forwarded the flag - so AC-15 was false until
+`SparkleReactions.update` learned to retire a burst in one frame.*
+
+- [x] **P6.T1: Harness** - covers: FR-14
+  - [x] **P6.T1.1:** `callVisit(species)` and `getVisitState()` on `window.__ranch`, snapshot fields, one panel button per corner.
+  - [x] **P6.T1.2:** Assert the snapshot carries visit state and the panel drives a full visit.
+- [x] **P6.T2: Reduced motion and determinism** - covers: FR-15, FR-16, NFR-5
+  - [x] **P6.T2.1:** Clips keep playing under reduced motion while ripple, splash and sparkle complete in one frame.
+  - [x] **P6.T2.2:** Assert two seeded runs produce identical visit schedules and positions.
+- [x] **P6.T3: Docs** - covers: NFR-6
+  - [x] **P6.T3.1:** `product.md` and `product-guidelines.md`: the trio visits its corners, tapping calls an animal, and no visit is ever required.
+  - [x] **P6.T3.2:** `tech-stack.md`: the two-clip player, the parameterised ring, the visit module and the Stego bake script.
+- [x] **P6.T4: Evidence and PR** - covers: AC-17, AC-18
+  - [x] **P6.T4.1:** Capture Ranch, Nest, Garden and Sky at 1280x800, at least one with an animal at its corner, and attach them with alt text.
+  - [x] **P6.T4.2:** Write `verification/phase-6.md`, run the integrated gate and the offline smoke.
