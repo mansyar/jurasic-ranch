@@ -104,7 +104,13 @@ export const POV_BEARING_RADIANS: Readonly<Record<GroundPovPresetId, number>> = 
  */
 export const POV_LENS_METRES: Readonly<Record<GroundPovPresetId, number>> = {
   ranch: 11.4,
-  nest: 10.8,
+  // The review's AC-1 finding: the Trike walks its circle to 5.27 m from this
+  // lens, where a 10.8 m standoff left its paws 8 px behind the bottom chrome.
+  // 11.4 m is the window's own far end, so the nest lens buys the stance without
+  // a rule moved; the Ranch and Garden lenses cannot be helped this way (their
+  // animals already stand at the window's far end and still overfill the inset —
+  // see `AC-1 walks the circle` in the test file and the phase evidence).
+  nest: 11.4,
   garden: 11.1,
 };
 
@@ -139,9 +145,10 @@ export const DINO_HEAD_HEIGHT_METRES: Readonly<
 
 /**
  * Where a ground lens aims, as a fraction of the focus animal's height
- * (FR-7: 55-60 %). Phase 5 pinned it to the floor of the window: the Brachio is
- * 7.2 m tall, so every point of aim lifted above 55 % pushes its paws under the
- * bottom chrome when it wanders toward the lens.
+ * (FR-7: 55-60 %). Kept at the floor of the window: raising it to 60 % was tried
+ * against AC-1 and moves the paws *down* in the frame (790 px → 820 px in the
+ * Ranch preset) as the frame tilts up, so it buys the head 28 px and costs the
+ * paws 30 px. See `WALK_STANCE_OVERFLOW_PX` in `tests/viewer/pov.test.ts`.
  */
 export const POV_LOOK_AT_HEIGHT_FRACTION = 0.55;
 

@@ -545,7 +545,8 @@ describe('band rules the new props answer to (FR-6, NFR-5)', () => {
         }
         const clearance = segmentClearanceMetres(point, lens, subject);
         const halfFootprint = ((DRESSING_FOOTPRINT_METRES[item.file] ?? 0) * (item.scale ?? 1)) / 2;
-        expect(clearance).toBeGreaterThan(halfFootprint + 0.5);
+        const measured = `${id}: ${item.file} at ${clearance.toFixed(2)} m clear, needs ${(halfFootprint + 0.5).toFixed(2)}`;
+        expect(clearance, measured).toBeGreaterThan(halfFootprint + 0.5);
       }
     }
   });

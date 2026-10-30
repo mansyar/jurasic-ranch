@@ -548,12 +548,41 @@ describe('ground optics: the subject is unobstructed (AC-1)', () => {
     }
   });
 
-  it('keeps the head inside the frame wherever the animal can stand (P5.T6)', () => {
+  /**
+   * How far past the HUD inset the whole animal may sit at the nearest point of
+   * its walk circle, in px, per lens. Zero where the lens can hold it.
+   *
+   * The review's F2 asked for the full inset at every stance and hoped FR-7's own
+   * aim headroom would buy it. It does not, and this is the measurement rather
+   * than a claim: with the aim anywhere in 55-60 %, the lens anywhere in
+   * 10.6-11.4 m, the eye anywhere in 3.0-3.4 m and the fov anywhere in 48-52 deg,
+   * the Brachio at 8.15 m spans 727 px of an 800 px frame, so the 96 px top inset
+   * and the 120 px bottom inset (216 px together) cannot both be satisfied — the
+   * Ranch frame needs 64 deg at 12.0 m, and the Garden frame (Stego at 4.39 m)
+   * needs 52 deg at 12.0 m. Aiming higher does not help: the paws move *down* as
+   * the frame tilts up (790 px at 55 %, 820 px at 60 %). The Nest lens was the
+   * one lens that could be fixed inside the window, by standing it at the
+   * window's far end (10.8 m → 11.4 m), and it now fits with 11 px to spare.
+   *
+   * The two residual overflows are pinned here so the composition cannot quietly
+   * worsen; widening FR-7 or shortening the animals' walk circle is the owner's
+   * call, not this test's.
+   */
+  const WALK_STANCE_OVERFLOW_PX = {
+    ranch: { top: 34, bottom: 111 },
+    nest: { top: 0, bottom: 0 },
+    garden: { top: 0, bottom: 94 },
+  } as const;
+
+  it('keeps the whole animal inside the HUD-safe area at its nearest stance (AC-1, P5.T6)', () => {
     // The defect the captures showed: the kit projected the animal at its spawn,
     // but the Trio walks a 3.71 m circle, so a Brachio three metres nearer than
-    // its spawn put its head through the top of the Ranch frame. Project the
-    // whole model box at the nearest point of that circle instead — the head
-    // must still be a pixel inside the frame, head included.
+    // its spawn put its head through the top of the Ranch frame. The review found
+    // the follow-up test still only asked for `rect.top > 0` — not the 96 px top
+    // inset that names the rule, nothing about the paws or the sides, and not the
+    // animal's own frame. This asserts the whole box against the full inset at the
+    // nearest point of the walk circle, and pins the two overflows FR-7 cannot
+    // close (see WALK_STANCE_OVERFLOW_PX).
     const findings: string[] = [];
     for (const id of GROUND_POV_ORDER) {
       const preset = POV_PRESETS[id];
@@ -572,12 +601,28 @@ describe('ground optics: the subject is unobstructed (AC-1)', () => {
         FRAME_WIDTH_PX,
         FRAME_HEIGHT_PX,
       );
-      if (rect.top <= 0) {
-        findings.push(`${id}: the head leaves the frame at ${nearest.toFixed(2)} m`);
+      const measured = `${id}: ${species} at ${nearest.toFixed(2)} m`;
+      const limit = WALK_STANCE_OVERFLOW_PX[id];
+      const headOverflow = HUD_SAFE_INSET_PX.top - rect.top;
+      const pawOverflow = rect.bottom - (FRAME_HEIGHT_PX - HUD_SAFE_INSET_PX.bottom);
+      if (headOverflow > limit.top) {
+        findings.push(
+          `${measured} puts the head ${rect.top.toFixed(0)} px down — ${headOverflow.toFixed(0)} px into the top chrome, limit ${limit.top}`,
+        );
       }
-      // The paws at the same distance are the recorded FR-7 limit, not a
-      // failure: aimed at 55 % of a 7.2 m animal's height, a 52 deg frame holds
-      // both ends down to about 10.9 m and no further. See the phase evidence.
+      if (pawOverflow > limit.bottom) {
+        findings.push(
+          `${measured} puts the paws ${rect.bottom.toFixed(0)} px down — ${pawOverflow.toFixed(0)} px into the bottom chrome, limit ${limit.bottom}`,
+        );
+      }
+      // The sides must fit everywhere: no lens is wide enough to crop the trio,
+      // and a walk stance that did would be a real regression.
+      if (rect.left < HUD_SAFE_INSET_PX.left) {
+        findings.push(`${measured} runs ${rect.left.toFixed(0)} px from the left edge`);
+      }
+      if (rect.right > FRAME_WIDTH_PX - HUD_SAFE_INSET_PX.right) {
+        findings.push(`${measured} runs ${rect.right.toFixed(0)} px past the right inset`);
+      }
     }
     expect(findings, findings.join('\n')).toEqual([]);
   });

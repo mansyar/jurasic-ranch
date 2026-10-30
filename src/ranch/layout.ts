@@ -752,8 +752,11 @@ export const FOREGROUND_PLACEMENTS: readonly DressingPlacement[] = [
   ring('wildflower-68d3a1.glb', 165.6, 13, 'inward'),
   ring('club-moss-mat-edcb1b.glb', 216, 13, 'inward'),
   ring('wildflower-68d3a1.glb', 215, 13, 'inward'),
-  // Phase 5 apron fill (FR-6): the same two files, more of them.
-  ring('club-moss-mat-edcb1b.glb', 145, 12.4, 'inward'),
+  // Phase 5 apron fill (FR-6): the same two files, more of them. The club-moss
+  // that stood at 145 deg / 12.4 m was 0.2 m from the Nest lens once the review
+  // moved that lens out to the window's far end (11.4 m), so it moved to 173 deg,
+  // where it is 2.6 m clear of the sightline to the Trike.
+  ring('club-moss-mat-edcb1b.glb', 173, 12.4, 'inward'),
   ring('wildflower-68d3a1.glb', 200, 12.8, 'inward'),
   ring('club-moss-mat-edcb1b.glb', 320, 13, 'inward'),
   ring('wildflower-68d3a1.glb', 40, 12.9, 'inward'),
