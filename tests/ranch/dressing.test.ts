@@ -435,6 +435,65 @@ describe('water line and windpump rig (FR-14, FR-18)', () => {
     expect(summary.rotor).toBe(rotor);
   });
 
+  it('finds the fan by the GLB’s own node name, with geometry still under it (review F6)', async () => {
+    // The rotor lookup used to run on a clone whose source meshes the bake had
+    // merged into the root, so it found an empty group: the fallback fan stood in
+    // front of baked, stationary blades. Read the vendored node names, build that
+    // same tree, and check the node that comes back is the file's own fan and
+    // still carries the mesh that makes turning it visible.
+    const bytes = readFileSync(
+      new URL('../../public/models/dressing/windpump-tower-1633a9.glb', import.meta.url),
+    );
+    const jsonLength = bytes.readUInt32LE(12);
+    const json = JSON.parse(bytes.subarray(20, 20 + jsonLength).toString('utf8')) as {
+      nodes?: { name?: string }[];
+    };
+    const names = (json.nodes ?? []).map((node) => node.name ?? '');
+    const fanName = names.find((name) => /(blade|rotor|fan|wheel|vane)/i.test(name));
+    expect(fanName, names.join(', ')).toBeDefined();
+    if (fanName === undefined) {
+      return;
+    }
+    loaderMocks.loadAsync.mockImplementation(async () => {
+      const root = new THREE.Group();
+      root.name = 'windpump-tower';
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(0.3, 7, 0.3));
+      tower.name = 'tower';
+      const fan = new THREE.Group();
+      fan.name = fanName;
+      fan.position.y = 7.1;
+      const fanMaterial = new THREE.MeshStandardMaterial();
+      for (const [index, offset] of [-0.4, 0.4].entries()) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 0.02), fanMaterial);
+        blade.name = `${fanName}-blade-${index}`;
+        blade.position.x = offset;
+        fan.add(blade);
+      }
+      root.add(tower, fan);
+      return { scene: root, animations: [] };
+    });
+    const scene = new THREE.Scene();
+    const summary = await buildDressing(scene);
+    const rotor = summary.rotor;
+    expect(rotor).not.toBeNull();
+    expect(rotor?.node.name).toBe(fanName);
+    const meshes: THREE.Mesh[] = [];
+    rotor?.node.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        meshes.push(child);
+      }
+    });
+    expect(meshes.length).toBeGreaterThan(0);
+    // One buffer now, not two: the fan's blades merged inside the fan.
+    expect(meshes.length).toBe(1);
+    // It hangs off the placed windpump clone, which is a child of the group.
+    let ancestor: THREE.Object3D | null = rotor?.node.parent ?? null;
+    while (ancestor !== null && ancestor.name !== 'RanchDressing') {
+      ancestor = ancestor.parent;
+    }
+    expect(ancestor?.name).toBe('RanchDressing');
+  });
+
   it('survives a dressing that failed to load, rotor and all', async () => {
     loaderMocks.loadAsync.mockRejectedValue(new Error('offline'));
     const summary = await buildDressing(new THREE.Scene());

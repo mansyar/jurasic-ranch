@@ -301,23 +301,55 @@ function buildWallow(): THREE.Mesh {
  * material over POSITION/NORMAL/COLOR_0 primitives, so the primitives bake into
  * one buffer with no visual change: 57 placements then cost 57 calls instead of
  * 224. Any file that does not fit that shape is left exactly as it came.
+ *
+ * Review F6: a named sub-tree that something later turns — the windpump's fan —
+ * is baked *within itself* instead of into the root. Merging it into the root
+ * erased the meshes under `wheel`, so the rotor lookup found an empty group,
+ * added a second fan in front of the baked blades and spun nothing visible.
  */
-function bakeToOneCall(root: THREE.Object3D): void {
-  const meshes: THREE.Mesh[] = [];
+function bakeToOneCall(root: THREE.Object3D, keep?: THREE.Object3D | null): void {
   root.updateMatrixWorld(true);
+  const kept: THREE.Object3D[] = [];
+  keep?.traverse((child) => {
+    kept.push(child);
+  });
+  const holds = (object: THREE.Object3D): boolean => {
+    for (let current: THREE.Object3D | null = object; current !== null; current = current.parent) {
+      if (kept.includes(current)) {
+        return true;
+      }
+    }
+    return false;
+  };
+  const meshes: THREE.Mesh[] = [];
   root.traverse((child) => {
-    if (child instanceof THREE.Mesh) {
+    if (child instanceof THREE.Mesh && !holds(child)) {
       meshes.push(child);
     }
   });
+  mergeWithin(root, meshes);
+  if (keep !== undefined && keep !== null) {
+    const keptMeshes: THREE.Mesh[] = [];
+    keep.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        keptMeshes.push(child);
+      }
+    });
+    mergeWithin(keep, keptMeshes);
+  }
+}
+
+/** Merge every given mesh into one buffer per material, parented to `holder`. */
+function mergeWithin(holder: THREE.Object3D, meshes: readonly THREE.Mesh[]): void {
   if (meshes.length <= 1) {
     return;
   }
-  const rootInverse = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  holder.updateMatrixWorld(true);
+  const holderInverse = new THREE.Matrix4().copy(holder.matrixWorld).invert();
   const local = new THREE.Matrix4();
   const byMaterial = new Map<THREE.Material, THREE.BufferGeometry[]>();
   for (const mesh of meshes) {
-    local.multiplyMatrices(rootInverse, mesh.matrixWorld);
+    local.multiplyMatrices(holderInverse, mesh.matrixWorld);
     const geometry = mesh.geometry.clone();
     geometry.applyMatrix4(local);
     const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
@@ -349,7 +381,7 @@ function bakeToOneCall(root: THREE.Object3D): void {
     mesh.removeFromParent();
   }
   for (const mesh of baked) {
-    root.add(mesh);
+    holder.add(mesh);
   }
 }
 
@@ -483,7 +515,9 @@ export async function buildDressing(
     uniqueFiles.map(async (file) => {
       try {
         const gltf = await loader.loadAsync(`${DRESSING_DIR_URL}/${file}`);
-        bakeToOneCall(gltf.scene);
+        // Review F6: find the fan before the bake, and bake it in place so its
+        // named node keeps the geometry that makes turning it visible.
+        bakeToOneCall(gltf.scene, findRotorNode(gltf.scene));
         cache.set(file, gltf.scene);
       } catch (error) {
         failedFiles.push(file);
