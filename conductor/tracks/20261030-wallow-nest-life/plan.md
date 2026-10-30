@@ -116,7 +116,7 @@ derived durations, the seeded timer and avoidance intact.
 **Touches:** `src/ranch/visit.ts`, `src/ranch/layout.ts` (anchors export only),
 `src/viewer/loop.ts`, `src/viewer/main.ts`, `tests/ranch/visit.test.ts`.
 **Verification:** `pnpm verify`.
-**Status:** pending
+**Status:** in_progress
 
 - [ ] **P4.T1: Anchors** - covers: FR-5
   - [ ] **P4.T1.1:** Export a per-species anchor, arrival radius and facing from the corner definitions in `layout.ts` — wallow mud centre, hay-nest centre, browse-tree foot.
