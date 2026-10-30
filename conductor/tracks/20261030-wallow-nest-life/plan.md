@@ -143,12 +143,20 @@ derived durations, the seeded timer and avoidance intact.
 **Goal:** a corner answers a tap by calling its animal, arrives with mud, straw or
 leaves, and turning Walk off brings everyone home.
 **Depends on:** Phase 4.
-**Covers:** FR-7, FR-8, FR-10, FR-12, FR-13, AC-7, AC-8, AC-10, AC-12, AC-13.
+**Covers:** FR-6, FR-7, FR-8, FR-10, FR-12, FR-13, AC-6, AC-7, AC-8, AC-10,
+AC-12, AC-13.
 **Touches:** `src/ranch/visit-effects.ts`, `src/ranch/ambient.ts`,
+`src/ranch/visit.ts`, `src/ranch/dino-player.ts`, `src/viewer/loaders.ts`,
 `src/viewer/main.ts`, `src/viewer/loop.ts`, `tests/ranch/visit-effects.test.ts`,
-`tests/ranch/ambient.test.ts`.
+`tests/ranch/ambient.test.ts`, `tests/ranch/visit.test.ts`,
+`tests/waddle/dino-player.test.ts`, `tests/viewer/viewer.test.ts`.
 **Verification:** `pnpm verify`.
-**Status:** pending
+**Status:** in_progress
+
+*Amended 2026-10-30 before the phase began: FR-6 and AC-6 move here from
+Phase 3. Phase 3 proves the clip ships in `stego.glb`; nothing has played it
+yet, because playing it needs the loader to request it and the arrival to
+trigger it. Phase 5 owns the performance.*
 
 - [ ] **P5.T1: Tap to call** - covers: FR-8
   - [ ] **P5.T1.1:** Route a corner-prop tap through the existing raycast to `callVisit`, keeping the sparkle in the same frame.
@@ -162,6 +170,10 @@ leaves, and turning Walk off brings everyone home.
 - [ ] **P5.T4: Walk off sends everyone home** - covers: FR-10
   - [ ] **P5.T4.1:** End any visit in progress when walking stops, returning the animal from wherever it stands.
   - [ ] **P5.T4.2:** Assert no animal is left stranded outside its ring and the machine settles at `idle`.
+- [ ] **P5.T5: The mud roll plays** - covers: FR-6, AC-6
+  - [ ] **P5.T5.1:** Have the loader hand Stego's `MudRoll` to its player, and play it once on arrival at the wallow, then back to `Idle`.
+  - [ ] **P5.T5.2:** A GLB without `MudRoll` falls back to `Idle` with a warning rather than throwing, so a stale cached model cannot brick the ranch.
+  - [ ] **P5.T5.3:** Assert the roll is requested only for Stego, plays exactly once per arrival, and never blocks the walk clip.
 
 ---
 
