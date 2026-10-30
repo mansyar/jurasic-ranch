@@ -347,4 +347,19 @@ describe('trio wander coexistence (FR-5, FR-6, AC-3)', () => {
       expect(player).toBeInstanceOf(DinoPlayer);
     }
   });
+
+  it('gives every species the world-origin circle at its own gait radius (FR-3)', () => {
+    const gaits = SIM_GAITS;
+    gaits.forEach((gait, index) => {
+      const player = new DinoPlayer(createRig(`Ring${index}`), {
+        clip: createWaddleClip(gait.loopSeconds),
+        gait,
+        random: () => 0.5,
+      });
+      expect(player.wanderRing).toEqual({
+        centre: { x: 0, z: 0 },
+        radius: gait.wanderRadiusMetres,
+      });
+    });
+  });
 });

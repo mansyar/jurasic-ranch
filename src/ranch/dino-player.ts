@@ -271,6 +271,18 @@ export interface DinoPlayerOptions {
 /** Random steering spread (radians) when turning back toward the center. */
 export const WANDER_STEER_JITTER_RADIANS = 0.6;
 
+/** Ground-plane point in world metres (x/z, +Z at heading 0). */
+export interface WanderCentre {
+  x: number;
+  z: number;
+}
+
+/** The circle a player steers back inside: a centre and a radius (FR-3). */
+export interface WanderRing {
+  centre: WanderCentre;
+  radius: number;
+}
+
 /**
  * Mixer + root-motion player. Heading bends into slow stroller arcs while the
  * dino keeps walking (no in-place spin), walk weight eases over ~0.2 s, and
@@ -294,6 +306,14 @@ export class DinoPlayer {
   private baseScale: THREE.Vector3;
   private random: () => number;
   /**
+   * The wander ring this player steers inside (FR-3). Defaults to the world
+   * origin at the gait radius, which is exactly the pre-FR-3 circle: the steer
+   * then subtracts exact zeros, so positions stay bit-identical.
+   */
+  private ringCentreX = 0;
+  private ringCentreZ = 0;
+  private ringRadiusMetres: number;
+  /**
    * Sleepy overlay weight 0..1 (FR-4): droopy lids plus a slow yawn swell.
    * Visual only; back to 0 the next update renders the base pose exactly.
    */
@@ -307,6 +327,7 @@ export class DinoPlayer {
     this.model = model;
     this.random = options.random ?? Math.random;
     this.gait = options.gait ?? TRIKE_GAIT;
+    this.ringRadiusMetres = this.gait.wanderRadiusMetres;
     this.mixer = new THREE.AnimationMixer(model);
     this.action = this.mixer.clipAction(options.clip);
     this.action.setLoop(THREE.LoopRepeat, Infinity);
@@ -395,6 +416,31 @@ export class DinoPlayer {
   }
 
   /**
+   * Give this player its own wander ring (FR-3): it steers back inside the
+   * given circle instead of the world-origin one. Only the circle moves — the
+   * gait, the steer jitter and the turn-then-walk behaviour are untouched, so
+   * an overridden ring changes where the animal goes, never how it walks.
+   */
+  setWanderRing(centre: WanderCentre, radius: number): void {
+    this.ringCentreX = centre.x;
+    this.ringCentreZ = centre.z;
+    this.ringRadiusMetres = radius;
+  }
+
+  /**
+   * The ring the player is steering inside right now (FR-3): the override when
+   * one was set, else the world-origin circle at the gait radius, which is
+   * exactly the pre-FR-3 behaviour. A fresh object each read, so a caller
+   * cannot reach into the player's state through it.
+   */
+  get wanderRing(): WanderRing {
+    return {
+      centre: { x: this.ringCentreX, z: this.ringCentreZ },
+      radius: this.ringRadiusMetres,
+    };
+  }
+
+  /**
    * Force a blink on the next `update()` (dev harness, FR-5). A no-op when
    * the model exposes no blink target, so a failed GLB load never throws.
    */
@@ -421,19 +467,25 @@ export class DinoPlayer {
   }
 
   /**
-   * Stay-in-frame wander: once the model leaves the gait wander radius,
-   * retarget the heading back toward the center with a small random offset.
-   * The pose controller bends toward it in a walk arc, so translation never
-   * pauses while steering. Only steers while walking (Stop still halts) and
-   * never overrides a turn already in progress.
+   * Stay-in-frame wander: once the model leaves its wander ring, retarget the
+   * heading back toward the ring centre with a small random offset. The pose
+   * controller bends toward it in a walk arc, so translation never pauses while
+   * steering. Only steers while walking (Stop still halts) and never overrides
+   * a turn already in progress.
+   *
+   * The ring is the player's own (FR-3): an override when one was set, else the
+   * gait circle around the world origin. Both distances are measured from the
+   * centre by subtracting it first, in this order of operations, so the default
+   * centre subtracts exact zeros and pre-FR-3 positions stay bit-identical.
    */
   private steerInsideWanderRadius(): void {
     if (!this.pose.moving) {
       return;
     }
-    const x = this.model.position.x;
-    const z = this.model.position.z;
-    if (Math.hypot(x, z) <= this.gait.wanderRadiusMetres) {
+    // Subtract the centre first: with the default (0, 0) this is exact.
+    const x = this.model.position.x - this.ringCentreX;
+    const z = this.model.position.z - this.ringCentreZ;
+    if (Math.hypot(x, z) <= this.ringRadiusMetres) {
       return;
     }
     const remaining = Math.abs(wrapAngle(this.pose.targetHeading - this.pose.heading));

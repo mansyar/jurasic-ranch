@@ -6,6 +6,7 @@ import {
   LARGEST_DINO_BODY_LENGTH_METRES,
 } from '../../src/ranch/avoidance.js';
 import { DUST_POOL_SIZE } from '../../src/ranch/dust.js';
+import { seededRandom } from '../../src/dev/seeded-random.js';
 import {
   BlinkController,
   DinoPlayer,
@@ -18,6 +19,7 @@ import {
   WADDLE_CYCLE_METRES,
   WADDLE_LOOP_SECONDS,
   WADDLE_STRIDE_METRES,
+  WALK_BLEND_SECONDS,
   WALK_SPEED_METRES_PER_SECOND,
   wrapAngle,
 } from '../../src/ranch/waddle.js';
@@ -552,6 +554,139 @@ describe('silent cheap walk (FR-7, FR-8)', () => {
     const playerSource = await readRanchSource('dino-player.ts');
     expect(playerSource).not.toMatch(/walk-button/);
     expect(playerSource).not.toMatch(/unlockAudio/);
+  });
+});
+
+/**
+ * A 60 s trajectory recorded from the pre-FR-3 player (phase base `3ebcecd`,
+ * before the ring was parameterised): Trike gait, world origin, walking from
+ * frame 0, one `seededRandom(0x51ee)` stream for wander + dust and
+ * `seededRandom(0xb1a2c)` for blinks. Pinning these numbers is AC-3's proof:
+ * any change that moves the ring default, reorders the centre subtraction, or
+ * shifts when the steer draws its jitter moves at least one of them.
+ */
+const GOLDEN_WANDER_POSITIONS: readonly { t: number; x: number; z: number }[] = [
+  { t: 1, x: 0, z: 0.32927083333333335 },
+  { t: 2, x: 0, z: 0.69177083333333167 },
+  { t: 5, x: 0, z: 1.779270833333336 },
+  { t: 10, x: 0, z: 3.5917708333332943 },
+  { t: 20, x: -0.5500812142270125, z: 1.0843760364497754 },
+  { t: 30, x: -1.8521648132890887, z: -2.2986999752670219 },
+  { t: 40, x: -0.51855034531869471, z: -1.4250202086968915 },
+  { t: 50, x: 1.5107235709481892, z: 1.5787561432905279 },
+  { t: 60, x: 1.4059488656971091, z: 1.8475159936385848 },
+];
+const GOLDEN_MAX_RADIUS_METRES = 3.9384440842210675;
+const GOLDEN_FINAL_HEADING = -2.6991812750673865;
+
+describe('wander ring (FR-3, AC-3)', () => {
+  it('reports the world-origin gait circle until one is set', () => {
+    const player = createPlayer(createTestRig());
+    expect(player.wanderRing).toEqual({
+      centre: { x: 0, z: 0 },
+      radius: TRIKE_GAIT.wanderRadiusMetres,
+    });
+    const centre = { x: 5, z: -3 };
+    player.setWanderRing(centre, 1.5);
+    expect(player.wanderRing).toEqual({ centre: { x: 5, z: -3 }, radius: 1.5 });
+    // The ring is copied in, so a caller's own point cannot drift underneath it.
+    centre.x = 100;
+    expect(player.wanderRing.centre).toEqual({ x: 5, z: -3 });
+  });
+
+  it('reproduces the pre-FR-3 60 s seeded positions with no ring override', () => {
+    const rig = createTestRig();
+    const player = new DinoPlayer(rig, {
+      clip: createWaddleClip(),
+      random: seededRandom(0x51ee),
+      blinkRandom: seededRandom(0xb1a2c),
+    });
+    player.setWalking(true);
+    let now = 0;
+    let maxRadius = 0;
+    let compared = 0;
+    for (let step = 0; step < 60 * 60; step += 1) {
+      player.update(DT, now);
+      now += DT;
+      maxRadius = Math.max(maxRadius, Math.hypot(rig.position.x, rig.position.z));
+      const second = (step + 1) / 60;
+      const golden = GOLDEN_WANDER_POSITIONS.find((sample) => sample.t === second);
+      if (golden !== undefined) {
+        expect(rig.position.x, `x at ${second} s`).toBeCloseTo(golden.x, 9);
+        expect(rig.position.z, `z at ${second} s`).toBeCloseTo(golden.z, 9);
+        compared += 1;
+      }
+    }
+    // The whole 60 s is pinned, not just the frames a sample happens to hit.
+    expect(compared).toBe(GOLDEN_WANDER_POSITIONS.length);
+    expect(maxRadius).toBeCloseTo(GOLDEN_MAX_RADIUS_METRES, 9);
+    expect(player.heading).toBeCloseTo(GOLDEN_FINAL_HEADING, 9);
+  });
+
+  it('walks bit-identically when the default ring is set explicitly', () => {
+    const untouchedRig = createTestRig();
+    const explicitRig = createTestRig();
+    const untouched = new DinoPlayer(untouchedRig, {
+      clip: createWaddleClip(),
+      random: seededRandom(0x51ee),
+      blinkRandom: seededRandom(0xb1a2c),
+    });
+    const explicit = new DinoPlayer(explicitRig, {
+      clip: createWaddleClip(),
+      random: seededRandom(0x51ee),
+      blinkRandom: seededRandom(0xb1a2c),
+    });
+    explicit.setWanderRing({ x: 0, z: 0 }, TRIKE_GAIT.wanderRadiusMetres);
+    untouched.setWalking(true);
+    explicit.setWalking(true);
+    let now = 0;
+    for (let step = 0; step < 60 * 60; step += 1) {
+      untouched.update(DT, now);
+      explicit.update(DT, now);
+      now += DT;
+    }
+    // Exactly equal, not close: centre (0, 0) must subtract exact zeros.
+    expect(explicitRig.position.x).toBe(untouchedRig.position.x);
+    expect(explicitRig.position.z).toBe(untouchedRig.position.z);
+    expect(explicit.heading).toBe(untouched.heading);
+  });
+
+  it('holds the animal inside an overridden ring instead of the world origin', () => {
+    const rig = createTestRig();
+    const player = createPlayer(rig);
+    const centre = { x: 5, z: -3 };
+    const radius = 1.5;
+    player.setWanderRing(centre, radius);
+    rig.position.set(centre.x + 0.4, 0, centre.z);
+    player.setWalking(true);
+    // Same overshoot bound the trio test uses: past the rim a dino keeps
+    // walking outward through a half turn, at its own measured speed.
+    const speed = WALK_SPEED_METRES_PER_SECOND;
+    const yawRate = Math.min(
+      TRIKE_GAIT.turnRateRadiansPerSecond,
+      TRIKE_GAIT.curvatureRadiansPerMetre * speed,
+    );
+    const ceiling = radius + speed * (Math.PI / yawRate + WALK_BLEND_SECONDS);
+    let maxFromCentre = 0;
+    let minFromOrigin = Number.POSITIVE_INFINITY;
+    let now = 0;
+    for (let step = 0; step < 60 * 60; step += 1) {
+      player.update(DT, now);
+      now += DT;
+      maxFromCentre = Math.max(
+        maxFromCentre,
+        Math.hypot(rig.position.x - centre.x, rig.position.z - centre.z),
+      );
+      if (step >= 30 * 60) {
+        minFromOrigin = Math.min(minFromOrigin, Math.hypot(rig.position.x, rig.position.z));
+      }
+    }
+    // It roams out to its own rim and never past the overshoot.
+    expect(maxFromCentre).toBeGreaterThan(radius - 0.3);
+    expect(maxFromCentre).toBeLessThanOrEqual(ceiling);
+    // The override ring sits wholly outside the world-origin gait circle, so an
+    // animal still steering at the origin would have been pulled home.
+    expect(minFromOrigin).toBeGreaterThan(TRIKE_GAIT.wanderRadiusMetres);
   });
 });
 
