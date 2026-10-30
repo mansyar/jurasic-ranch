@@ -63,7 +63,7 @@ no visit active it is exactly today's world-origin circle.
 **Touches:** `src/ranch/dino-player.ts`, `tests/waddle/dino-player.test.ts`,
 `tests/waddle/trio-wander.test.ts`.
 **Verification:** `pnpm verify`.
-**Status:** pending
+**Status:** in_progress
 
 - [ ] **P2.T1: Parameterise the ring** - covers: FR-3
   - [ ] **P2.T1.1:** Replace the world-origin `Math.hypot` in `steerInsideWanderRadius()` with a `centre` + `radius` pair defaulting to `(0, 0)` and the gait radius.
