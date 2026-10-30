@@ -45,6 +45,10 @@ export interface DevSnapshot {
   pov: PovPresetId;
   sleepy: 'awake' | 'drowsy' | 'sleepy';
   fps: number;
+  /** Draw calls the renderer issued for the last frame (AC-8, measured). */
+  drawCalls: number;
+  /** Triangles the renderer submitted for the last frame (AC-8, measured). */
+  triangles: number;
   dinos: SnapshotDino[];
   pairs: SnapshotPair[];
   minSeparation: number | null;
@@ -64,6 +68,8 @@ export function buildSnapshot(input: {
   pov: PovPresetId;
   sleepy: 'awake' | 'drowsy' | 'sleepy';
   fps: number;
+  drawCalls: number;
+  triangles: number;
   dinos: SnapshotDino[];
   audio: SnapshotAudio;
 }): DevSnapshot {
@@ -93,6 +99,8 @@ export function buildSnapshot(input: {
     pov: input.pov,
     sleepy: input.sleepy,
     fps: input.fps,
+    drawCalls: input.drawCalls,
+    triangles: input.triangles,
     dinos,
     pairs,
     minSeparation,

@@ -364,6 +364,19 @@ describe('audio bridge (FR-10, AC-11)', () => {
     expect(snapshot.audio).not.toBe(audio.state);
   });
 
+  it('reads the frame the renderer drew into the snapshot (AC-8, F3)', () => {
+    // The plumbing F3 asked for: `renderer.info.render` is the only honest source
+    // for a frame's draw calls and triangles, and the harness is what has it.
+    const { bridge } = createBridge();
+    bridge.renderer.info.render.calls = 87;
+    bridge.renderer.info.render.triangles = 41_234;
+    installDevHarness(bridge, parseDevQuery('?dev=1'));
+
+    const snapshot = ranchApi(dom).snapshot();
+    expect(snapshot.drawCalls).toBe(87);
+    expect(snapshot.triangles).toBe(41_234);
+  });
+
   it('drives mute, play hello and stop from the Sound row', () => {
     const { bridge, audio } = createBridge();
     installDevHarness(bridge, parseDevQuery('?dev=1'));

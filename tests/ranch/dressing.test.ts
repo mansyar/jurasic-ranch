@@ -78,10 +78,13 @@ describe('dressing manifest on disk (FR-3, NFR-2)', () => {
     expect(PRECACHE_BUDGET_BYTES).toBe(15_000_000);
   });
 
-  it('documents the draw-call and triangle ceilings the dressing is measured against', () => {
-    // NFR-1: a whole frame stays under 150 calls and 80k triangles. Each file
-    // is single-material, so its primitives bake into one buffer at load and one
-    // clone costs one call; the triangles are the real sum over every placement.
+  it('keeps the dressing group under the draw-call and triangle ceilings (a per-prop guard, not the frame)', () => {
+    // NFR-1: the whole frame stays under 150 calls and 80k triangles. This is the
+    // *dressing group's* arithmetic: each file is single-material, so its
+    // primitives bake into one buffer at load and one clone costs one call. It is
+    // not the frame — the sky, ground, dinos, dust and sparkles are not in this
+    // sum. The measured frame is `window.__ranch.snapshot().drawCalls`, which the
+    // harness reads off `renderer.info.render` (F3).
     let triangles = 0;
     for (const item of DRESSING_MANIFEST) {
       const facts = readGlbFacts(dressingDirUrl(item.file));

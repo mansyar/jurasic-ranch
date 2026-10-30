@@ -163,8 +163,14 @@ node if a later vendor ships one. FR-18 is **implemented, not withdrawn**.
 |---|---|---|
 | Dressing bytes on disk | 4 MB | **2,795,700 B** (2.67 MiB) |
 | Precache | 15 MB | **6,692.49 KiB** (6.53 MiB), 63 entries |
-| Draw calls, dressing | 150 (whole frame) | **61** — 56 clones (one per placement, files baked to one buffer each) + 1 channel + 1 stone batch + 1 wallow + 2 rotor meshes |
-| Triangles, dressing | 80,000 (whole frame) | **≈ 37,626** — 37,218 across the 56 placements + 240 channel + 64 wallow + ~104 rotor |
+| Draw calls, dressing group | 150 | **61** — 56 clones (one per placement, files baked to one buffer each) + 1 channel + 1 stone batch + 1 wallow + 2 rotor meshes |
+| Triangles, dressing group | 80,000 | **≈ 37,626** — 37,218 across the 56 placements + 240 channel + 64 wallow + ~104 rotor |
+
+The two "measured" rows are the **dressing group's** arithmetic over the
+manifest, not the frame's: the sky, ground, dinos, dust and sparkles are not in
+them. The frame is measured in the dev harness and exposed as
+`window.__ranch.snapshot().drawCalls` / `.triangles`, read from
+`renderer.info.render` (added in the phase-5 review fix F3).
 
 Files are near-instanced where it pays: every dressing GLB is a single material
 over `POSITION`/`NORMAL`/`COLOR_0`, so `bakeToOneCall()` merges its primitives at
@@ -295,6 +301,6 @@ Run by the orchestrator after squashing the phase.
 Notes for the reviewer:
 
 - **Nineteen GLBs, eighteen of them new.** `river-stone-cluster-0b55bc.glb` is the one the water line instanced, and it completes the set at nineteen catalogue entries against FR-5's fourteen.
-- **Draw calls are the interesting number**: 56 placements cost 61 calls because each single-material GLB is baked into one merged buffer. The unbaked path would have been 224 and would have tripled the frame's call count against a 15 MB precache budget it does not touch.
+- **Draw calls are the interesting number**: 56 placements cost 61 calls in the dressing group because each single-material GLB is baked into one merged buffer. The unbaked path would have been 224 and would have tripled the dressing group's call count against a 15 MB precache budget it does not touch.
 - **Three mid-band height exceptions are deliberate and pinned in `MID_HEIGHT_EXCEPTIONS`**: the plum browse tree (FR-13), the reeds at the wallow (FR-15) and the signpost (the farm marker FR-14 needs to read as a path). FR-6's 1.4 m cap is otherwise enforced by test.
 - **No picture yet.** The capture path still does not exist; Phase 4 builds it (`?pov=` plus a scripted grab) and Phase 6 attaches the four shots.

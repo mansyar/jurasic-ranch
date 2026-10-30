@@ -37,6 +37,8 @@ function inputFor(dinos: SnapshotDino[], audio: SnapshotAudio = audioState()) {
     pov: 'ranch' as const,
     sleepy: 'awake' as const,
     fps: 60,
+    drawCalls: 61,
+    triangles: 37_600,
     dinos,
     audio,
   };
@@ -50,6 +52,16 @@ describe('buildSnapshot (FR-7, AC-8)', () => {
     expect(snapshot.pov).toBe('ranch');
     expect(snapshot.sleepy).toBe('awake');
     expect(snapshot.fps).toBe(60);
+  });
+
+  it('carries the frame the renderer actually drew, not a prop count (AC-8, F3)', () => {
+    // The review's F3: `DRESSING_MANIFEST.length + 3` is an arithmetic proxy for
+    // the dressing group, not the frame — it leaves out the sky, the ground, the
+    // dinos, the dust and the sparkles. These two fields are read straight off
+    // `renderer.info.render` by the harness, so a capture can quote a measurement.
+    const snapshot = buildSnapshot(inputFor([dino('trike', 0, 0)]));
+    expect(snapshot.drawCalls).toBe(61);
+    expect(snapshot.triangles).toBe(37_600);
   });
 
   it('widens the reported viewpoint to every preset (P4.T5, FR-9)', () => {

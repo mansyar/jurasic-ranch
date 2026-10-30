@@ -109,10 +109,12 @@ render-loop hook was needed (`loop.ts` is untouched).
   (three times), using the cycad and tree fern already vendored, at 19.5–26 m on
   bearings chosen from the three lens axes (>25° off every cone); the apron
   gains four more sprigs (club-moss mat, wildflower) at 12.4–13 m outside every
-  lens's ±18°. Budget: 56 → 68 placements, so **71 draw calls** (68 + 3, ceiling
-  150) and **≈47.7k triangles** (ceiling 80,000) — repeats of one file share the
-  bake, which is why nine more props cost six draw calls' worth of work, not
-  nine.
+  lens's ±18°. Budget: 56 → 68 placements, so **71 draw calls in the dressing
+  group** (68 + 3, against a 150 ceiling) and **≈47.7k triangles** in that group
+  (ceiling 80,000) — repeats of one file share the bake, which is why nine more
+  props cost six calls' worth of work, not nine. These are the dressing group's
+  own arithmetic, not the frame's; the frame is measured through
+  `renderer.info.render` (see the review-fix notes on F3).
 - **Soft decal edges (P5.T9).** `ground.ts` generates a 128 px alpha ramp into a
   `DataTexture` (green channel, smoothstep, no image file): a radial ramp for the
   three worn discs (fade begins at 62 % of the radius, so the trefoil keeps a
@@ -269,10 +271,15 @@ and a gate path that read as two painted stripes.
 
 ### Frame budget
 
-`DRESSING_MANIFEST` 68 → **73 placements**; **76 draw calls** (73 + 3, ceiling
-150) and **51,340 triangles** (ceiling 80,000) measured from the GLB bytes over
-the manifest. The ground gains five patch calls and three scuff calls, which is
-inside the ground's own budget; the aliveness and rotor calls are unchanged.
+`DRESSING_MANIFEST` 68 → **73 placements**; **76 draw calls in the dressing
+group** (73 + 3, against the 150 ceiling) and **51,340 triangles in that group**
+(ceiling 80,000) measured from the GLB bytes over the manifest. That figure is
+the dressing group's, not the frame's: sky, ground, dinos, dust and sparkles are
+not in it. The measured frame is available in the dev harness as
+`window.__ranch.snapshot().drawCalls` / `.triangles`, read straight off
+`renderer.info.render` (F3). The ground gains five patch calls and three scuff
+calls, which is inside the ground's own budget; the aliveness and rotor calls
+are unchanged.
 
 ### What the next capture should show
 
@@ -413,9 +420,10 @@ projects its base and cap through the `sky` preset and asserts both land within
 90 % of the frame. The move costs nothing in geometry: the same one prop, the
 same GLB, the same draw call.
 
-**Frame budget after the move:** 73 placements, 76 draw calls
-(`DRESSING_MANIFEST.length + 3`), 51,340 triangles — unchanged, since a move is
-not a placement and the cloud meshes swapped two shared materials for one.
+**Dressing-group budget after the move:** 73 placements, 76 draw calls
+(`DRESSING_MANIFEST.length + 3`, the group's arithmetic, not the frame's),
+51,340 triangles — unchanged, since a move is not a placement and the cloud
+meshes swapped two shared materials for one.
 
 ### What the next capture should show
 
