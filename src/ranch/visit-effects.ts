@@ -146,6 +146,12 @@ export class ArrivalEffects {
     this.playSound(ARRIVAL_COO[species]);
     const effect = ARRIVAL_EFFECTS[species];
     this.lastEffect = effect;
+    // AC-12: one burst at a time. Two corners can land within the dust lifetime,
+    // and the pool is sized for a single arrival (`ARRIVAL_PEAK_PARTICLES`), so a
+    // second burst would recycle the first one's particles mid-air. The sound
+    // still goes out, so a collision loses the shape but never the coo. Widening
+    // this to a per-corner latch needs a bigger pool first - recorded as a
+    // follow-up rather than half-done here.
     if (this.reducedMotion || this.pool.aliveCount > 0) {
       return false;
     }

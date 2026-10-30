@@ -312,6 +312,8 @@ export class DinoPlayer {
   private arrivalAction: THREE.AnimationAction | null;
   /** Whether the one-shot is on screen right now. */
   private arrivalPlaying = false;
+  /** A one-shot asked for while the walk is still blending out (FR-6). */
+  private arrivalRequested = false;
   private pose: WaddlePose;
   private blink: BlinkController;
   private targets: BlinkTargets;
@@ -429,11 +431,26 @@ export class DinoPlayer {
     if (this.arrivalAction === null) {
       return false;
     }
+    // FR-6: the request is buffered, not started. `arrive` asks for the roll on
+    // the same frame it stops the animal, when the walk weight is still 1 and
+    // needs ~0.2 s to fall. Starting it there meant the stop-on-walk guard in
+    // `update` killed it before the mixer ever evaluated a frame, so the clip
+    // never played at all. `update` starts it on the first frame the walk has
+    // actually let go.
+    this.arrivalRequested = true;
+    return true;
+  }
+
+  /** Start the buffered one-shot once the walk blend has reached zero. */
+  private startRequestedArrivalClip(): void {
+    this.arrivalRequested = false;
+    if (this.arrivalAction === null) {
+      return;
+    }
     this.arrivalAction.reset();
     this.arrivalAction.weight = 1;
     this.arrivalAction.play();
     this.arrivalPlaying = true;
-    return true;
   }
 
   setWalking(walking: boolean): void {
@@ -563,6 +580,9 @@ export class DinoPlayer {
       this.arrivalAction.stop();
     }
     this.arrivalPlaying = false;
+    // A buffered request dies with it: the walk took the animal somewhere else,
+    // so a roll asked for at the corner must not fire later at a random stop.
+    this.arrivalRequested = false;
   }
 
   /** Advance mixer, root motion, squash, dust, blink, and sleepy. */
@@ -576,6 +596,15 @@ export class DinoPlayer {
     // on screen rather than a third action parked on the last frame.
     if (this.arrivalPlaying && (this.pose.blend > 0 || !this.isArrivalRunning())) {
       this.stopArrivalClip();
+    }
+    // The buffered request fires only once the walk has let go and the animal is
+    // standing, which is the frame `arrive` was really asking for. If the animal
+    // strides again first, the walk wins and the request is dropped.
+    if (this.arrivalRequested && this.pose.moving) {
+      this.arrivalRequested = false;
+    }
+    if (this.arrivalRequested && this.pose.blend === 0) {
+      this.startRequestedArrivalClip();
     }
     this.action.weight = this.pose.blend;
     if (this.idleAction !== null) {

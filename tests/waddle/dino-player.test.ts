@@ -779,10 +779,14 @@ describe('the corner one-shot (P5.T5, FR-6, AC-6)', () => {
     expect(player.blendWeights.idle).toBeCloseTo(1, 6);
 
     expect(player.playArrivalClip()).toBe(true);
+    // FR-6: the request is buffered. `arrive` asks while the walk is still
+    // blending out, so the roll starts on the first frame the walk has let go -
+    // starting it immediately was killed by the walk guard before the mixer ever
+    // evaluated a frame, and the clip never played at all.
+    player.update(DT, DT);
     expect(player.arrivalClipPlaying).toBe(true);
     // Neither the walk nor the idle averages into the roll: a half-roll with
     // half a rest pose is not a roll.
-    player.update(DT, DT);
     expect(player.blendWeights.walk).toBe(0);
     expect(player.blendWeights.idle).toBe(0);
 

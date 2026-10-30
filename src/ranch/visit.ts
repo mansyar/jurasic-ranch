@@ -313,7 +313,10 @@ export class VisitDirector {
       species,
       state: track.state,
       secondsInState: track.secondsInState,
-      secondsUntilVisit: track.secondsUntilVisit,
+      // F9: the timer is only re-armed when the animal is home again, so a raw
+      // countdown reads negative for the whole visit. Report it floored: "how
+      // long until the next one" cannot be less than nothing.
+      secondsUntilVisit: Math.max(track.secondsUntilVisit, 0),
       approachSeconds: track.approachSeconds,
       visitsStarted: track.visitsStarted,
       arrivals: track.arrivals,
@@ -443,6 +446,15 @@ export class VisitDirector {
   private abandonVisit(track: VisitTrack): void {
     if (track.state === 'approach' || track.state === 'arrive' || track.state === 'dwell') {
       this.sendHome(track);
+      return;
+    }
+    if (track.state === 'return') {
+      // FR-10/AC-10: the HUD's Stop cleared every player's `moving` in one call,
+      // so a return leg that only turned towards home would stand still outside
+      // its ring for good - and the child pressing Stop right after watching an
+      // animal arrive is the likeliest thing they do. Re-assert the walk it had
+      // already started; `sendHome` does the same on the other three states.
+      track.animal.actor.setWalking(true);
     }
   }
 

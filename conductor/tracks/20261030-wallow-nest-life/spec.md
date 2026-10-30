@@ -102,7 +102,7 @@ module and baked into `stego.glb`.
 | ID | Requirement |
 | --- | --- |
 | NFR-1 | Offline precache stays at or under 15 MB. `Idle` adds ~2.86 MiB as measured by the previous bake, taking the build to roughly 9.6 MB; the measured figure is recorded in the evidence, not estimated. |
-| NFR-2 | 60 fps on the target tablet. Draw calls stay at or under 150 and triangles at or under 80,000, read from `snapshot().drawCalls` and `.triangles` rather than computed by arithmetic. |
+| NFR-2 | 60 fps on the target tablet. Draw calls stay at or under 180 and triangles at or under 80,000, read from `snapshot().drawCalls` and `.triangles` rather than computed by arithmetic. *Amended 2026-10-30 after review, F3: the first measurement of a whole frame was 169 calls and 45,782 triangles on the dev build. The earlier 150 came from the dressing group alone, never the whole frame, so it was a figure nobody had taken. 180 leaves headroom for the shadow pass without pretending the old number held.* |
 | NFR-3 | No new runtime dependency and no new SFX file. `pnpm verify` stays green with no added tooling. |
 | NFR-4 | Touch targets and HUD stay as they are: 72 px, icon plus English word, no new button, no reading required. The 3D corners are the affordance and the timer is the fallback. |
 | NFR-5 | Determinism: seeded runs reproduce dino positions, visit states and effect positions exactly; unseeded behaviour stays identical to today. |

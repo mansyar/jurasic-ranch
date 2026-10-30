@@ -92,6 +92,9 @@ describe('the mud roll hand-off (P5.T5, FR-6, AC-6)', () => {
     const stego = await loadStegoPlayer();
     expect(stego.player.arrivalClipPlaying).toBe(false);
     expect(stego.player.playArrivalClip()).toBe(true);
+    // The request is buffered: the clip starts on the first frame the walk has
+    // let go, not on the frame the corner asks for it.
+    stego.player.update(0.016, 0.016);
     expect(stego.player.arrivalClipPlaying).toBe(true);
   });
 
