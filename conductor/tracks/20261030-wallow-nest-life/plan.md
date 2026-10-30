@@ -193,7 +193,7 @@ pictures.
 `tests/dev/snapshot.test.ts`, `tests/dev/harness-panel.test.ts`,
 `conductor/tracks/20261030-wallow-nest-life/`.
 **Verification:** `pnpm verify`, plus four captures.
-**Status:** pending
+**Status:** in_progress
 
 - [ ] **P6.T1: Harness** - covers: FR-14
   - [ ] **P6.T1.1:** `callVisit(species)` and `getVisitState()` on `window.__ranch`, snapshot fields, one panel button per corner.
