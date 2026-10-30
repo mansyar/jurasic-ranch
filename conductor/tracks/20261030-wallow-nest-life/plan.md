@@ -63,14 +63,18 @@ no visit active it is exactly today's world-origin circle.
 **Touches:** `src/ranch/dino-player.ts`, `tests/waddle/dino-player.test.ts`,
 `tests/waddle/trio-wander.test.ts`.
 **Verification:** `pnpm verify`.
-**Status:** in_progress
+**Status:** verified
 
-- [ ] **P2.T1: Parameterise the ring** - covers: FR-3
-  - [ ] **P2.T1.1:** Replace the world-origin `Math.hypot` in `steerInsideWanderRadius()` with a `centre` + `radius` pair defaulting to `(0, 0)` and the gait radius.
-  - [ ] **P2.T1.2:** Add `setWanderRing(centre, radius)` and a getter, with no other behaviour change.
-- [ ] **P2.T2: Pin the default** - covers: AC-3
-  - [ ] **P2.T2.1:** Assert a 60 s seeded run with no ring override reproduces today's positions to 1e-9.
-  - [ ] **P2.T2.2:** Assert an overridden ring actually holds the animal inside the new circle.
+**Result:** verified - the ring is a centre and a radius, inert at the default
+**Checkpoint:** 7905498
+**Evidence:** conductor/tracks/20261030-wallow-nest-life/verification/phase-2.md
+
+- [x] **P2.T1: Parameterise the ring** - covers: FR-3
+  - [x] **P2.T1.1:** Replace the world-origin `Math.hypot` in `steerInsideWanderRadius()` with a `centre` + `radius` pair defaulting to `(0, 0)` and the gait radius.
+  - [x] **P2.T1.2:** Add `setWanderRing(centre, radius)` and a getter, with no other behaviour change.
+- [x] **P2.T2: Pin the default** - covers: AC-3
+  - [x] **P2.T2.1:** Assert a 60 s seeded run with no ring override reproduces today's positions to 1e-9.
+  - [x] **P2.T2.2:** Assert an overridden ring actually holds the animal inside the new circle.
 
 ---
 

@@ -155,3 +155,28 @@ None. Every edit is inside the phase's Touches
   `GaitParams` object *after* a player is built no longer moves its ring. No call
   site does that; it is called out because it is the one semantic difference
   from reading `this.gait.wanderRadiusMetres` per frame.
+
+## Primary verification
+
+Run by the orchestrating agent at the phase squash, independent of the phase
+agent's report.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Full gate | `pnpm verify` | exit 0 - 54 files / 683 tests, precache 63 entries 8,914.59 KiB, dist clean |
+| Touches | `git diff --name-only 3ebcecd..HEAD` | exactly the three Touches files plus the evidence file; no widening |
+| AC-3 inertness | `src/ranch/dino-player.ts:486-495` | the centre is subtracted into locals before `Math.hypot(x, z)` and `Math.atan2(-x, -z)`, so centre `(0,0)` runs the same float ops in the same order as before |
+| AC-3 evidence | `tests/waddle/dino-player.test.ts` | 60 s seeded trajectory recorded from the pre-FR-3 player at `3ebcecd`, nine checkpoints at 5e-10, max radius 3.9384440842210675, final heading -2.6991812750673865; a home ring set explicitly is `toBe`-identical to no ring |
+
+### Cost
+
+Nothing measurable: precache moved 8,914.29 -> 8,914.59 KiB, which is the code
+itself. The steer path is branch-free now, and the seeded draw count is
+unchanged, which is what let the 5e-10 pin hold.
+
+### Note for Phase 4
+
+There is no ring reset verb. Coming home is a second `setWanderRing` call with
+the animal's home anchor, and the ring radius is snapshotted from the gait at
+construction. Phase 4 should treat the home ring as data it owns rather than
+expecting the player to remember it.
