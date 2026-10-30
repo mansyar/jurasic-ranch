@@ -559,6 +559,23 @@ export const FARM_PLACEMENTS: readonly DressingPlacement[] = [
 ];
 
 /**
+ * The hay nest's centre on the Trike's corner (FR-5, FR-13): the point the
+ * four bales ring, and the anchor the Trike comes to rest at.
+ */
+export const HAY_NEST_CENTRE_METRES: readonly [number, number] = at(64, 9.0);
+
+/** How far the four bales stand from the hay nest's centre, in metres. */
+export const HAY_NEST_CLUSTER_RADIUS_METRES = 0.55;
+
+/**
+ * The browse tree's foot on the Brachio's corner (FR-5, FR-13): the plum
+ * tree's own ground origin, i.e. the `ring('plum-tree-565179.glb', 326, 9.1,
+ * 'inward')` placement below. Carried as a point as well so the anchor and the
+ * placement can be pinned against each other in the tests.
+ */
+export const BROWSE_TREE_FOOT_METRES: readonly [number, number] = at(326, 9.1);
+
+/**
  * The three corners (FR-13), each built on its own dino's spawn bearing.
  *
  * - Trike, 90 deg: a hay nest of four bales at angles, framed by a berry bush
@@ -581,7 +598,7 @@ export const DRESSING_CORNERS: readonly {
   {
     species: 'trike',
     placements: [
-      ...cluster('hay-bale-079e8c.glb', at(64, 9.0), 0.55, [
+      ...cluster('hay-bale-079e8c.glb', HAY_NEST_CENTRE_METRES, HAY_NEST_CLUSTER_RADIUS_METRES, [
         { azimuthDegrees: 0, rotationY: 0.2 },
         { azimuthDegrees: 90, rotationY: 2.4 },
         { azimuthDegrees: 180, rotationY: 4.1 },
@@ -635,6 +652,59 @@ export const WALLOW_CENTRE_METRES: readonly [number, number] = at(
   WALLOW_AZIMUTH_DEGREES,
   WALLOW_RADIUS_METRES,
 );
+
+/** Half a catalogue prop's widest ground footprint, in metres. */
+function halfFootprintMetres(file: string): number {
+  return (DRESSING_CATALOGUE[file]?.footprintMetres ?? 0) / 2;
+}
+
+/**
+ * The heading that walks outward through a ground point, in the player's own
+ * convention (+Z = 0, forward is `(sin heading, cos heading)`). An animal that
+ * arrives at its corner from the paddock is already facing this way, so it is
+ * the heading that makes it face *into* the place it came to use.
+ */
+function outwardFacingRadians(point: readonly [number, number]): number {
+  return Math.atan2(point[0], point[1]);
+}
+
+/**
+ * Where an animal stands when it has arrived at its corner (FR-5, AC-5).
+ *
+ * `anchor` is the ground point it comes to rest at; `placeRadiusMetres` is how
+ * far the place itself reaches from that point — the wallow mud's radius, the
+ * hay nest's outer edge, the browse tree's canopy half-width — so "arrived"
+ * means standing *in* the place rather than beside it; `facingRadians` is the
+ * heading it turns to before it stops.
+ *
+ * The arrival radius FR-5 publishes is not here: it is this place radius plus
+ * the animal's own worst-case turn-and-glide, which needs its gait, and
+ * `src/ranch/visit.ts` is the module that owns both halves.
+ */
+export interface CornerAnchor {
+  readonly anchor: readonly [number, number];
+  readonly placeRadiusMetres: number;
+  readonly facingRadians: number;
+}
+
+/** The three anchors, one per corner (FR-5, P4.T1). */
+export const CORNER_ANCHORS: Readonly<Record<CornerSpecies, CornerAnchor>> = {
+  trike: {
+    anchor: HAY_NEST_CENTRE_METRES,
+    placeRadiusMetres: HAY_NEST_CLUSTER_RADIUS_METRES + halfFootprintMetres('hay-bale-079e8c.glb'),
+    facingRadians: outwardFacingRadians(HAY_NEST_CENTRE_METRES),
+  },
+  stego: {
+    anchor: WALLOW_CENTRE_METRES,
+    placeRadiusMetres: WALLOW_MUD_RADIUS_METRES,
+    facingRadians: outwardFacingRadians(WALLOW_CENTRE_METRES),
+  },
+  brachio: {
+    anchor: BROWSE_TREE_FOOT_METRES,
+    placeRadiusMetres: halfFootprintMetres('plum-tree-565179.glb'),
+    facingRadians: outwardFacingRadians(BROWSE_TREE_FOOT_METRES),
+  },
+};
 
 /**
  * The water line (FR-14): pump at 350 deg, trough at 338 deg, then a flush

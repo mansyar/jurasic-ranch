@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import type { DinoPlayer } from '../ranch/dino-player.js';
+import { BRACHIO_GAIT, STEGO_GAIT, TRIKE_GAIT } from '../ranch/dino-player.js';
+import type { CornerSpecies } from '../ranch/layout.js';
+import { VisitDirector } from '../ranch/visit.js';
+import type { GaitParams } from '../ranch/waddle.js';
 import { trioSpawnPositions } from '../ranch/avoidance.js';
 import { buildDressing } from '../ranch/dressing.js';
 import type { DressingFrame } from '../ranch/dressing.js';
@@ -35,7 +39,14 @@ import {
   createHud,
   setStatus,
 } from './hud.js';
-import { loadBrachioPlayer, loadStegoPlayer, loadTrikePlayer, type LoadedDino } from './loaders.js';
+import {
+  DINO_GROUP_SCALE,
+  loadBrachioPlayer,
+  loadStegoPlayer,
+  loadTrikePlayer,
+  worldGait,
+  type LoadedDino,
+} from './loaders.js';
 import {
   TRIO_SPAWN_HEADINGS_RADIANS,
   setAllWalking,
@@ -52,6 +63,17 @@ import { createViewerScene, enableShadows } from './scene.js';
 import { createSky } from './sky.js';
 import { readSetting, writeSetting } from './storage.js';
 import type { DevBridge } from '../dev/harness.js';
+
+/**
+ * The gaits the loader actually applies (FR-4): Stego and Brachio are drawn at
+ * `DINO_GROUP_SCALE`, so their strides — and with them every duration a visit
+ * derives — are the world gaits, not the authored ones.
+ */
+const VISIT_GAITS: Readonly<Record<CornerSpecies, GaitParams>> = {
+  trike: TRIKE_GAIT,
+  stego: worldGait(STEGO_GAIT, DINO_GROUP_SCALE),
+  brachio: worldGait(BRACHIO_GAIT, DINO_GROUP_SCALE),
+};
 
 /** Boot the offline viewer: daylight scene, fixed camera, 72px Walk button. */
 export async function bootViewer(): Promise<void> {
@@ -212,6 +234,10 @@ export async function bootViewer(): Promise<void> {
     stegoModel: stego,
     brachioModel: brachio,
   };
+  // FR-4/FR-9: one director owns the three visits, fed each player as its GLB
+  // lands so a slow fetch never holds up the other two timers. The jitter
+  // stream is seeded from `?seed=`, so a seeded run replays the same schedule.
+  const visit = new VisitDirector({ seed: options?.seed ?? null });
   const hud = createHud({
     camera,
     button,
@@ -228,6 +254,7 @@ export async function bootViewer(): Promise<void> {
   // headings (TRIO_SPAWN_HEADINGS_RADIANS) send the trio out on separated
   // legs early so avoidance visibly steers from the first seconds.
   const swapToRigged = (
+    species: CornerSpecies,
     placeholder: THREE.Group,
     loaded: LoadedDino,
     initialHeading: number,
@@ -241,6 +268,12 @@ export async function bootViewer(): Promise<void> {
     loaded.player.setWalking(hud.isWalking());
     stage.players.push(loaded.player);
     assign(loaded.player, loaded.model);
+    visit.register({
+      species,
+      actor: loaded.player,
+      body: loaded.model,
+      gait: VISIT_GAITS[species],
+    });
   };
 
   // Swap the instant placeholders for the rigged GLBs once Draco decoding
@@ -249,7 +282,7 @@ export async function bootViewer(): Promise<void> {
   // dinos are unaffected.
   void loadTrikePlayer(sharedDust, streams?.movement.trike ?? Math.random, streams?.blink.trike)
     .then((loaded) => {
-      swapToRigged(trike, loaded, TRIO_SPAWN_HEADINGS_RADIANS[0], (player, model) => {
+      swapToRigged('trike', trike, loaded, TRIO_SPAWN_HEADINGS_RADIANS[0], (player, model) => {
         stage.trikePlayer = player;
         stage.trikeModel = model;
       });
@@ -260,7 +293,7 @@ export async function bootViewer(): Promise<void> {
 
   void loadStegoPlayer(sharedDust, streams?.movement.stego ?? Math.random, streams?.blink.stego)
     .then((loaded) => {
-      swapToRigged(stego, loaded, TRIO_SPAWN_HEADINGS_RADIANS[1], (player, model) => {
+      swapToRigged('stego', stego, loaded, TRIO_SPAWN_HEADINGS_RADIANS[1], (player, model) => {
         stage.stegoPlayer = player;
         stage.stegoModel = model;
       });
@@ -275,7 +308,7 @@ export async function bootViewer(): Promise<void> {
     streams?.blink.brachio,
   )
     .then((loaded) => {
-      swapToRigged(brachio, loaded, TRIO_SPAWN_HEADINGS_RADIANS[2], (player, model) => {
+      swapToRigged('brachio', brachio, loaded, TRIO_SPAWN_HEADINGS_RADIANS[2], (player, model) => {
         stage.brachioPlayer = player;
         stage.brachioModel = model;
       });
@@ -439,6 +472,7 @@ export async function bootViewer(): Promise<void> {
     devFrame,
     sky,
     dressing: dressingFrame,
+    visit,
   });
 }
 

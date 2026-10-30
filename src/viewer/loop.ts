@@ -4,6 +4,7 @@ import type { DinoPlayer } from '../ranch/dino-player.js';
 import type { DressingFrame } from '../ranch/dressing.js';
 import { updateDressing } from '../ranch/dressing.js';
 import { wrapAngle } from '../ranch/waddle.js';
+import type { VisitDirector } from '../ranch/visit.js';
 import type { Hud } from './hud.js';
 import { updatePlaceholderWalk } from './placeholders.js';
 import { hintSuppressedBySleepy } from './sleepy-ui.js';
@@ -140,12 +141,19 @@ export interface LoopView {
    * holds them still.
    */
   dressing?: DressingFrame | null;
+  /**
+   * Optional visit director (FR-4, FR-9). It runs before the avoidance steer
+   * and before every player update, so a visit's ring and heading are what the
+   * frame actually advances, and a paused frame freezes its timers too.
+   */
+  visit?: VisitDirector | null;
 }
 
 /** Start the rAF loop: the one place that decides which subsystem sees `dt`. */
 export function startLoop(view: LoopView): void {
   const { renderer, scene, camera, hud, stage, trike, stego, brachio, devFrame, sky, dressing } =
     view;
+  const visit = view.visit ?? null;
   const clock = new THREE.Clock();
   renderer.setAnimationLoop(() => {
     const rawDt = Math.min(clock.getDelta(), 0.25);
@@ -172,6 +180,10 @@ export function startLoop(view: LoopView): void {
     if (showSleepy !== hud.sleepy.shown) {
       hud.sleepy.setShown(showSleepy);
     }
+    // FR-4/FR-9: the visit director has the first word on where an animal
+    // points and which ring it walks, so the avoidance nudge below is the last
+    // word — a visit heading is steered apart exactly like a wander heading.
+    visit?.update(dt, hud.isWalking());
     if (stage.trikePlayer !== null && stage.stegoPlayer !== null && stage.brachioPlayer !== null) {
       steerTrioApart(
         stage.trikePlayer,
