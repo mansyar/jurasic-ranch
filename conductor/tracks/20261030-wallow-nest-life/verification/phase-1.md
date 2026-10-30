@@ -195,3 +195,36 @@ pnpm verify
 - audio pack ok: 15 assets (1 music, 6 sfx, 8 voice), 853,289 bytes.
 - `vite build` clean; `PWA … precache 63 entries (8914.29 KiB)`.
 - `dist clean: no dev harness markers in dist`.
+
+## Primary verification
+
+Run by the orchestrating agent at `053a561` (the phase squash), independent of
+the phase agent's own report.
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Full gate | `pnpm verify` | exit 0 - oxlint clean, oxfmt clean, tsrs clean, 54 files / 678 tests, coverage 84.15 % lines, audio pack 15 assets, build 706.39 kB (gzip 184.80), precache 63 entries 8,914.29 KiB, dist clean |
+| Touches | `git diff --name-only 60e069b..HEAD` | 23 files, every one inside Phase 1's amended Touches; the amendment itself is recorded in `plan.md` |
+| AC-1 proof independent of the code under test | `scripts/check-{trike,stego,brachio}.test.ts` read the shipped GLBs from disk | `Idle` present in all three (6.000 s / 72 ch, 9.000 s / 48 ch, 8.000 s / 70 ch); `Run` still absent |
+| AC-2 proof independent of the code under test | `src/ranch/dino-player.ts:452-461` | walk weight = `pose.blend`, idle weight = `1 - pose.blend`, and `mixer.update(step)` sits outside the `striding` gate so a resting clip advances |
+| Bake determinism | Trike re-bake compared by SHA256 | identical before and after (`24E9E4F1…`); the Stego re-bake produced an empty `git diff` against the committed GLB |
+| The stale retarget guard | Hips translation mean, shipped vs adult donor | 1.4955 vs 2.4929 (ratio 0.600). The pre-existing 0.3 guard would have rescaled to 0.897 and shortened every footfall by 40 % |
+
+### How the phase was unblocked
+
+The phase agent's first attempt was blocked by its sandbox (shell denied, so
+`node` could not run a bake) and by two gitignored Polyfork donors. The
+orchestrator downloaded `stegosaurus-base.glb` and `brachiosaurus-base.glb`
+from `polyfork.dev/cdn`, generalised `scripts/bake-trike-variant.js` (its own
+retarget bake, which the plan had missed), ran all three bakes, and handed the
+agent the measured state to finish P1.T2-T4. The agent committed those edits
+with the phase, which is why `bake-trike-variant.{js,d.ts}` appear in the diff
+under an amendment rather than the original Touches list.
+
+### Cost
+
++2,211.05 KiB of precache for all three Idle clips. That is inside the 15 MB
+offline budget with 6,445.71 KiB to spare, and it is the price the spec's NFR-1
+recorded up front. The one number that moved unexpectedly: the Trike's Idle
+carries 72 channels rather than 48 because GLTFExporter writes TRS for every
+animated node, which is why its gate pins channel counts per species.

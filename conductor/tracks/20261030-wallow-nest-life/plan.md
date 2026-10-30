@@ -18,26 +18,39 @@ holding a stride.
 **Touches:** `scripts/vendor/bake-stego-variant.js`, `scripts/vendor/bake-brachio-variant.js`,
 `scripts/vendor/bake-stego-variant.py`, `scripts/vendor/bake-brachio-variant.py`,
 `scripts/vendor/bake-stego-variant.d.ts`, `scripts/vendor/bake-brachio-variant.d.ts`,
+`scripts/bake-trike-variant.js`, `scripts/bake-trike-variant.d.ts`,
 `public/models/stego.glb`, `public/models/brachio.glb`, `public/models/trike.glb`,
 `src/viewer/loaders.ts`, `src/ranch/dino-player.ts`, `CREDITS.md`,
-`tests/scripts/check-stego-clips.test.ts`, `tests/scripts/check-brachio-clips.test.ts`,
+`scripts/check-stego.test.ts`, `scripts/check-brachio.test.ts`, `scripts/check-trike.test.ts`,
 `tests/waddle/dino-player.test.ts`.
 **Verification:** `pnpm verify`, plus the recorded precache size before and after.
-**Status:** in_progress
+**Status:** verified
 
-- [ ] **P1.T1: Ship `Idle` in the bake** - covers: FR-1
-  - [ ] **P1.T1.1:** Add `Idle` to `SHIPPED_CLIP_NAMES` in both variant bakes and their `.py` twins, and update the contracts that still say `Walk` only.
-  - [ ] **P1.T1.2:** Re-run both bakes and the Trike bake path, and commit the three GLBs.
-  - [ ] **P1.T1.3:** Record the measured precache delta and amend NFR-1's figure in the evidence.
-- [ ] **P1.T2: Loader asks for both clips** - covers: FR-1
-  - [ ] **P1.T2.1:** `findWalkClip` becomes a two-clip lookup; a GLB missing `Idle` throws with the missing name and the clip list it does carry.
-  - [ ] **P1.T2.2:** Pass the idle clip through `DinoPlayerOptions` and update every call site.
-- [ ] **P1.T3: Two-action blend** - covers: FR-2
-  - [ ] **P1.T3.1:** Add the idle action to the mixer and drive `walkWeight` / `1 - walkWeight` from the existing eased blend.
-  - [ ] **P1.T3.2:** Assert weights sum to 1 within 1e-6 at a mid-blend sample and that a stopped player reads `Idle` at 1.
-- [ ] **P1.T4: Clip gates** - covers: FR-1, NFR-1
-  - [ ] **P1.T4.1:** Extend the clip gate tests to pin `Idle` + walk per species with durations and track counts.
-  - [ ] **P1.T4.2:** Add a test that a GLB without `Idle` fails loudly rather than falling back.
+**Result:** verified - Idle ships for all three species and crossfades under the walk weight
+**Checkpoint:** 053a561
+**Evidence:** conductor/tracks/20261030-wallow-nest-life/verification/phase-1.md
+
+> **Amended 2026-10-30 (phase 1, orchestrator).** The original Touches named
+> `tests/scripts/check-{stego,brachio}-clips.test.ts`, which do not exist — the
+> clip gates live at `scripts/check-{stego,brachio,trike}.test.ts`. The Trike
+> turned out to have its own bake (`scripts/bake-trike-variant.js`) that
+> retargets from the previous GLB and cannot carry a second clip without being
+> generalised, so it is added here. `assets/trike/triceratops-base.glb` is read
+> as the `Idle` donor and is not modified.
+
+- [x] **P1.T1: Ship `Idle` in the bake** - covers: FR-1
+  - [x] **P1.T1.1:** Add `Idle` to `SHIPPED_CLIP_NAMES` in both variant bakes and their `.py` twins, and update the contracts that still say `Walk` only.
+  - [x] **P1.T1.2:** Re-run both bakes and the Trike bake path, and commit the three GLBs.
+  - [x] **P1.T1.3:** Record the measured precache delta and amend NFR-1's figure in the evidence.
+- [x] **P1.T2: Loader asks for both clips** - covers: FR-1
+  - [x] **P1.T2.1:** `findWalkClip` becomes a two-clip lookup; a GLB missing `Idle` throws with the missing name and the clip list it does carry.
+  - [x] **P1.T2.2:** Pass the idle clip through `DinoPlayerOptions` and update every call site.
+- [x] **P1.T3: Two-action blend** - covers: FR-2
+  - [x] **P1.T3.1:** Add the idle action to the mixer and drive `walkWeight` / `1 - walkWeight` from the existing eased blend.
+  - [x] **P1.T3.2:** Assert weights sum to 1 within 1e-6 at a mid-blend sample and that a stopped player reads `Idle` at 1.
+- [x] **P1.T4: Clip gates** - covers: FR-1, NFR-1
+  - [x] **P1.T4.1:** Extend the clip gate tests to pin `Idle` + walk per species with durations and track counts.
+  - [x] **P1.T4.2:** Add a test that a GLB without `Idle` fails loudly rather than falling back.
 
 ---
 
