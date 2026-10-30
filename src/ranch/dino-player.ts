@@ -248,6 +248,12 @@ export interface DinoPlayerOptions {
    * dust, squash or blink changes.
    */
   idleClip?: THREE.AnimationClip;
+  /**
+   * The one-shot an animal plays at its corner (FR-6: Stego's `MudRoll`).
+   * Optional, and it must stay optional: a Trike or Brachio GLB carries no such
+   * clip, and asking for one there has to be a no-op rather than a throw.
+   */
+  arrivalClip?: THREE.AnimationClip;
   texture?: THREE.Texture;
   random?: () => number;
   /**
@@ -297,6 +303,15 @@ export class DinoPlayer {
   private action: THREE.AnimationAction;
   /** Resting loop, or null when the caller supplied no `idleClip` (FR-2). */
   private idleAction: THREE.AnimationAction | null;
+  /**
+   * The corner one-shot (FR-6), or null when the GLB carries no such clip. It is
+   * a third action on the same mixer, but it never shares the pose: it only ever
+   * plays while the walk weight is 0, and it holds the idle action at 0 for its
+   * duration so the two do not average into a half-roll.
+   */
+  private arrivalAction: THREE.AnimationAction | null;
+  /** Whether the one-shot is on screen right now. */
+  private arrivalPlaying = false;
   private pose: WaddlePose;
   private blink: BlinkController;
   private targets: BlinkTargets;
@@ -343,6 +358,16 @@ export class DinoPlayer {
       this.idleAction.weight = 1;
       this.idleAction.play();
     }
+    // FR-6: the corner one-shot is built once and parked. It is `LoopOnce` and
+    // clamped, and it is not played until the visit director asks for it at the
+    // corner, so a player that never visits never spends a mixer slot on it.
+    this.arrivalAction =
+      options.arrivalClip === undefined ? null : this.mixer.clipAction(options.arrivalClip);
+    if (this.arrivalAction !== null) {
+      this.arrivalAction.setLoop(THREE.LoopOnce, 1);
+      this.arrivalAction.clampWhenFinished = true;
+      this.arrivalAction.weight = 1;
+    }
     this.pose = createWaddlePose();
     // Seeded callers must pass an explicit blink stream: when this falls back
     // to `random`, wall-clock blink draws shift the values that drive wander
@@ -383,6 +408,32 @@ export class DinoPlayer {
    */
   get blendWeights(): { idle: number; walk: number } {
     return { idle: this.idleAction?.weight ?? 0, walk: this.action.weight };
+  }
+
+  /** Whether the corner one-shot is on screen (FR-6, AC-6). */
+  get arrivalClipPlaying(): boolean {
+    return this.arrivalPlaying;
+  }
+
+  /**
+   * Play the corner one-shot once (FR-6): Stego's mud roll at the wallow.
+   *
+   * Returns false — and changes nothing — when this player has no such clip, so
+   * a Trike or a Brachio asked for one is a no-op rather than a throw. It is
+   * called at the corner, at rest, where the walk weight is already 0; the idle
+   * action is held at 0 for the clip's duration so the roll is the only thing
+   * driving the pose, and the idle action takes the weight back the moment the
+   * roll finishes. Nothing here touches the walk blend.
+   */
+  playArrivalClip(): boolean {
+    if (this.arrivalAction === null) {
+      return false;
+    }
+    this.arrivalAction.reset();
+    this.arrivalAction.weight = 1;
+    this.arrivalAction.play();
+    this.arrivalPlaying = true;
+    return true;
   }
 
   setWalking(walking: boolean): void {
@@ -497,13 +548,38 @@ export class DinoPlayer {
     this.pose.targetHeading = wrapAngle(toCenter + jitter);
   }
 
+  /** Whether the corner one-shot still has frames to run. */
+  private isArrivalRunning(): boolean {
+    return this.arrivalAction !== null && this.arrivalAction.isRunning();
+  }
+
+  /**
+   * Take the corner one-shot off the mixer and give the pose back. `stop()`
+   * deactivates the action, so it contributes nothing on the very next frame
+   * while the idle action's weight — restored by `update` — takes over.
+   */
+  private stopArrivalClip(): void {
+    if (this.arrivalAction !== null) {
+      this.arrivalAction.stop();
+    }
+    this.arrivalPlaying = false;
+  }
+
   /** Advance mixer, root motion, squash, dust, blink, and sleepy. */
   update(dtSeconds: number, nowSeconds: number, reducedMotion = false): void {
     const step = Math.min(Math.max(dtSeconds, 0), 0.25);
     updateWaddlePoseWithGait(this.pose, step, this.gait);
+    // FR-6: the corner one-shot owns the pose while it runs, and it yields to
+    // the walk the instant the walk blend leaves zero — a roll can never fight
+    // the walk, because the walk always wins. A finished (clamped) one-shot
+    // hands the pose back here, before the mixer runs, so `Idle` is what is left
+    // on screen rather than a third action parked on the last frame.
+    if (this.arrivalPlaying && (this.pose.blend > 0 || !this.isArrivalRunning())) {
+      this.stopArrivalClip();
+    }
     this.action.weight = this.pose.blend;
     if (this.idleAction !== null) {
-      this.idleAction.weight = 1 - this.pose.blend;
+      this.idleAction.weight = this.arrivalPlaying ? 0 : 1 - this.pose.blend;
     }
     // FR-2: the mixer advances on every frame, not only above the walk deadband.
     // Two actions share it, so advancing only while striding would freeze the

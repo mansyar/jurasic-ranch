@@ -76,6 +76,13 @@ function findIdleClip(animations: THREE.AnimationClip[]): THREE.AnimationClip | 
 }
 
 /**
+ * The one bespoke corner clip a shipped GLB carries (FR-6): Stego's mud roll,
+ * authored and baked to 4.000 s. Only Stego is asked for it; a Trike or a
+ * Brachio GLB carries no such clip and must never be asked.
+ */
+export const MUD_ROLL_CLIP_NAME = 'MudRoll';
+
+/**
  * Per-species in-game size, in one place (FR-4).
  *
  * The rule: **keep real-life ratios and leave the Triceratops at the size the
@@ -183,6 +190,7 @@ async function loadDinoPlayer(
   sharedDust?: DustPool,
   random?: () => number,
   blinkRandom?: () => number,
+  arrivalClipName?: string,
 ): Promise<LoadedDino> {
   const draco = new DRACOLoader();
   try {
@@ -207,6 +215,19 @@ async function loadDinoPlayer(
           `${carried})`,
       );
     }
+    // FR-6: the corner one-shot is optional by design. A stale GLB without it
+    // must fall back to `Idle` with a warning rather than white-screen the ranch,
+    // which is why this is a warn and not a throw like the walk and idle clips.
+    let arrivalClip: THREE.AnimationClip | undefined;
+    if (arrivalClipName !== undefined) {
+      arrivalClip = THREE.AnimationClip.findByName(gltf.animations, arrivalClipName) ?? undefined;
+      if (arrivalClip === undefined) {
+        console.warn(
+          `${species} GLB has no ${arrivalClipName} clip; its corner rests on ${IDLE_CLIP_NAME} ` +
+            `instead (it carries ${carried})`,
+        );
+      }
+    }
     // In-game size is a uniform group scale, applied before the player exists so
     // DinoPlayer captures it as its squash/sleepy base (FR-4). One scalar: x/y/z
     // never diverge, and the bake stays shape-only.
@@ -217,6 +238,7 @@ async function loadDinoPlayer(
     const player = new DinoPlayer(gltf.scene, {
       clip,
       idleClip,
+      arrivalClip,
       gait: worldGait(gait, groupScale),
       dust: sharedDust,
       random,
@@ -275,6 +297,9 @@ export function loadStegoPlayer(
     sharedDust,
     random,
     blinkRandom,
+    // FR-6: the one animal that owns a corner clip. No other loader names one,
+    // so no Trike or Brachio GLB is ever asked for a clip it cannot carry.
+    MUD_ROLL_CLIP_NAME,
   );
 }
 

@@ -7,8 +7,15 @@ import type { GaitParams } from '../ranch/waddle.js';
 import { trioSpawnPositions } from '../ranch/avoidance.js';
 import { buildDressing } from '../ranch/dressing.js';
 import type { DressingFrame } from '../ranch/dressing.js';
-import { DEFAULT_SWAY_SEED, allowsPropTap, propUnderPointer } from '../ranch/ambient.js';
-import { DustPool } from '../ranch/dust.js';
+import {
+  DEFAULT_SWAY_SEED,
+  CallCooldowns,
+  allowsPropTap,
+  cornerUnderProp,
+  propUnderPointer,
+} from '../ranch/ambient.js';
+import { DustPool, createDustTexture } from '../ranch/dust.js';
+import { ArrivalEffects } from '../ranch/visit-effects.js';
 import { installGestureUnlock, installVisibilityHandling } from '../audio/gesture.js';
 import { loadAudioSettings, saveMuted, saveVolume } from '../audio/settings.js';
 import {
@@ -222,8 +229,17 @@ export async function bootViewer(): Promise<void> {
   scene.add(brachio);
 
   // FR-9: one shared DustPool feeds all three players (single draw call).
-  const sharedDust = new DustPool({ random: streams?.dust ?? Math.random });
+  const dustTexture = createDustTexture();
+  const sharedDust = new DustPool({ texture: dustTexture, random: streams?.dust ?? Math.random });
   scene.add(sharedDust.points);
+  // FR-12: the arrival payoff is its own pool — one more draw call, the same
+  // sprite — so a ripple can never recycle a footfall particle mid-stride.
+  const arrivals = new ArrivalEffects({
+    playSound: playFeedback,
+    texture: dustTexture,
+    random: streams?.dust ?? Math.random,
+  });
+  scene.add(arrivals.points);
 
   const stage: LoopStage = {
     players: [],
@@ -237,7 +253,13 @@ export async function bootViewer(): Promise<void> {
   // FR-4/FR-9: one director owns the three visits, fed each player as its GLB
   // lands so a slow fetch never holds up the other two timers. The jitter
   // stream is seeded from `?seed=`, so a seeded run replays the same schedule.
-  const visit = new VisitDirector({ seed: options?.seed ?? null });
+  // FR-12/FR-13: the director reports each arrival, and the payoff fires there.
+  const visit = new VisitDirector({
+    seed: options?.seed ?? null,
+    onArrival: (species) => {
+      arrivals.arrive(species);
+    },
+  });
   const hud = createHud({
     camera,
     button,
@@ -338,6 +360,9 @@ export async function bootViewer(): Promise<void> {
   // gameplay. The listener sits on the canvas, so chrome the HUD owns never
   // reaches it (review F8: no target check needed), and only the sleepy guard
   // stands between the tap and the raycast.
+  // FR-8: the call cooldown is per corner, so two corners can be called back to
+  // back and only a second tap on the same one is refused.
+  const callCooldowns = new CallCooldowns();
   const tapPointer = new THREE.Vector2();
   canvas.addEventListener('pointerdown', (event: PointerEvent) => {
     const dressing = dressingFrame.dressing;
@@ -373,6 +398,16 @@ export async function bootViewer(): Promise<void> {
     } else {
       const unlocking = unlockAudio();
       void unlocking.then(burst, burst);
+    }
+    // FR-8: a tap on any prop of a corner calls that corner's animal — the hay
+    // bale and the berry bush both call the Trike. The sparkle above is already
+    // in this frame; nothing is awaited before it, and the journey starts from
+    // here rather than replacing it. A refused call still sparkled: only the
+    // journey is skipped.
+    const corner = cornerUnderProp(hit.prop);
+    if (corner !== null && callCooldowns.allows(corner, at)) {
+      callCooldowns.record(corner, at);
+      visit.startVisit(corner);
     }
   });
 
@@ -473,6 +508,7 @@ export async function bootViewer(): Promise<void> {
     sky,
     dressing: dressingFrame,
     visit,
+    arrivals,
   });
 }
 

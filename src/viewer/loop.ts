@@ -5,6 +5,7 @@ import type { DressingFrame } from '../ranch/dressing.js';
 import { updateDressing } from '../ranch/dressing.js';
 import { wrapAngle } from '../ranch/waddle.js';
 import type { VisitDirector } from '../ranch/visit.js';
+import type { ArrivalEffects } from '../ranch/visit-effects.js';
 import type { Hud } from './hud.js';
 import { updatePlaceholderWalk } from './placeholders.js';
 import { hintSuppressedBySleepy } from './sleepy-ui.js';
@@ -147,6 +148,12 @@ export interface LoopView {
    * frame actually advances, and a paused frame freezes its timers too.
    */
   visit?: VisitDirector | null;
+  /**
+   * Optional arrival payoff (FR-12, FR-13). Its dust rides the same clamped `dt`
+   * as everything else, so a paused harness frame freezes a ripple mid-spread
+   * and a reduced-motion frame settles it instead of animating it.
+   */
+  arrivals?: ArrivalEffects | null;
 }
 
 /** Start the rAF loop: the one place that decides which subsystem sees `dt`. */
@@ -154,6 +161,7 @@ export function startLoop(view: LoopView): void {
   const { renderer, scene, camera, hud, stage, trike, stego, brachio, devFrame, sky, dressing } =
     view;
   const visit = view.visit ?? null;
+  const arrivals = view.arrivals ?? null;
   const clock = new THREE.Clock();
   renderer.setAnimationLoop(() => {
     const rawDt = Math.min(clock.getDelta(), 0.25);
@@ -234,6 +242,9 @@ export function startLoop(view: LoopView): void {
     // frame freezes it and reduced motion stops it outright.
     sky?.update(dt, reducedMotion);
     updateDressing(dressing?.dressing ?? null, dt, reducedMotion);
+    // FR-12: the arrival dust ages on the same `dt`, after the visit director
+    // has had its say, so an arrival this frame is already alive this frame.
+    arrivals?.update(dt, reducedMotion);
     renderer.render(scene, camera);
   });
 }

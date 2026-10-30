@@ -739,3 +739,73 @@ describe('two-action blend (FR-2, AC-2)', () => {
     expect(player.blendWeights).toEqual({ idle: 0, walk: 0 });
   });
 });
+
+/* -------------------------------------------------------------------------- *
+ * P5.T5 — the corner one-shot (FR-6, AC-6)
+ * -------------------------------------------------------------------------- */
+
+/** A 1 s roll that tips the hips over and sets them back down. */
+function createRollClip(): THREE.AnimationClip {
+  const track = new THREE.VectorKeyframeTrack(
+    'Hips.position',
+    [0, 0.5, 1],
+    [0, 0, 0, 0, -0.2, 0, 0, 0, 0],
+  );
+  return new THREE.AnimationClip('MudRoll', 1, [track]);
+}
+
+function createRollingPlayer(rig: THREE.Group): DinoPlayer {
+  return new DinoPlayer(rig, {
+    clip: createWaddleClip(),
+    idleClip: createIdleClip(),
+    arrivalClip: createRollClip(),
+    random: () => 0.5,
+  });
+}
+
+describe('the corner one-shot (P5.T5, FR-6, AC-6)', () => {
+  it('is a no-op for a player whose GLB carries no such clip', () => {
+    const player = createBlendedPlayer(createTestRig());
+    expect(player.arrivalClipPlaying).toBe(false);
+    expect(player.playArrivalClip()).toBe(false);
+    expect(player.arrivalClipPlaying).toBe(false);
+    player.update(DT, 0);
+    expect(player.blendWeights).toEqual({ idle: 1, walk: 0 });
+  });
+
+  it('plays once, owns the pose while it runs, and hands the weight back to Idle', () => {
+    const player = createRollingPlayer(createTestRig());
+    player.update(DT, 0);
+    expect(player.blendWeights.idle).toBeCloseTo(1, 6);
+
+    expect(player.playArrivalClip()).toBe(true);
+    expect(player.arrivalClipPlaying).toBe(true);
+    // Neither the walk nor the idle averages into the roll: a half-roll with
+    // half a rest pose is not a roll.
+    player.update(DT, DT);
+    expect(player.blendWeights.walk).toBe(0);
+    expect(player.blendWeights.idle).toBe(0);
+
+    // LoopOnce: the clip ends on its own, and the rest pose takes over again.
+    for (let frame = 1; frame <= 120; frame += 1) {
+      player.update(DT, frame * DT);
+    }
+    expect(player.arrivalClipPlaying).toBe(false);
+    expect(player.blendWeights.idle).toBeCloseTo(1, 6);
+  });
+
+  it('lets go the moment the animal strides, so the walk blend is never disturbed', () => {
+    const player = createRollingPlayer(createTestRig());
+    player.update(DT, 0);
+    player.setWalking(true);
+    player.update(DT, DT);
+    expect(player.playArrivalClip()).toBe(true);
+
+    for (let frame = 1; frame <= 30; frame += 1) {
+      player.update(DT, frame * DT);
+    }
+    expect(player.arrivalClipPlaying).toBe(false);
+    expect(player.blendWeights.walk).toBeCloseTo(1, 6);
+    expect(player.blendWeights.idle).toBeCloseTo(0, 6);
+  });
+});

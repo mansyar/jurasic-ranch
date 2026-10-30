@@ -7,6 +7,7 @@ import {
   trioSpawnPositions,
 } from '../../src/ranch/avoidance.js';
 import { BRACHIO_GAIT, DinoPlayer, STEGO_GAIT, TRIKE_GAIT } from '../../src/ranch/dino-player.js';
+import { CALL_COOLDOWN_MS, CallCooldowns } from '../../src/ranch/ambient.js';
 import {
   BROWSE_TREE_FOOT_METRES,
   CORNER_ANCHORS,
@@ -762,4 +763,194 @@ describe('arrival (AC-5)', () => {
       expect(Math.abs(wrapAngle(corner.facingRadians - player.heading))).toBeLessThanOrEqual(0.2);
     });
   }
+});
+
+/* -------------------------------------------------------------------------- *
+ * P5.T4 — Walk off sends everyone home (FR-10, AC-10)
+ * -------------------------------------------------------------------------- */
+
+function distanceFromHome(body: StubBody): number {
+  return Math.hypot(body.position.x, body.position.z);
+}
+
+describe('Walk off sends everyone home (P5.T4, FR-10, AC-10)', () => {
+  it('turns the animal around from where it stands, then walks it home', () => {
+    const { director, runs } = seededRuns(42);
+    const trike = runs[0];
+
+    // Walk on until the Trike is out on its approach.
+    let frames = 0;
+    while (stateOf(director, 'trike') !== 'approach' && frames < 60 * 120) {
+      director.update(DT, true);
+      for (const run of runs) {
+        walkStub(run.actor, run.body, run.gait, DT);
+      }
+      frames += 1;
+    }
+    expect(stateOf(director, 'trike')).toBe('approach');
+    for (let index = 0; index < 60 * 5; index += 1) {
+      director.update(DT, true);
+      for (const run of runs) {
+        walkStub(run.actor, run.body, run.gait, DT);
+      }
+    }
+    const away = distanceFromHome(trike.body);
+    expect(away).toBeGreaterThan(1);
+
+    // Walk off: the animal is turned around where it stands, not moved there.
+    const beforeX = trike.body.position.x;
+    const beforeZ = trike.body.position.z;
+    director.update(DT, false);
+    expect(stateOf(director, 'trike')).toBe('return');
+    expect(trike.body.position.x).toBe(beforeX);
+    expect(trike.body.position.z).toBe(beforeZ);
+    expect(trike.actor.walking).toBe(true);
+    expect(trike.actor.ring.radius).toBe(DINO_WALK_RADIUS_METRES);
+    expect(trike.actor.ring.centre).toEqual({ x: 0, z: 0 });
+
+    // It walks home from there: still outside its ring on the way, inside it at rest.
+    let outsideFrames = 0;
+    let settled = 0;
+    while (settled < 60 * 120) {
+      director.update(DT, false);
+      for (const run of runs) {
+        walkStub(run.actor, run.body, run.gait, DT);
+      }
+      if (stateOf(director, 'trike') === 'return' && distanceFromHome(trike.body) > 1) {
+        outsideFrames += 1;
+      }
+      if (SPECIES.every((species) => stateOf(director, species) === 'idle')) {
+        break;
+      }
+      settled += 1;
+    }
+    expect(outsideFrames).toBeGreaterThan(30);
+    expect(settled).toBeLessThan(60 * 120);
+    for (const run of runs) {
+      expect(stateOf(director, run.species), run.species).toBe('idle');
+      expect(distanceFromHome(run.body), run.species).toBeLessThanOrEqual(DINO_WALK_RADIUS_METRES);
+    }
+  });
+
+  it('ends a visit already at its corner, so nobody is left out', () => {
+    const actor = new StubActor();
+    const body = stubBodyAt(0, DINO_WALK_RADIUS_METRES);
+    const director = new VisitDirector({ seed: 9 });
+    director.register({ species: 'stego', actor, body, gait: STEGO_GAIT });
+    director.update(DT, true);
+    expect(director.startVisit('stego')).toBe(true);
+
+    let frames = 0;
+    while (stateOf(director, 'stego') !== 'dwell' && frames < 60 * 60) {
+      director.update(DT, true);
+      walkStub(actor, body, STEGO_GAIT, DT);
+      frames += 1;
+    }
+    expect(stateOf(director, 'stego')).toBe('dwell');
+    const atCorner = distanceFromHome(body);
+    expect(atCorner).toBeGreaterThan(1);
+
+    director.update(DT, false);
+    expect(stateOf(director, 'stego')).toBe('return');
+    expect(distanceFromHome(body)).toBeCloseTo(atCorner, 9);
+
+    for (let index = 0; index < 60 * 120; index += 1) {
+      director.update(DT, false);
+      walkStub(actor, body, STEGO_GAIT, DT);
+      if (stateOf(director, 'stego') === 'idle') {
+        break;
+      }
+    }
+    expect(stateOf(director, 'stego')).toBe('idle');
+    expect(distanceFromHome(body)).toBeLessThanOrEqual(DINO_WALK_RADIUS_METRES);
+  });
+});
+
+/* -------------------------------------------------------------------------- *
+ * P5.T2 / P5.T5 — the arrival hook the payoff hangs off (FR-6, FR-12, FR-13)
+ * -------------------------------------------------------------------------- */
+
+class ClipStubActor extends StubActor {
+  clips = 0;
+
+  playArrivalClip(): boolean {
+    this.clips += 1;
+    return true;
+  }
+}
+
+describe('the arrival hook (P5.T2, P5.T5, FR-6, FR-12)', () => {
+  it('reports every arrival once, with its species, and asks for the corner one-shot', () => {
+    const arrivals: CornerSpecies[] = [];
+    const spawn = trioSpawnPositions();
+    const director = new VisitDirector({
+      seed: 42,
+      onArrival: (species) => {
+        arrivals.push(species);
+      },
+    });
+    const runs = SPECIES.map((species, index) => {
+      const actor = new ClipStubActor();
+      const body = stubBodyAt(spawn[index].x, spawn[index].z);
+      const gait = GAITS[species];
+      director.register({ species, actor, body, gait });
+      return { species, actor, body, gait };
+    });
+
+    for (let frame = 0; frame < 60 * 90; frame += 1) {
+      director.update(DT, true);
+      for (const run of runs) {
+        walkStub(run.actor, run.body, run.gait, DT);
+      }
+    }
+
+    expect(arrivals.slice().sort()).toEqual(['brachio', 'stego', 'trike']);
+    for (const run of runs) {
+      expect(run.actor.clips, run.species).toBe(1);
+      expect(director.getSnapshot(run.species)?.arrivals, run.species).toBe(1);
+    }
+  });
+});
+
+/* -------------------------------------------------------------------------- *
+ * P5.T1 — a second tap inside the cooldown never restarts the journey (AC-8)
+ * -------------------------------------------------------------------------- */
+
+describe('a tap inside the cooldown (P5.T1, AC-8)', () => {
+  it('sparkles again but leaves the journey running as it was', () => {
+    const actor = new StubActor();
+    const body = stubBodyAt(0, DINO_WALK_RADIUS_METRES);
+    const director = new VisitDirector({ seed: 11 });
+    director.register({ species: 'trike', actor, body, gait: TRIKE_GAIT });
+    const cooldowns = new CallCooldowns();
+
+    // The tap handler's own order: the sparkle is unconditional, the call is
+    // gated, and only then does the director get a say.
+    const tap = (nowMs: number): boolean => {
+      if (!cooldowns.allows('trike', nowMs)) {
+        return false;
+      }
+      cooldowns.record('trike', nowMs);
+      return director.startVisit('trike');
+    };
+
+    // Walk is on when the child taps, which is the state a call is offered in.
+    director.update(DT, true);
+    expect(tap(1_000)).toBe(true);
+    const approachSeconds = director.getSnapshot('trike')?.approachSeconds;
+    for (let frame = 0; frame < 60; frame += 1) {
+      director.update(DT, true);
+      walkStub(actor, body, TRIKE_GAIT, DT);
+    }
+
+    expect(tap(1_000 + CALL_COOLDOWN_MS - 1)).toBe(false);
+    expect(stateOf(director, 'trike')).toBe('approach');
+    expect(director.getSnapshot('trike')?.visitsStarted).toBe(1);
+    expect(director.getSnapshot('trike')?.approachSeconds).toBe(approachSeconds);
+
+    // Cooled down, the tap reaches the director — which still refuses, because
+    // the Trike is already out at its corner.
+    expect(tap(1_000 + CALL_COOLDOWN_MS)).toBe(false);
+    expect(director.getSnapshot('trike')?.visitsStarted).toBe(1);
+  });
 });

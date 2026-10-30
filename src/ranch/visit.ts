@@ -91,6 +91,12 @@ export interface VisitActor {
   setWalking(walking: boolean): void;
   turnTo(radians: number): void;
   setWanderRing(centre: { readonly x: number; readonly z: number }, radius: number): void;
+  /**
+   * Optional one-shot the animal plays at its corner (FR-6: Stego's mud roll).
+   * Optional because a player built without such a clip — a Trike or a Brachio —
+   * has nothing to play and must be a no-op rather than a throw.
+   */
+  playArrivalClip?(): boolean;
 }
 
 /** Anything whose ground position can be read: a `THREE.Object3D` or a stub. */
@@ -137,6 +143,12 @@ export interface VisitDirectorOptions {
   seed?: number | null;
   /** The ring an animal owns between visits; defaults to the world origin at gait radius. */
   homeRing?: VisitRing;
+  /**
+   * Called once, at the moment an animal comes to rest at its corner (FR-12,
+   * FR-13). The director itself plays no sound and throws up no dust; the viewer
+   * hands it the arrival effects, so the payoff stays out of the state machine.
+   */
+  onArrival?: (species: CornerSpecies) => void;
 }
 
 /** The tightest turn a gait can make, in radians per second. */
@@ -209,6 +221,7 @@ interface VisitTrack {
 export class VisitDirector {
   private readonly homeRing: VisitRing;
   private readonly seed: number | null;
+  private readonly onArrival: ((species: CornerSpecies) => void) | null;
   private readonly tracks: VisitTrack[] = [];
   private walking = false;
 
@@ -218,6 +231,7 @@ export class VisitDirector {
       radius: DINO_WALK_RADIUS_METRES,
     };
     this.seed = options.seed ?? null;
+    this.onArrival = options.onArrival ?? null;
   }
 
   /**
@@ -259,6 +273,13 @@ export class VisitDirector {
     }
     this.walking = walking;
     for (const track of this.tracks) {
+      // FR-10: Walk off ends every visit in progress. The animal is handed the
+      // home ring from wherever it stands and walks back — the `return` leg with
+      // a different starting point — so nothing is teleported and nothing is
+      // left stranded out at a corner it can no longer use.
+      if (!walking) {
+        this.abandonVisit(track);
+      }
       track.secondsInState += dtSeconds;
       this.advance(track, dtSeconds);
     }
@@ -347,6 +368,13 @@ export class VisitDirector {
         }
         actor.setWalking(false);
         track.arrivals += 1;
+        // FR-6: the one-shot a corner plays belongs here, at rest and inside the
+        // dwell, so it can never overlap the walk blend. A player without such a
+        // clip answers false and nothing happens.
+        actor.playArrivalClip?.();
+        // FR-12/FR-13: the payoff — dust and the coo — fires once, on the same
+        // frame the animal stops.
+        this.onArrival?.(track.animal.species);
         this.enter(track, 'dwell');
         return;
       }
@@ -403,6 +431,19 @@ export class VisitDirector {
     actor.turnTo(headingToward(body.position.x, body.position.z, home.x, home.z));
     actor.setWalking(true);
     this.enter(track, 'return');
+  }
+
+  /**
+   * FR-10: Walk off ends a visit wherever it had got to. Only the three states
+   * that are still out at the corner are cut short — an animal already on its
+   * `return` leg is left to finish the walk it started, which is the same leg
+   * from the same place. Nothing is moved: the animal keeps the ground it
+   * stands on and walks home from there.
+   */
+  private abandonVisit(track: VisitTrack): void {
+    if (track.state === 'approach' || track.state === 'arrive' || track.state === 'dwell') {
+      this.sendHome(track);
+    }
   }
 
   private enter(track: VisitTrack, state: VisitState): void {
