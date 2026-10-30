@@ -140,7 +140,7 @@ leaves, and turning Walk off brings everyone home.
 **Goal:** the feature is inspectable, deterministic, documented, and shown in
 pictures.
 **Depends on:** Phase 5.
-**Covers:** FR-14, FR-15, FR-16, NFR-5, NFR-6, AC-14, AC-15, AC-16, AC-17, AC-18.
+**Covers:** FR-14, FR-15, FR-16, NFR-2, NFR-4, NFR-5, NFR-6, NFR-8, AC-14, AC-15, AC-16, AC-17, AC-18.
 **Touches:** `src/dev/harness.ts`, `src/dev/snapshot.ts`, `src/dev/harness-state.ts`,
 `index.html` (panel markup only), `conductor/product.md`,
 `conductor/product-guidelines.md`, `conductor/tech-stack.md`,
