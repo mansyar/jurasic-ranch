@@ -13,3 +13,4 @@
 - [x] **Track: Cozy Sound & Voice Foundation** — [20261029-cozy-sound-voice](./archive/20261029-cozy-sound-voice/index.md) — feature — high
 - [x] **Track: The Ranch Answers Back** - [20261030-ranch-audible](./archive/20261030-ranch-audible/index.md) - feature - medium
 - [x] **Track: Ranch Vista: Staged Paddock and Sky POV** - [20261030-ranch-vista](./archive/20261030-ranch-vista/index.md) - feature - high
+- [ ] **Track: Wallow and Nest Life** - [20261030-wallow-nest-life](./tracks/20261030-wallow-nest-life/index.md) - feature - medium
