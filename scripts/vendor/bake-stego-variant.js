@@ -83,6 +83,7 @@ import {
   injectGlbAnimations,
   selectShippedClips,
 } from '../bake-trike-variant.js';
+import { buildMudRollClip } from './mud-roll-clip.js';
 import { createAsset } from './stegosaurus-base.mjs';
 
 /**
@@ -194,8 +195,15 @@ export async function bakeStegoVariant(options = {}) {
   const outPath = options.outPath ?? DEFAULT_OUT_GLB;
   const blenderBin = options.blenderBin ?? process.env['STEGO_BLENDER_BIN'] ?? 'blender';
   const officialBytes = await readOfficialGlb(officialGlbPath);
-  const shipped = selectShippedClips(extractAnimationClips(officialBytes));
   const group = createStegoVariantGroup();
+  // Polyfork's authored clips plus Stego's own bespoke MudRoll (track
+  // 20261030-wallow-nest-life, FR-6). MudRoll is authored in
+  // `mud-roll-clip.js` rather than in Blender because the bake injects clip
+  // channels into the compressed GLB's JSON chunk - Blender's glTF round trip
+  // re-times animation onto its own frame clock, so an action authored there
+  // could never reach the shipped file.
+  const shipped = [...selectShippedClips(extractAnimationClips(officialBytes)), buildMudRollClip(group)];
+  const shippedNames = shipped.map((animation) => animation.name);
   // Pre-flight against the real baked skeleton: a missing bone fails here, with
   // the full list, instead of after Blender has written a GLB.
   buildStegoClips(group, officialBytes);
@@ -218,7 +226,7 @@ export async function bakeStegoVariant(options = {}) {
     if (result.status !== 0) {
       throw new Error(`Blender Draco pass failed (exit ${result.status}). Uncompressed export kept at ${tmpIn}.`);
     }
-    const injected = injectGlbAnimations(await readFile(tmpOut), shipped);
+    const injected = injectGlbAnimations(await readFile(tmpOut), shipped, { requiredClipNames: shippedNames });
     assertAuthoredClipsPreserved(injected, shipped);
     await writeFile(tmpOut, injected);
     await rename(tmpOut, outPath);

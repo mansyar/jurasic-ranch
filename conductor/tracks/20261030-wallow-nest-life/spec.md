@@ -54,7 +54,7 @@ never go there, and when they stop they look switched off.
 - Re-shipping Polyfork's authored `Idle` for Trike, Stego and Brachio, and
   teaching the loader and player to blend it against `Walk`.
 - A bespoke `MudRoll` clip for Stego, authored by a checked-in deterministic
-  Blender script and baked into `stego.glb`.
+module and baked into `stego.glb`.
 - A per-animal visit state machine: idle, approach, arrive, dwell, return.
 - Parameterising the wander ring (centre + radius) so a visit can give an animal
   a different home for its duration, without changing today's wander.
@@ -85,7 +85,7 @@ never go there, and when they stop they look switched off.
 | FR-3 | The wander ring is a centre and a radius held per player. With no visit active it is the world-origin circle at the gait radius, so wander behaviour is unchanged to the millimetre. | must |
 | FR-4 | A visit is a per-animal state machine — `idle`, `approach`, `arrive`, `dwell`, `return` — with approach and return durations derived from the distance and the animal's own walk speed, and dwell derived from the clip that plays there. | must |
 | FR-5 | Each corner publishes an anchor and an arrival radius: the wallow's mud centre, the hay nest's centre, the browse tree's foot. On arrival the animal faces the corner, so the camera sees it using the place rather than standing across it. | must |
-| FR-6 | Stego's `MudRoll` clip is authored by a checked-in, deterministic Blender script, plays once on arrival, and returns to `Idle`. Re-running the script reproduces the clip. | must |
+| FR-6 | Stego's `MudRoll` clip is authored by a checked-in, deterministic authoring module (`scripts/vendor/mud-roll-clip.js`), plays once on arrival, and returns to `Idle`. Re-running the bake reproduces the clip byte-for-byte. *Amended 2026-10-30 during Phase 3: authored in Node, not Blender.* | must |
 | FR-7 | Trike dwells on `Idle` with a straw puff; Brachio dwells on `Idle` with a leaf drift from the plum tree. Neither gets a bespoke clip this track. | must |
 | FR-8 | Tapping a corner's prop calls that animal. The tap answers with the existing sparkle inside 100 ms, and the animal sets off afterwards. A per-corner cooldown stops repeated taps from thrashing the state machine. | must |
 | FR-9 | An autonomous visit fires per animal on a seeded timer near 45 s, jittered so the three never march out in lockstep, and only while walking is on. All three may be out at the same time. | must |
@@ -149,7 +149,7 @@ never go there, and when they stop they look switched off.
 ## Dependencies
 
 - **Tracks:** none. Built on `main` at `c5c385c` (ranch vista merged).
-- **External:** Blender 5.2.3 locally for the Stego bake — the script is checked in and the resulting GLB is committed, so CI never needs Blender. Polyfork's licence is unchanged: the `Idle` clip arrives through the existing bake of an already-licensed asset.
+- **External:** Blender 5.2.3 locally for the Stego mesh bake (Draco) - CI never needs it. The `MudRoll` clip needs no Blender at all: the bake injects clip channels into the compressed GLB's JSON chunk, and Blender's glTF round trip re-times animation onto its own frame clock, so an action authored there could never reach the shipped file. Polyfork's licence is unchanged: the `Idle` clip arrives through the existing bake of an already-licensed asset.
 
 ## Open Questions & Assumptions
 

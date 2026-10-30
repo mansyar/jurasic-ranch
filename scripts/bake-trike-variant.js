@@ -435,6 +435,14 @@ export const PUBLISHED_CLIP_NAMES = ['Idle', 'Walk', 'Run'];
 export const SHIPPED_CLIP_NAMES = ['Idle', 'Walk'];
 
 /**
+ * Clips authored in this repo rather than published by Polyfork. They are not
+ * part of SHIPPED_CLIP_NAMES because they are not read from the donor GLB -
+ * the Stego bake builds MudRoll itself - but a re-bake that reads a shipped
+ * GLB must not treat its own output as foreign.
+ */
+export const BESPOKE_CLIP_NAMES = ['MudRoll'];
+
+/**
  * Keep only the clips that ship, refusing a clip set that drifted.
  *
  * Accepts either the published download (Idle, Walk, Run) or an already-shipped
@@ -445,7 +453,8 @@ export const SHIPPED_CLIP_NAMES = ['Idle', 'Walk'];
  */
 export function selectShippedClips(authored, names = SHIPPED_CLIP_NAMES) {
   const found = authored.map((animation) => animation.name);
-  const unexpected = found.filter((name) => !PUBLISHED_CLIP_NAMES.includes(name));
+  const allowed = [...PUBLISHED_CLIP_NAMES, ...BESPOKE_CLIP_NAMES];
+  const unexpected = found.filter((name) => !allowed.includes(name));
   if (unexpected.length > 0) {
     throw new Error(
       `GLB carries clip(s) ${unexpected.join(', ')} and Polyfork publishes ${PUBLISHED_CLIP_NAMES.join(', ')}; ` +

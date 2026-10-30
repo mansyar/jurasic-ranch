@@ -156,7 +156,11 @@ describe.each(SPECIES)('$file bone displacement', (species) => {
     // transfer this gate exists to keep out.
     expect(byName.has('Waddle')).toBe(false);
     // FR-1: the rest loop rides along with the walk, so a stopped dino breathes.
-    expect([...byName.keys()].sort()).toEqual(['Idle', 'Walk']);
+    // MudRoll is Stego's own wallow clip (track 20261030-wallow-nest-life);
+    // it is the only bespoke clip, so only Stego carries a third.
+    const expectedClips =
+      species.file === 'stego.glb' ? ['Idle', 'MudRoll', 'Walk'] : ['Idle', 'Walk'];
+    expect([...byName.keys()].sort()).toEqual(expectedClips);
     // Run is withdrawn (NFR-2): the bake ships two of the three published clips.
     expect(byName.has('Run')).toBe(false);
     expect(byName.get('Idle')).toBeCloseTo(species.idleSeconds, 3);
